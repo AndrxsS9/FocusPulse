@@ -24,8 +24,8 @@ class RoundLayout {
     const TOP_Y = 130;           // batería / título de la pantalla
     const TIME_Y = 335;          // hora grande (centro del orbe IA)
     const DATE_Y = 470;          // fecha corta bajo la hora
-    const SCORE_Y = 565;         // "ALERTA" + porcentaje de alerta
-    const PILL_Y = 660;          // píldora de estado
+    const SCORE_Y = 558;         // "ALERTA" + porcentaje de alerta
+    const PILL_Y = 648;          // píldora de estado
     const BUTTON_TOP = 720;      // borde superior del botón grande
     const BUTTON_HEIGHT = 140;
     const BUTTON_MAX_WIDTH = 580;
@@ -140,6 +140,12 @@ class RoundLayout {
         }
         var halfFlat = Math.sqrt(reach * reach - dy * dy).toNumber();
         return 2 * halfFlat + h;
+    }
+
+    //! true si el toque (x, y) cae en el área táctil del botón grande. Es mayor que el
+    //! botón dibujado para perdonar toques imprecisos (docs/DISENO.md §6).
+    function hitsButton(x as Number, y as Number) as Boolean {
+        return buttonTouchRect.contains(x, y);
     }
 
     private function toScreenY(permille as Number) as Number {

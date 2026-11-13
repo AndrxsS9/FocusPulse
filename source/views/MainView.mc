@@ -44,6 +44,8 @@ class MainView extends WatchUi.View {
     private var _statusActive as String = "";
     private var _statusSensorUnavailable as String = "";
     private var _statusDemo as String = "";
+    private var _buttonStart as String = "";
+    private var _buttonPause as String = "";
 
     function initialize(guard as GuardController) {
         View.initialize();
@@ -60,6 +62,8 @@ class MainView extends WatchUi.View {
         _statusActive = WatchUi.loadResource(Rez.Strings.StatusActive) as String;
         _statusSensorUnavailable = WatchUi.loadResource(Rez.Strings.StatusSensorUnavailable) as String;
         _statusDemo = WatchUi.loadResource(Rez.Strings.StatusDemo) as String;
+        _buttonStart = WatchUi.loadResource(Rez.Strings.ButtonStartGuard) as String;
+        _buttonPause = WatchUi.loadResource(Rez.Strings.ButtonPauseGuard) as String;
     }
 
     function onUpdate(dc as Dc) as Void {
@@ -93,6 +97,7 @@ class MainView extends WatchUi.View {
         drawClock(dc, layout);
         drawScore(dc, layout, score);
         drawStatus(dc, layout);
+        drawButton(dc, layout);
     }
 
     //! Ícono de batería y porcentaje real, centrados en topY.
@@ -165,6 +170,23 @@ class MainView extends WatchUi.View {
         if (_guard.isDemoSource()) {
             Draw.centeredText(dc, layout.centerX, layout.footerY, Typography.LABEL, _statusDemo,
                 Palette.TEXT_SECONDARY);
+        }
+    }
+
+    //! Botón grande: "Iniciar guardia" (cian, texto oscuro) o "Pausar guardia"
+    //! (superficie con borde, texto claro). Si el texto no cabe, baja la fuente.
+    //! START y un toque en layout.buttonTouchRect hacen lo mismo (MainDelegate).
+    private function drawButton(dc as Dc, layout as RoundLayout) as Void {
+        var rect = layout.buttonRect;
+        if (_guard.isActive()) {
+            Draw.largeButton(dc, rect, _buttonPause, Typography.BODY, Palette.SURFACE, Palette.TEXT);
+            dc.setPenWidth(2);
+            dc.setColor(Palette.BORDER_STRONG, Graphics.COLOR_TRANSPARENT);
+            dc.drawRoundedRectangle(rect.x, rect.y, rect.width, rect.height, rect.height / 2);
+            dc.setPenWidth(1);
+        } else {
+            Draw.largeButton(dc, rect, _buttonStart, Typography.BODY, Palette.ACCENT,
+                Palette.BACKGROUND);
         }
     }
 }
