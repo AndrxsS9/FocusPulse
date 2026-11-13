@@ -26,10 +26,18 @@ class MainView extends WatchUi.View {
     //! Separación (px, en milésimas) entre el ícono de batería y su porcentaje.
     const BATTERY_GAP = 15;
 
+    //! Separación (en milésimas) entre "ALERTA" y el porcentaje.
+    const SCORE_GAP = 20;
+
+    //! Fuente del porcentaje de alerta. Es de texto (no FONT_NUMBER_*) porque lleva "%",
+    //! que las fuentes numéricas del reloj quizá no tengan (docs/PENDIENTES.md).
+    const SCORE_FONT = Graphics.FONT_SMALL;
+
     private var _guard as GuardController;
     private var _layout as RoundLayout?;
 
     private var _percentFormat as String = "";
+    private var _alertLabel as String = "";
     private var _dateFormat as String = "";
     private var _dateLowercase as Boolean = false;
     private var _statusPaused as String = "";
@@ -45,6 +53,7 @@ class MainView extends WatchUi.View {
     function onLayout(dc as Dc) as Void {
         _layout = new RoundLayout(dc.getWidth(), dc.getHeight());
         _percentFormat = WatchUi.loadResource(Rez.Strings.PercentFormat) as String;
+        _alertLabel = WatchUi.loadResource(Rez.Strings.LabelAlertShort) as String;
         _dateFormat = WatchUi.loadResource(Rez.Strings.DateFormat) as String;
         _dateLowercase = (WatchUi.loadResource(Rez.Strings.DateCase) as String).equals("lower");
         _statusPaused = WatchUi.loadResource(Rez.Strings.StatusPaused) as String;
@@ -64,7 +73,7 @@ class MainView extends WatchUi.View {
         Draw.clear(dc, Palette.BACKGROUND);
         drawOrb(dc, layout, score);
         drawRing(dc, layout, score);
-        drawContent(dc, layout);
+        drawContent(dc, layout, score);
     }
 
     //! Orbe IA detrás de la hora. Reservado para la fase siguiente: el espacio
@@ -79,9 +88,10 @@ class MainView extends WatchUi.View {
             score, Palette.RING_TRACK, AlertnessColors.colorForAlertness(score));
     }
 
-    private function drawContent(dc as Dc, layout as RoundLayout) as Void {
+    private function drawContent(dc as Dc, layout as RoundLayout, score as Number) as Void {
         drawBattery(dc, layout);
         drawClock(dc, layout);
+        drawScore(dc, layout, score);
         drawStatus(dc, layout);
     }
 
@@ -121,18 +131,37 @@ class MainView extends WatchUi.View {
             Palette.TEXT_SECONDARY);
     }
 
-    //! Estado provisional en texto (la píldora llega en el siguiente paso).
+    //! "ALERTA" en etiqueta pequeña y el porcentaje en el color del anillo, centrados
+    //! juntos en scoreY.
+    private function drawScore(dc as Dc, layout as RoundLayout, score as Number) as Void {
+        var text = Lang.format(_percentFormat, [score]);
+        var gap = layout.scaled(SCORE_GAP);
+        var labelWidth = dc.getTextWidthInPixels(_alertLabel, Typography.LABEL);
+        var left = layout.centerX - (labelWidth + gap + dc.getTextWidthInPixels(text, SCORE_FONT)) / 2;
+        var justify = Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER;
+
+        dc.setColor(Palette.TEXT_SECONDARY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left, layout.scoreY, Typography.LABEL, _alertLabel, justify);
+        dc.setColor(AlertnessColors.colorForAlertness(score), Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left + labelWidth + gap, layout.scoreY, SCORE_FONT, text, justify);
+    }
+
+    //! Píldora de estado: en pausa (gris), guardia activa (cian, con punto) o sensor no
+    //! disponible (ámbar). El punto se animará en la fase siguiente.
     private function drawStatus(dc as Dc, layout as RoundLayout) as Void {
         var text = _statusPaused;
         var color = Palette.TEXT_SECONDARY;
-        if (_guard.isActive()) {
+        var active = _guard.isActive();
+        if (active) {
             text = _statusActive;
             color = Palette.ACCENT;
         } else if (_guard.isSensorUnavailable()) {
             text = _statusSensorUnavailable;
             color = Palette.AMBER;
         }
-        Draw.centeredText(dc, layout.centerX, layout.pillY, Typography.LABEL, text, color);
+        Draw.statusPill(dc, layout.centerX, layout.pillY, text, Typography.LABEL, color,
+            Palette.SURFACE, Palette.BORDER_STRONG, active);
+
         if (_guard.isDemoSource()) {
             Draw.centeredText(dc, layout.centerX, layout.footerY, Typography.LABEL, _statusDemo,
                 Palette.TEXT_SECONDARY);

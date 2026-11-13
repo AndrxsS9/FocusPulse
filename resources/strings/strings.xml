@@ -21,6 +21,8 @@
 
     <!-- Pantalla principal -->
     <string id="LabelAlertness">Alertness</string>
+    <!-- Etiqueta corta junto al porcentaje de la esfera (mayúsculas a propósito). -->
+    <string id="LabelAlertShort">ALERT</string>
 
     <!-- Esfera principal. Formatos: $1$, $2$… son valores. -->
     <string id="PercentFormat">$1$%</string>

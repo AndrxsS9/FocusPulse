@@ -80,6 +80,39 @@ module Draw {
         return rect;
     }
 
+    //! Píldora de estado con un punto opcional a la izquierda del texto (p. ej. la
+    //! guardia activa). Mismo alto que pill(); el punto mide un tercio del alto y va en
+    //! el color del texto. Devuelve el rectángulo ocupado.
+    function statusPill(dc as Dc, cx as Number, cy as Number, text as String, font as FontType,
+            textColor as Number, fillColor as Number, borderColor as Number,
+            showDot as Boolean) as Rect {
+        if (!showDot) {
+            return pill(dc, cx, cy, text, font, textColor, fillColor, borderColor);
+        }
+        var height = pillHeight(dc, font);
+        var dotRadius = height / 6;
+        var gap = height / 4;
+        var textWidth = dc.getTextWidthInPixels(text, font);
+        var contentWidth = 2 * dotRadius + gap + textWidth;
+        var width = contentWidth + height;
+        var rect = new Rect(cx - width / 2, cy - height / 2, width, height);
+        var corner = height / 2;
+
+        dc.setColor(fillColor, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(rect.x, rect.y, rect.width, rect.height, corner);
+        dc.setPenWidth(2);
+        dc.setColor(borderColor, Graphics.COLOR_TRANSPARENT);
+        dc.drawRoundedRectangle(rect.x, rect.y, rect.width, rect.height, corner);
+        dc.setPenWidth(1);
+
+        var left = cx - contentWidth / 2;
+        dc.setColor(textColor, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(left + dotRadius, cy, dotRadius);
+        dc.drawText(left + 2 * dotRadius + gap, cy, font, text,
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        return rect;
+    }
+
     //! Alto de una píldora con texto en font (para colocarla antes de dibujarla).
     function pillHeight(dc as Dc, font as FontType) as Number {
         var fontHeight = dc.getFontHeight(font);
