@@ -116,7 +116,10 @@ pruebas son reproducibles.
 | `source/app` | `GuardController`, `AppSettings` | Inicia y pausa la guardia: fuente + grabación según el ajuste `recordActivity`. | 3 ✅ |
 | `source/views` | `DebugMenu`, `TelemetryDebugView` | Menú de depuración (`(:debug)`): telemetría en vivo, selector de fuente y escenario, guía de estilo. | 3 ✅ |
 | `resources/settings` | `recordActivity` | "Grabar guardia como actividad" (activado por defecto), editable desde Garmin Connect. | 3 ✅ |
-| `source/views` | Orbe IA, arco de escaneo | Animación detrás de la hora (`MainView.drawOrb`, ya reservado en el orden de dibujo) y punto que late en la píldora. | 5 |
+| `source/core` | `TrigTable` | Senos y cosenos precalculados con 1° de resolución. | 5 ✅ |
+| `source/core` | `OrbModel`, `OrbState` | Orbe IA: 3 anillos orgánicos, 16 partículas, estado (pausa / normal / activo / somnoliento) y velocidad por estado. | 5 ✅ |
+| `source/util` | `ColorMath`, `FrameStats` | Mezcla de colores con el fondo (transparencia simulada) y medición de cuadros por segundo y tiempo de dibujo. | 5 ✅ |
+| `source/views` | `MainView` (orbe, arco, latido) | Dibujo animado a ≈12 cuadros/s con la guardia activa; ver [DISENO.md](DISENO.md) §5.2. | 5 ✅ |
 | `source/core` | `FeatureExtractor` | Inclinación respecto a la gravedad y caída brusca, sobre la ventana de la fase 3. | 6 |
 | `source/core` | `NodDetector` | Máquina de estados heurística: postura estable → caída de cabeza/muñeca → inmovilidad. Calibración inicial por usuario. Reemplaza o alimenta a `AlertnessScore`. | 6 |
 | `source/core` | `AlertEscalator` | Decide el nivel de alerta (1 suave → 3 intenso) y cuándo reiniciar. | 7 |
@@ -158,7 +161,7 @@ los módulos de las fases siguientes:
 | 2 | Sistema de diseño: paleta, tipografía, layout redondo, utilidades de dibujo, textos es/en, ícono y guía de estilo. |
 | 3 | Telemetría del acelerómetro (real + simulada), ventana de características y grabación de la guardia. ✅ |
 | 4 | Esfera principal: anillo de alerta, batería, hora, fecha, puntaje provisional, píldora, botón de guardia y marca DEMO. ✅ |
-| 5 | Orbe IA animado, arco de escaneo y punto que late. |
+| 5 | Orbe IA animado, arco de escaneo y punto que late. ✅ |
 | 6 | Inclinación y detector heurístico de cabeceos/micro-sueño con calibración. |
 | 7 | Alertas con vibración progresiva y pantalla de alerta. |
 | 8 | Modo demo interno para simular eventos. |
@@ -182,5 +185,8 @@ número respecto al plan inicial.
   demo se reutilizan como datos de prueba del detector.
 - Fase 3: 42 pruebas en total; las nuevas cubren `RingBuffer`, `SlidingWindow`,
   `TelemetryEngine` y la firma de cada escenario de `SimulatedAccelSource`.
+- Fase 5: 74 pruebas; las nuevas cubren `TrigTable`, `OrbModel` (radio máximo,
+  determinismo, velocidad por estado, paleta en 60/59/35/34, brillo de partículas),
+  `ColorMath` y `FrameStats`.
 - Fase 4: 57 pruebas; las nuevas cubren `AlertnessScore` (dirección según el escenario,
   límites, pausa, independencia de dt), `ClockFormat` y el hit-testing del botón.

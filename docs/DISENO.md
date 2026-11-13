@@ -22,8 +22,9 @@ En AMOLED cada píxel negro está apagado: no consume batería ni se desgasta.
    ser imposible de ignorar y dura pocos segundos.
 3. **Color en trazos, no en áreas**: el anillo, los bordes y el texto llevan el color; los
    rellenos de píldoras usan `SURFACE`, que es casi negro.
-4. **Sin animaciones continuas innecesarias.** El orbe IA solo gira mientras la guardia está
-   activa y la pantalla encendida (fases siguientes); nada se anima en pausa.
+4. **Sin animaciones continuas innecesarias.** El orbe IA, el arco de escaneo y el latido
+   solo se animan con la guardia activa y la vista en primer plano (el timer se detiene en
+   `onHide`); en pausa el orbe queda quieto y tenue. Ver la sección 5.2.
 5. **Nada fijo durante mucho tiempo en la misma posición y a brillo alto** (quemado):
    la hora y el anillo cambian, y los elementos estáticos usan colores apagados.
 
@@ -38,6 +39,9 @@ Contraste calculado con la fórmula WCAG 2.x contra `BACKGROUND`.
 | `SURFACE` | `0x11151B` | Relleno de píldoras y tarjetas pequeñas. | — |
 | `BORDER` | `0x1C222B` | Pista del anillo de progreso (guía de estilo), separadores. | decorativo |
 | `RING_TRACK` | `0x1A1F27` | Pista del anillo de nivel de la esfera principal (parte sin avance). | decorativo |
+
+Los colores atenuados del orbe, el arco y el halo no son tokens nuevos: se calculan con
+`ColorMath.blend(token, BACKGROUND, opacidad)` a partir de los tokens de esta tabla.
 | `BORDER_STRONG` | `0x2E3743` | Contorno de controles, puntos de página inactivos. | 1,7:1 (decorativo) |
 | `TEXT` | `0xF5F7FA` | Texto principal, botón de la alerta. | 18,6:1 |
 | `TEXT_SECONDARY` | `0x9AA4B2` | Estados, ayudas, etiquetas. | 7,9:1 |
@@ -186,10 +190,10 @@ en español e inglés. Medidas reales en el fr165 (390×390):
 | Botón (`buttonRect`) | "Iniciar guardia" o "Pausar guardia"; `fittingFont` baja de `BODY` si no cabe ("Iniciar guardia" va en `FONT_TINY`). | `BODY` → `TINY` | inicio: `ACCENT` con texto `BACKGROUND`; pausa: `SURFACE` + borde `BORDER_STRONG`, texto `TEXT` |
 | Marca DEMO (`footerY` 352) | Solo con la fuente simulada. | `LABEL` | `TEXT_SECONDARY` |
 
-**Orden de dibujo:** fondo → orbe IA (reservado: `drawOrb` vacío hasta la fase siguiente,
-dentro de `orbRadius` = 97 px alrededor de la hora) → anillo → contenido.
+**Orden de dibujo:** fondo → orbe IA y partículas → anillo de alerta y arco de escaneo →
+contenido. Ver la sección 5.2.
 
-**Refresco:** un `Timer` redibuja cada 1000 ms en pausa y cada 200 ms con la guardia activa
+**Refresco:** un `Timer` redibuja cada 1000 ms en pausa y cada 83 ms con la guardia activa
 (`REFRESH_PAUSED_MS` / `REFRESH_ACTIVE_MS`); se detiene en `onHide` y se reanuda en `onShow`
 (verificado en el simulador con *Settings > Force onHide / Force onShow*). El puntaje no
 depende del timer: lo actualiza cada lote de telemetría.
@@ -200,7 +204,63 @@ pausan la guardia; un toque en cualquier otra parte no hace nada. Ver la secció
 **AMOLED:** el único relleno claro es el botón "Iniciar guardia" (226×54 px); con la guardia
 activa el botón pasa a `SURFACE`, así que durante la guardia no queda ningún relleno claro.
 
-### 5.2 Funciones de dibujo
+### 5.2 Orbe IA (fase 5)
+
+El "orbe IA" detrás de la hora muestra de un vistazo cómo ve la app al usuario: su
+**color** sigue el puntaje de alerta y su **velocidad** sigue lo que está haciendo.
+
+**Forma.** 3 anillos delgados (2 px) de forma orgánica, no círculos: cada uno es la curva
+polar `r(θ) = R · (1 + a1·sin(2θ + φ1) + a2·sin(3θ + φ2))` muestreada en 36 puntos
+(`OrbModel.POINTS`). Los anillos giran a velocidades distintas (24, −36 y 16 °/s; el del
+medio al revés) y sus fases φ avanzan, así que la forma "respira". Alrededor, 16 partículas
+titilan con una onda de brillo desfasada entre ellas (ángulo áureo). El cálculo vive en
+`source/core/OrbModel.mc` y usa `TrigTable` (senos precalculados): ni un `Math.sin` por cuadro.
+
+**Estados** (`OrbModel.stateFor`, por orden de prioridad):
+
+| Estado | Cuándo | Velocidad | Qué representa |
+|---|---|---|---|
+| Pausa | Guardia en pausa. | 0 (quieto) | Nadie vigila: orbe tenue (opacidad × 0,45), partículas fijas al 30 %. |
+| Somnoliento | La ventana de 2 s está quieta (varianza < 100 mg²). | 0,35× (cámara lenta) | "Se está durmiendo": la muñeca dejó de moverse. |
+| Activo | Varianza > 1500 mg² (tecleo). | 2× | Mucha actividad: gira el doble y las partículas titilan más rápido. |
+| Somnoliento | Puntaje < 60. | 0,35× | El puntaje ya entró en la banda ámbar o roja. |
+| Normal | El resto. | 1× | Movimiento tranquilo. |
+
+La actividad alta tiene prioridad sobre un puntaje bajo: si el usuario vuelve a moverse,
+el orbe se acelera enseguida aunque el puntaje todavía esté subiendo.
+
+**Color.** `AlertnessColors.orbPalette(puntaje)`, exterior → interior: cian / cian claro /
+violeta (≥ 60), ámbar / naranja / violeta (35–59), rojo / rojo intenso / naranja (< 35).
+El anillo exterior siempre coincide con el anillo de alerta. Las partículas usan el
+segundo color.
+
+**Transparencia.** El fr165 no tiene `Dc.setStroke` ni `Dc.setFill` en tiempo de ejecución
+(el simulador da *Symbol Not Found* aunque `compiler.json` marque `alphaBlendingSupport`).
+Por eso la opacidad (60 %, 45 % y 35 % por anillo; hasta 70 % en las partículas) se
+precalcula mezclando el color con el fondo (`ColorMath.blend`). Sobre `BACKGROUND` el
+resultado es idéntico a un trazo con alfa.
+
+**Posición.** Centro 9 px por debajo de la hora y radio de 85 px (88 % de `orbRadius`), así
+que el orbe va de y ≈ 55 a y ≈ 225: no toca la batería y queda detrás de la hora, la fecha
+y el puntaje. Con esas opacidades la hora (`TEXT`, 18,6:1) sigue leyéndose sin esfuerzo.
+Las partículas van en el hueco entre el círculo seguro del contenido y el anillo de alerta
+(radio ≈ 173 px), lejos de cualquier texto.
+
+**Arco de escaneo.** Con la guardia activa, un arco de 15° cian (3 tramos: la cabeza al 55 %
+de opacidad y la cola desvaneciéndose) gira en sentido horario por dentro del anillo de
+alerta, una vuelta cada 3 s. Indica que la app está vigilando.
+
+**Latido.** El punto de la píldora "Guardia activa" emite un halo que crece de 1 a 2,5 veces
+su radio y se desvanece, cada 1,6 s.
+
+**Refresco y rendimiento.** Con la guardia activa se redibuja cada 83 ms (≈12 cuadros/s);
+en pausa, una vez por segundo con el orbe quieto. `MainView.ANIMATIONS_ENABLED = false`
+apaga orbe, arco y latido (para el futuro ajuste "Animaciones reducidas"). En depuración,
+`FrameStats` escribe en la consola cada 5 s los cuadros por segundo reales, el tiempo de
+dibujo y el estado del orbe. Medido en el simulador (fr165 y fr165m): 12,2–13,4 cuadros/s
+con la guardia activa y 7–12 ms de dibujo medio; ver `PENDIENTES.md`.
+
+### 5.3 Funciones de dibujo
 
 Funciones en `source/util/Draw.mc`:
 
@@ -209,7 +269,7 @@ Funciones en `source/util/Draw.mc`:
 | Texto centrado | `Draw.centeredText` | Centrado en ambos ejes. |
 | Anillo de progreso | `Draw.progressRing` | Pista completa en `BORDER` + avance con `drawArc` desde las 12 en punto en sentido horario, extremos redondos. Color del avance: `colorForAlertness`. |
 | Píldora de estado | `Draw.pill` | Relleno `SURFACE`, borde `BORDER_STRONG`, texto de color. Devuelve su `Rect`; `Draw.pillHeight` da su alto antes de dibujarla, para colocar el resto alrededor. |
-| Píldora con punto | `Draw.statusPill` | Igual que `pill`, con un punto del color del texto delante (guardia activa). |
+| Píldora con punto | `Draw.statusPill` | Igual que `pill`, con un punto del color del texto delante (guardia activa) y, con `pulse` entre 0 y 1, el halo del latido. |
 | Batería | `Draw.battery` | Cuerpo redondeado + borne, relleno proporcional al porcentaje. |
 | Botón grande | `Draw.largeButton` | `fillRoundedRectangle` con extremos redondos. Cian con texto oscuro en la pantalla principal; blanco con texto oscuro en la alerta. Si el texto no cabe, reduce la fuente con `Draw.fittingFont`. |
 | Indicador de página | `Draw.pageDots` | Punto actual en `ACCENT`, el resto en `BORDER_STRONG`. |
