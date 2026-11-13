@@ -1,0 +1,13 @@
+# FocusPulse AI - configuracion de compilacion (Monkey C jungle)
+#
+# - El codigo de la app vive en source/ y las pruebas en tests/.
+#   Las funciones de prueba llevan la anotacion (:test) y solo se incluyen
+#   al compilar con la opcion -t (ver scripts/test.ps1).
+# - Los recursos por defecto (ingles) viven en resources/ y los textos en
+#   espanol en resources-spa/, que el compilador detecta por convencion
+#   del sufijo de idioma.
+
+project.manifest = manifest.xml
+
+base.sourcePath = source;tests
+base.resourcePath = resources
