@@ -1,7 +1,7 @@
 # Pendientes de verificar
 
 Las fases 1 y 2 se compilaron, probaron y revisaron en el simulador con el **Connect IQ SDK
-9.3.0** (2026-11-12), y las fases 3 y 4 el 2026-11-13. La primera sección resume lo que quedó confirmado; el resto del
+9.3.0** (2026-11-12), y las fases 3, 4 y 5 el 2026-11-13. La primera sección resume lo que quedó confirmado; el resto del
 documento lista **solo lo que sigue abierto**. Al cerrar un punto, muévelo a la sección de
 datos confirmados o bórralo, y corrige el código si algo no coincide.
 
@@ -114,6 +114,36 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
   ±70 mg, por encima del umbral de actividad alta del puntaje (1 500 mg²): el puntaje lo
   trataba como tecleo. Ahora usa ruido triangular dentro de ±70 mg (≈600–800 mg²).
 
+### Orbe IA y animación (fase 5, simulador)
+
+- Las **74 pruebas** pasan (17 nuevas: `TrigTable`, `OrbModel`, `ColorMath`, `FrameStats`).
+- **`Dc.setStroke` / `Dc.setFill` no existen en el fr165** en tiempo de ejecución: la app se
+  cerró con *Symbol Not Found Error: Could not find symbol 'setStroke'*, aunque
+  `compiler.json` diga `alphaBlendingSupport: true` y la doc lo liste. La transparencia se
+  simula mezclando el color con el fondo (`ColorMath.blend`).
+- Medido con `FrameStats` (ventanas de 5 s, salida de consola de la compilación de
+  depuración), misma sesión del simulador cambiando el escenario desde el menú de
+  depuración. El tiempo del orbe confirma la velocidad de cada estado:
+
+  | Estado | Cuadros/s | Dibujo medio (máx.) | Tiempo del orbe por cada 5 s |
+  |---|---|---|---|
+  | Pausa | 1,2–1,6 | 4–13 ms (16) | 0 (quieto) |
+  | Normal | 12,6–13,2 | 3,4–8,1 ms (16) | ≈ 5,1 s (1×) |
+  | Tecleo (activo) | 12,4–13,4 | 3,4–6,0 ms (16) | ≈ 10,3 s (2×) |
+  | Inactividad (somnoliento) | 12,2–13,2 | 9–12,7 ms (32) | ≈ 1,8 s (0,36×) |
+  | fr165m, inactividad | 12,2–13,2 | 6,9–12 ms (16) | ≈ 1,8 s |
+
+  Pasan algo más de 12 cuadros/s porque cada lote de telemetría (1 por segundo) pide su
+  propio redibujo. `System.getTimer()` en Windows avanza a saltos de ≈16 ms, así que el
+  máximo de 16 o 32 ms es la resolución del reloj, no un cuadro lento. Con un periodo de
+  83 ms queda mucho margen; no hizo falta bajar N ni los cuadros por segundo, ni usar un
+  `BufferedBitmap`. Memoria de la app en el simulador: **44 de 764 kB**.
+- En inactividad el orbe pasó de cian a ámbar y a rojo (captura a 0 %) a cámara lenta; en
+  tecleo siguió cian y al doble de velocidad. El arco gira y el punto late (capturas en dos
+  momentos del ciclo con el halo de distinto tamaño). No tapa la hora.
+- El paso por ámbar quedó en el registro (estado somnoliento) pero no en una captura: la
+  paleta en 60/59/35/34 la cubren las pruebas.
+
 ## 1. Entorno
 
 - [ ] **Hacer copia de seguridad de la llave** `%USERPROFILE%\Downloads\FocusPulse-keys\`
@@ -169,12 +199,25 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
       puesto, y que la píldora, cuyo borde inferior queda 3 px dentro del área táctil del
       botón, no provoque toques no deseados.
 - [ ] **Quemado AMOLED:** la hora en `TEXT` y la marca DEMO no se mueven. Para guardias
-      largas, valorar un desplazamiento de unos píxeles cada minuto (fase 12).
+      largas, valorar un desplazamiento de unos píxeles cada minuto (fase 12). El orbe y las
+      partículas sí se mueven, pero en pausa quedan fijos (tenues).
+- [ ] Ver en el reloj real que el arco de escaneo (3 px, cian al 55 %) y el orbe tenue en
+      pausa se distinguen con brillo bajo, y que el orbe no resta legibilidad a la hora al
+      sol.
 
 ## 4. Compilación y memoria
 
-- [ ] Consumo de batería de una guardia larga grabando actividad (25 Hz + FIT) frente a sin
-      grabar, y del redibujo a 5 Hz con la guardia activa (fase 12).
+- [ ] **Batería de la animación (fase 12):** medir en el reloj real el consumo de una guardia
+      larga con el orbe a ≈12 cuadros/s frente a `ANIMATIONS_ENABLED = false` (1 cuadro/s),
+      además del de grabar la actividad (25 Hz + FIT). Según el resultado, bajar la tasa con
+      la pantalla atenuada, apagar la animación tras unos minutos sin mirar el reloj o
+      ofrecer el ajuste "Animaciones reducidas".
+- [ ] Tiempo de dibujo **en el reloj real**: el simulador corre en el PC y no refleja la CPU
+      del fr165. Si un cuadro supera unos 60 ms, reducir `OrbModel.POINTS` (36 → 24) o la
+      tasa, o dibujar la capa fija (pista del anillo, partículas en pausa) en un
+      `BufferedBitmap`.
+- [ ] Comprobar en el reloj si `setStroke`/`setFill` (alfa real) existen en el firmware; si
+      sí, valorar usarlos con un `has` en lugar de la mezcla precalculada.
 - [ ] Comprobar en tiempo de ejecución que el `.prg` release no contiene la guía de estilo ni
       el menú de depuración: mantener UP en la app instalada desde el `.iq` no debe abrir nada.
 - [ ] Las funciones auxiliares sin `(:test)` de `tests/` (`colorsMatch`, `insideCircle`) y

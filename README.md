@@ -7,12 +7,14 @@ FocusPulse AI detecta **micro-sueños y cabeceos** a partir del acelerómetro de
 despierta al usuario con **vibraciones progresivas**. Incluye un **modo demo** interno para
 simular eventos sin necesidad de dormirse frente al reloj.
 
-> Estado: **Fase 4 — esfera principal**. La pantalla inicial es la esfera de guardia: anillo de
+> Estado: **Fase 5 — orbe IA animado**. La pantalla inicial es la esfera de guardia: anillo de
 > nivel de alerta en el borde, batería, hora, fecha, porcentaje de alerta, píldora de estado
-> y botón grande "Iniciar guardia" (START o un toque en el botón). Durante la guardia se lee
-> el acelerómetro a 25 Hz (o una fuente simulada, marcada como "DEMO") y un puntaje de alerta
-> provisional sube con la actividad y baja con la quietud. La guardia se puede grabar como
-> actividad. La detección de cabeceos y las alertas llegan en las fases siguientes. Ver
+> y botón grande "Iniciar guardia" (START o un toque en el botón). Detrás de la hora, un orbe
+> IA de 3 anillos orgánicos cambia de color con el puntaje y de velocidad con la actividad
+> (quieto en pausa, el doble con tecleo, cámara lenta al quedarse quieto); con la guardia
+> activa gira un arco de escaneo y el punto de estado late. Durante la guardia se lee el
+> acelerómetro a 25 Hz (o una fuente simulada, marcada como "DEMO"). La detección de
+> cabeceos y las alertas llegan en las fases siguientes. Ver
 > [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) y [docs/DISENO.md](docs/DISENO.md).
 
 ## Requisitos
