@@ -10,6 +10,8 @@
     <string id="StatusCalibrating">Calibrating…</string>
     <string id="StatusSensorUnavailable">Sensor unavailable</string>
     <string id="StatusDemo">Demo mode</string>
+    <!-- Marca discreta de la esfera cuando la fuente es simulada. -->
+    <string id="BadgeDemo">DEMO</string>
 
     <!-- Nombre de la actividad grabada en el historial (máx. recomendado 15 caracteres) -->
     <string id="SessionName">Focus guard</string>

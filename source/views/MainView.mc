@@ -43,7 +43,7 @@ class MainView extends WatchUi.View {
     private var _statusPaused as String = "";
     private var _statusActive as String = "";
     private var _statusSensorUnavailable as String = "";
-    private var _statusDemo as String = "";
+    private var _badgeDemo as String = "";
     private var _buttonStart as String = "";
     private var _buttonPause as String = "";
 
@@ -61,7 +61,7 @@ class MainView extends WatchUi.View {
         _statusPaused = WatchUi.loadResource(Rez.Strings.StatusPaused) as String;
         _statusActive = WatchUi.loadResource(Rez.Strings.StatusActive) as String;
         _statusSensorUnavailable = WatchUi.loadResource(Rez.Strings.StatusSensorUnavailable) as String;
-        _statusDemo = WatchUi.loadResource(Rez.Strings.StatusDemo) as String;
+        _badgeDemo = WatchUi.loadResource(Rez.Strings.BadgeDemo) as String;
         _buttonStart = WatchUi.loadResource(Rez.Strings.ButtonStartGuard) as String;
         _buttonPause = WatchUi.loadResource(Rez.Strings.ButtonPauseGuard) as String;
     }
@@ -98,6 +98,7 @@ class MainView extends WatchUi.View {
         drawScore(dc, layout, score);
         drawStatus(dc, layout);
         drawButton(dc, layout);
+        drawDemoBadge(dc, layout);
     }
 
     //! Ícono de batería y porcentaje real, centrados en topY.
@@ -166,11 +167,6 @@ class MainView extends WatchUi.View {
         }
         Draw.statusPill(dc, layout.centerX, layout.pillY, text, Typography.LABEL, color,
             Palette.SURFACE, Palette.BORDER_STRONG, active);
-
-        if (_guard.isDemoSource()) {
-            Draw.centeredText(dc, layout.centerX, layout.footerY, Typography.LABEL, _statusDemo,
-                Palette.TEXT_SECONDARY);
-        }
     }
 
     //! Botón grande: "Iniciar guardia" (cian, texto oscuro) o "Pausar guardia"
@@ -187,6 +183,16 @@ class MainView extends WatchUi.View {
         } else {
             Draw.largeButton(dc, rect, _buttonStart, Typography.BODY, Palette.ACCENT,
                 Palette.BACKGROUND);
+        }
+    }
+
+    //! Marca "DEMO" bajo el botón cuando la fuente es simulada, para que en la
+    //! sustentación se sepa qué datos se ven. Texto pequeño en color secundario: no
+    //! compite con el contenido y casi no enciende píxeles.
+    private function drawDemoBadge(dc as Dc, layout as RoundLayout) as Void {
+        if (_guard.isDemoSource()) {
+            Draw.centeredText(dc, layout.centerX, layout.footerY, Typography.LABEL, _badgeDemo,
+                Palette.TEXT_SECONDARY);
         }
     }
 }
