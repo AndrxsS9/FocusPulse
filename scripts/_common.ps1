@@ -6,12 +6,15 @@ $ErrorActionPreference = 'Stop'
 
 # --- Rutas del proyecto -------------------------------------------------------
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
-$Device      = 'fr165'   # PENDIENTE: confirmar id exacto con el SDK Manager
+$Device      = 'fr165'   # Verificado con el SDK 9.3.0 (también existe fr165m)
 $JungleFile  = Join-Path $ProjectRoot 'monkey.jungle'
 $BinDir      = Join-Path $ProjectRoot 'bin'
 $AppPrg      = Join-Path $BinDir 'FocusPulse.prg'
 $TestPrg     = Join-Path $BinDir 'FocusPulse-test.prg'
 $StorePackage = Join-Path $BinDir 'FocusPulse.iq'
+
+# Nivel de verificación de tipos de monkeyc: 0 ninguno, 1 gradual, 2 informativo, 3 estricto.
+$TypeCheckLevel = 3
 
 # --- Llave de desarrollador (SIEMPRE fuera del repo) --------------------------
 $KeyDir       = Join-Path $env:USERPROFILE 'Downloads\FocusPulse-keys'
@@ -70,7 +73,8 @@ function Invoke-Build {
     Assert-DeveloperKey
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $OutputFile) | Out-Null
 
-    $monkeycArgs = @('-f', $JungleFile, '-d', $Device, '-o', $OutputFile, '-y', $DeveloperKey, '-w')
+    $monkeycArgs = @('-f', $JungleFile, '-d', $Device, '-o', $OutputFile, '-y', $DeveloperKey, '-w',
+                     '-l', $TypeCheckLevel)
     if ($UnitTest) { $monkeycArgs += '-t' }
 
     Invoke-Native (Get-SdkTool 'monkeyc') $monkeycArgs

@@ -20,6 +20,7 @@ New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
 
 Invoke-Native (Get-SdkTool 'monkeyc') @(
     '-e', '-r', '-w',
+    '-l', $TypeCheckLevel,
     '-f', $JungleFile,
     '-o', $StorePackage,
     '-y', $DeveloperKey
