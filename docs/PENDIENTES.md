@@ -1,7 +1,7 @@
 # Pendientes de verificar
 
 Las fases 1 y 2 se compilaron, probaron y revisaron en el simulador con el **Connect IQ SDK
-9.3.0** (2026-11-12). La primera sección resume lo que quedó confirmado; el resto del
+9.3.0** (2026-11-12), y la fase 3 el 2026-11-13. La primera sección resume lo que quedó confirmado; el resto del
 documento lista **solo lo que sigue abierto**. Al cerrar un punto, muévelo a la sección de
 datos confirmados o bórralo, y corrige el código si algo no coincide.
 
@@ -73,6 +73,26 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
   Se ven bien ¡, ñ, ·, … y tildes.
 - Alturas de fuente medidas en el fr165: ver `DISENO.md` §3.
 
+### Telemetría y grabación (fase 3, simulador)
+
+- Las **42 pruebas** pasan (22 nuevas: `RingBuffer`, `SlidingWindow`, `TelemetryEngine` y
+  firmas de los escenarios simulados). `build.ps1` y `export.ps1` siguen sin advertencias
+  con `-l 3`; el código `(:debug)` (menú, telemetría, selector) no entra en release.
+- **Frecuencia efectiva medida: 25,0 Hz** de 25 pedidos, tanto con la fuente simulada como
+  con el acelerómetro del simulador (1850 muestras en 74 lotes de 1 s, ≈75 s).
+- El **acelerómetro del simulador no entrega lotes** por sí solo: el registro funciona pero
+  llegan 0 muestras. Hay que abrir *Simulation > Activity Data*, dejar *Data Source* en
+  *Data Simulation* y pulsar ▶. Esos datos son vectores de 1 g en direcciones al azar
+  (varianza de la magnitud ≈0, sacudida > 1 700 mg), útiles solo para ver que llegan lotes.
+  Para datos con sentido se usa la fuente simulada del menú de depuración.
+- `ActivityRecording` funciona en el simulador: la sesión aparece en *Activity Data* (los
+  controles del temporizador pasan a *Stop/Pause*) y los FIT se guardan en
+  `%TEMP%\com.garmin.connectiq\GARMIN\Activities\`.
+- **El simulador se cierra con un error** (`0xc0000005` en `simulator.exe`) si la app termina
+  con una sesión **todavía grabando**, aunque `onStop` llame a `stop()` y `save()`. Pausar
+  antes de salir lo evita. Por eso `MainDelegate.onBack` detiene y guarda la guardia antes de
+  devolver el control al sistema; verificado: START → BACK ya no tumba el simulador.
+
 ## 1. Entorno
 
 - [ ] **Hacer copia de seguridad de la llave** `%USERPROFILE%\Downloads\FocusPulse-keys\`
@@ -83,14 +103,24 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 ## 2. Sensores y vibración (antes de las fases 3 y 6)
 
 - [ ] **Orientación de los ejes** x/y/z del acelerómetro con el reloj puesto en la muñeca
-      izquierda y en la derecha. Comprobar en el reloj real o con datos grabados con
-      `SensorLogging`.
-- [ ] **Pantalla apagada**: si la `watch-app` en primer plano sigue recibiendo lotes del
-      acelerómetro y puede vibrar cuando la pantalla AMOLED se apaga o atenúa. Probar en el
-      reloj real; el simulador no lo reproduce.
-- [ ] **Decidir si la guardia graba una actividad** (`ActivityRecording`, requiere el permiso
-      `Fit`). Según la doc, es la única forma de mantener el acelerómetro y la vibración si la
-      app pasa a inactiva. Hay que valorar el efecto en el historial del usuario y en la batería.
+      izquierda y en la derecha, en el reloj real (telemetría en vivo del menú de depuración).
+      Los escenarios simulados suponen Z ≈ +1 g con la esfera hacia arriba y el brazo
+      colgando en (−240, −940, 240); si los signos no coinciden, corregir las constantes de
+      `SimulatedAccelSource` (y luego el detector).
+- [ ] **Pantalla apagada mientras graba**: con la guardia activa (grabando actividad), si
+      la `watch-app` sigue recibiendo lotes a 25 Hz y puede vibrar cuando la pantalla AMOLED
+      se apaga o atenúa. Mirar los Hz efectivos en la telemetría al volver a encender la
+      pantalla. El simulador no lo reproduce.
+- [ ] **App inactiva grabando** (selector de tareas): confirmar en el reloj que sigue a
+      25 Hz gracias a la actividad, y que con `recordActivity` desactivado baja a ≤10 Hz.
+- [ ] **Actividad en Garmin Connect**: que aparezca como "Otro" con el nombre
+      "Guardia focus"/"Focus guard", y ver si cuenta para carga de entrenamiento, Body
+      Battery o minutos de intensidad (`SPORT_GENERIC` se eligió por ser el más neutro).
+- [ ] **Cierre por el sistema con la guardia activa** (batería, otra app, apagado): en ese
+      caso solo corre `onStop`, que es justo el camino que tumba el simulador. Comprobar en
+      el reloj que la actividad se guarda.
+- [ ] Reproducir en el simulador un FIT grabado en el reloj con `SensorLogging` (*Activity
+      Data > FIT/GPX Playable File*) para probar el sensor real con datos de muñeca reales.
 - [ ] Diseñar los 3 niveles de vibración solo con duración, pulsos y pausas (máximo 8
       `VibeProfile` por llamada), y comprobar en el reloj que se distinguen.
 - [ ] Desde dónde lanza el usuario la app en el fr165 (menú de apps o glance), para evitar el
@@ -112,10 +142,12 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 
 ## 4. Compilación y memoria
 
-- [ ] Comprobar en tiempo de ejecución que el `.prg` release no contiene la guía de estilo:
-      mantener UP en la app instalada desde el `.iq` no debe abrir nada.
+- [ ] Consumo de batería de una guardia larga grabando actividad (25 Hz + FIT) frente a sin
+      grabar (fase 12).
+- [ ] Comprobar en tiempo de ejecución que el `.prg` release no contiene la guía de estilo ni
+      el menú de depuración: mantener UP en la app instalada desde el `.iq` no debe abrir nada.
 - [ ] Las funciones auxiliares sin `(:test)` de `tests/` (`colorsMatch`, `insideCircle`) y
-      los textos `StyleGuide*`/`TypeRole*` se empaquetan también en release. Medir con el
+      los textos `StyleGuide*`/`TypeRole*`/`Debug*` se empaquetan también en release. Medir con el
       perfilador de memoria del simulador si el costo importa (fase 12).
 
 ## 5. AMOLED y accesibilidad (reloj real)
