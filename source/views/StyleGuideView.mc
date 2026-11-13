@@ -264,12 +264,16 @@ class StyleGuideView extends WatchUi.View {
 
     //! Franjas con el fondo y el texto de cada nivel de alerta, y el botón
     //! blanco "Estoy despierto" de la alerta a pantalla completa.
+    //! Las franjas se reparten con huecos iguales entre el título y el botón.
     private function drawAlerts(dc as Dc, layout as RoundLayout) as Void {
-        var bandHeight = layout.scaled(150);
-        var gap = layout.scaled(25);
-        var top = layout.topY + dc.getFontHeight(Typography.TITLE) / 2 + gap;
+        var count = _alertLevels.size();
+        var areaTop = titleBottom(dc, layout);
+        var available = layout.buttonRect.y - areaTop;
+        var bandHeight = dc.getFontHeight(Typography.BODY) + layout.scaled(30);
+        var gap = (available - count * bandHeight) / (count + 1);
+        var top = areaTop + gap;
 
-        for (var level = 1; level <= _alertLevels.size(); level++) {
+        for (var level = 1; level <= count; level++) {
             var width = layout.safeWidthBetween(top, top + bandHeight);
             var band = new Rect(layout.centerX - width / 2, top, width, bandHeight);
 
