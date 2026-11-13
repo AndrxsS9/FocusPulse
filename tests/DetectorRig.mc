@@ -1,7 +1,7 @@
 import Toybox.Lang;
 
-//! Banco de pruebas del detector: fuente simulada → TelemetryEngine → DrowsinessDetector,
-//! en el mismo orden que GuardController.onBatch. Un paso es un lote de 1 s; la guardia
+//! Banco de pruebas del detector: fuente simulada → TelemetryEngine → DrowsinessDetector
+//! → StateClassifier, en el mismo orden que GuardController.onBatch. Un paso es un lote de 1 s; la guardia
 //! empieza en t = 0 y el lote i termina en i × 1000 ms, así que el tiempo está controlado.
 (:test)
 class DetectorRig {
@@ -9,6 +9,7 @@ class DetectorRig {
     var source as SimulatedAccelSource;
     var engine as TelemetryEngine;
     var detector as DrowsinessDetector;
+    var classifier as StateClassifier;
 
     //! Instante del último lote (ms).
     var timeMs as Number = 0;
@@ -30,6 +31,7 @@ class DetectorRig {
         engine = new TelemetryEngine();
         detector = new DrowsinessDetector();
         detector.start(0, demo);
+        classifier = new StateClassifier();
         eventTimes = [] as Array<Number>;
     }
 
@@ -46,6 +48,7 @@ class DetectorRig {
             jerkBatches += 1;
         }
         var event = detector.update(snapshot, timeMs);
+        classifier.update(snapshot, detector);
         if (event == DrowsinessEvent.NOD) {
             nods += 1;
             if (firstNodMs == null) {
@@ -72,5 +75,13 @@ class DetectorRig {
 
     function events() as Number {
         return nods + inactivities;
+    }
+
+    //! Suma el lote actual a una matriz de confusión matrix[real][predicha], si el
+    //! clasificador ya opina (el primer lote no llena la ventana).
+    function countInto(matrix as Array<Array<Number>>, real as DrowsinessClass.Id) as Void {
+        if (classifier.isReady()) {
+            matrix[real as Number][classifier.topClass() as Number] += 1;
+        }
     }
 }
