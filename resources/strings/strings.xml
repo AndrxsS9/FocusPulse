@@ -73,6 +73,16 @@
     <string id="DebugSourceReal">Real sensor</string>
     <string id="DebugSimulated">Simulated</string>
     <string id="DebugStyleGuide">Style guide</string>
+    <string id="DebugTelemetry">Live telemetry</string>
+    <string id="DebugRecording">Recording</string>
+    <string id="DebugNotRecording">Not recording</string>
+    <!-- Formatos de la telemetría en vivo: $1$, $2$… son valores numéricos. -->
+    <string id="DebugAxesFormat">X $1$  Y $2$  Z $3$</string>
+    <string id="DebugVarianceFormat">Variance $1$ mg²</string>
+    <string id="DebugJerkFormat">Jerk $1$ mg · peak $2$</string>
+    <string id="DebugStillFormat">Still for $1$ s</string>
+    <string id="DebugRateFormat">$1$ Hz of $2$ Hz</string>
+    <string id="DebugSamplesFormat">$1$ samples</string>
 
     <!-- Guía de estilo (pantalla oculta de depuración) -->
     <string id="StyleGuidePalette">Palette</string>

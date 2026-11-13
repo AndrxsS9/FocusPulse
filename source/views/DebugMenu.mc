@@ -5,17 +5,21 @@ import Toybox.WatchUi;
 //! Menú de depuración (solo en compilaciones de depuración): se abre con pulsación
 //! larga de UP en la pantalla principal.
 //!
+//! - Telemetría en vivo (TelemetryDebugView).
 //! - Fuente de datos: sensor real o simulada con un escenario (selector temporal hasta
 //!   que la fase del modo demo tenga su propia pantalla).
 //! - Guía de estilo.
 (:debug)
 module DebugMenu {
 
+    const ITEM_TELEMETRY = :telemetry;
     const ITEM_SOURCE = :source;
     const ITEM_STYLE_GUIDE = :styleGuide;
 
     function open(guard as GuardController) as Void {
         var menu = new WatchUi.Menu2({ :title => text(Rez.Strings.DebugMenuTitle) });
+        menu.addItem(new WatchUi.MenuItem(text(Rez.Strings.DebugTelemetry), null,
+            ITEM_TELEMETRY, {}));
         menu.addItem(new WatchUi.MenuItem(text(Rez.Strings.DebugSource),
             DebugSource.label(guard), ITEM_SOURCE, {}));
         menu.addItem(new WatchUi.MenuItem(text(Rez.Strings.DebugStyleGuide), null,
@@ -41,7 +45,10 @@ class DebugMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as MenuItem) as Void {
         var id = item.getId();
-        if (id == DebugMenu.ITEM_SOURCE) {
+        if (id == DebugMenu.ITEM_TELEMETRY) {
+            WatchUi.pushView(new TelemetryDebugView(_guard), new TelemetryDebugDelegate(_guard),
+                WatchUi.SLIDE_UP);
+        } else if (id == DebugMenu.ITEM_SOURCE) {
             DebugSource.openSelector(_guard, item);
         } else if (id == DebugMenu.ITEM_STYLE_GUIDE) {
             var view = new StyleGuideView();
