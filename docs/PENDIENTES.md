@@ -1,146 +1,134 @@
-# Pendientes de verificar al instalar el SDK
+# Pendientes de verificar
 
-Las fases 1 y 2 se escribieron **sin el Connect IQ SDK instalado**: nada se ha compilado ni
-probado en el simulador. Esta lista recoge lo que hay que comprobar en cuanto el SDK esté listo.
-Marca cada punto al verificarlo y corrige el código o este documento si algo no coincide.
+Las fases 1 y 2 se compilaron, probaron y revisaron en el simulador con el **Connect IQ SDK
+9.3.0** (2026-11-12). La primera sección resume lo que quedó confirmado; el resto del
+documento lista **solo lo que sigue abierto**. Al cerrar un punto, muévelo a la sección de
+datos confirmados o bórralo, y corrige el código si algo no coincide.
 
-## 1. Instalación
+## Datos confirmados (SDK 9.3.0)
 
-- [ ] Instalar el **Connect IQ SDK Manager**, descargar el SDK más reciente y marcarlo como actual.
-- [ ] Descargar el dispositivo **Forerunner 165** desde el SDK Manager.
-- [ ] Comprobar que existe `%APPDATA%\Garmin\ConnectIQ\current-sdk.cfg` y que contiene solo la
-      ruta del SDK (los scripts la leen con `Trim()`; si el formato es otro, ajustar
-      `Get-SdkPath` en `scripts/_common.ps1`).
-- [ ] Ejecutar `scripts\setup.ps1`: instala `garmin.monkey-c` y genera la llave en
-      `%USERPROFILE%\Downloads\FocusPulse-keys\`.
-- [ ] **Hacer copia de seguridad de la llave** fuera del equipo.
+### Dispositivo (`Devices\fr165\compiler.json` y `simulator.json`)
 
-## 2. Manifest y producto
+| Dato | fr165 | fr165m |
+|---|---|---|
+| Nombre | Forerunner® 165 | Forerunner® 165 Music |
+| Nivel de API | 5.2.0 | 5.2.0 |
+| Pantalla | 390×390 redonda, AMOLED, 16 bpp, 325 ppi | igual |
+| Táctil | sí (`isTouch`); el toque se traduce a `onSelect` | igual |
+| Teclas | START (`onSelect`), BACK, UP (`previousPage`), mantener UP = `onMenu`, DOWN (`nextPage`) | igual |
+| Acelerómetro | sí, hasta **100 Hz** | igual |
+| Magnetómetro | sí, hasta 50 Hz | igual |
+| Giroscopio | **no** (sin `maxGyroRate`, que sí aparece en relojes con giroscopio) | igual |
+| Ícono del launcher | **54×54** | 54×54 |
+| Memoria de `watch-app` | 768 KB | 768 KB |
 
-- [ ] **Id exacto del producto**: confirmar que es `fr165` (carpeta en
-      `%APPDATA%\Garmin\ConnectIQ\Devices\`). Decidir si se agrega también la variante
-      **`fr165m`** (Forerunner 165 Music).
-- [ ] **`minApiLevel`**: se fijó `3.4.0` de forma conservadora. Revisar el nivel de API real del
-      fr165 en `Devices\fr165\compiler.json` y subirlo si se necesitan APIs más nuevas.
-- [ ] Confirmar que el permiso `Sensor` es el único necesario para el acelerómetro.
+`manifest.xml` declara ambos productos con `minApiLevel="5.2.0"`. El permiso `Sensor` basta
+para leer el acelerómetro (la app lo consultó en el simulador sin errores).
+
+### Acelerómetro (`Sensor.registerSensorDataListener`, doc del SDK)
+
+- Opciones: `:period` en segundos, **máximo 4 s**; `:accelerometer => { :enabled, :sampleRate,
+  :includePitch, :includeRoll, :includePower, :includeTimestamps }`.
+- Cada lote trae `period × sampleRate` muestras por eje (p. ej. 1 s a 25 Hz = 25 muestras).
+- Unidades: `x`, `y`, `z` como `Array<Number>` en **mili‑g** (1000 = 1 g). `pitch`/`roll` en
+  grados si se piden.
+- Frecuencia máxima: usar `Sensor.getMaxSampleRateForSensorType(:accelerometer)`, que da
+  **100** en el fr165. `Sensor.getMaxSampleRate()` da 50, porque es el límite general del
+  sistema y no el del acelerómetro.
+- Solo puede haber un listener registrado; un segundo registro reemplaza al anterior.
+
+### Vibración (`Attention.vibrate`, doc del SDK)
+
+- `Attention has :vibrate` es `true` en el fr165.
+- `vibrate()` recibe de **1 a 8** `VibeProfile(dutyCycle 0–100, length en ms)` y los
+  reproduce en orden.
+- **Los Forerunner no admiten patrones de intensidad**: el `dutyCycle` se ignora y siempre
+  vibran con la misma fuerza. Los niveles "suave / media / máxima" se tendrán que hacer con
+  **duración, número de pulsos y pausas**, no con intensidad.
+
+### Ciclo de vida y pantalla apagada (doc del SDK)
+
+- Una app abierta desde la **lista de glances** se cierra sola tras un tiempo. Abierta desde
+  el **menú de actividades/apps** no tiene ese límite y el usuario debe salir a mano.
+- Con el selector de tareas (API ≥ 4.2) la app puede pasar a **inactiva** (`onInactive`).
+  Si no está grabando una actividad, en ese estado:
+  - los sensores de alta frecuencia bajan a **10 Hz como máximo** o pueden fallar;
+  - **`Attention` (la vibración) queda denegada**.
+- La doc no dice qué pasa al apagarse la pantalla AMOLED con la app en primer plano. Queda
+  abierto (sección 2).
+
+### Compilación, pruebas y simulador
+
+- `build.ps1`, `test.ps1` y `export.ps1` compilan sin errores ni advertencias con verificación
+  de tipos **estricta (`-l 3`)**. El export genera el `.iq` para fr165 y fr165m.
+- Las **20 pruebas** pasan: 3 de `MonitorState`, 9 de `AlertnessColors` y 8 de `RoundLayout`.
+- `monkeydo /t` devuelve 0 aunque fallen pruebas; `test.ps1` ahora decide por la línea
+  `PASSED`/`FAILED`.
+- En el simulador:
+  - la vista principal se ve centrada;
+  - START y un toque alternan pausa/guardia **una sola vez**;
+  - BACK cierra la app;
+  - mantener UP abre la guía de estilo y BACK vuelve desde ella.
+- Las 7 páginas de la guía de estilo se revisaron en inglés y en español, sin solapamientos.
+  Se ven bien ¡, ñ, ·, … y tildes.
+- Alturas de fuente medidas en el fr165: ver `DISENO.md` §3.
+
+## 1. Entorno
+
+- [ ] **Hacer copia de seguridad de la llave** `%USERPROFILE%\Downloads\FocusPulse-keys\`
+      fuera del equipo. Sin ella no se pueden publicar actualizaciones.
 - [ ] El `id` de la app (`6600d3c23b8a4e89827e17ef16db01e8`) **no debe cambiar** después de
-      publicar en la tienda.
+      publicar en la tienda (recordatorio permanente).
 
-## 3. Compilación (`scripts\build.ps1`)
+## 2. Sensores y vibración (antes de las fases 3 y 6)
 
-- [ ] Compila sin errores ni advertencias relevantes con `-w`.
-- [ ] Firma de `getInitialView()`: se usó `as [Views] or [Views, InputDelegates]` (SDK 7+).
-      Con un SDK anterior cambiar a `as Array<Views or InputDelegates>?`.
-- [ ] Las constantes de clase (`const GAP`, `const ACCENT_WIDTH` en `MainView`) compilan.
-- [ ] Los recursos en subcarpetas (`resources/strings/`, `resources/drawables/`) se detectan.
-- [ ] `resources-spa/` se detecta por convención. Si no, agregar a `monkey.jungle`:
-      `base.lang.spa = resources-spa`.
-- [ ] La compilación normal (sin `-t`) excluye las funciones `(:test)` de `tests/` y el
-      `import Toybox.Test` no rompe el build.
-- [ ] Probar el nivel de verificación de tipos (`-l 1`/`-l 2`) y decidir cuál fijar en los scripts.
+- [ ] **Orientación de los ejes** x/y/z del acelerómetro con el reloj puesto en la muñeca
+      izquierda y en la derecha. Comprobar en el reloj real o con datos grabados con
+      `SensorLogging`.
+- [ ] **Pantalla apagada**: si la `watch-app` en primer plano sigue recibiendo lotes del
+      acelerómetro y puede vibrar cuando la pantalla AMOLED se apaga o atenúa. Probar en el
+      reloj real; el simulador no lo reproduce.
+- [ ] **Decidir si la guardia graba una actividad** (`ActivityRecording`, requiere el permiso
+      `Fit`). Según la doc, es la única forma de mantener el acelerómetro y la vibración si la
+      app pasa a inactiva. Hay que valorar el efecto en el historial del usuario y en la batería.
+- [ ] Diseñar los 3 niveles de vibración solo con duración, pulsos y pausas (máximo 8
+      `VibeProfile` por llamada), y comprobar en el reloj que se distinguen.
+- [ ] Desde dónde lanza el usuario la app en el fr165 (menú de apps o glance), para evitar el
+      cierre por tiempo de las apps abiertas desde glances.
 
-## 4. Simulador (`scripts\run.ps1`)
+## 3. Interfaz (fase 7)
 
-- [ ] El nombre del proceso del simulador es `simulator` (lo usa `Start-Simulator` para no
-      abrirlo dos veces) y 8 s de espera bastan para que `monkeydo` se conecte.
-- [ ] La vista inicial se ve centrada en 390×390: "FocusPulse AI", línea cian y
-      "Monitoreo en pausa" (con el simulador en español) o "Monitoring paused" (en inglés).
-- [ ] Revisar tamaños de `FONT_MEDIUM` y `FONT_SMALL` en el fr165 y la separación `GAP`.
-- [ ] Los colores de la paleta se ven correctos en AMOLED.
+- [ ] **Decidir si la hora necesita una fuente personalizada** para acercarse a la demo web,
+      y si su costo en memoria es aceptable dentro de los 768 KB.
+- [ ] En el **reloj real**, si `FONT_NUMBER_*` dibuja `%` y letras. El simulador usa Roboto
+      TTF para todo y no sirve para comprobarlo. Mientras tanto el `%` va aparte en `LABEL`.
+- [ ] "Iniciar guardia" baja a `FONT_TINY` y "Estoy despierto" a `FONT_XTINY` en el botón de
+      226 px. En la pantalla de alerta hay espacio para un botón más ancho, y en la principal se
+      puede revisar la posición. Decidirlo al diseñar esas pantallas.
+- [ ] "Monitoreo en pausa" en `FONT_SMALL` ocupa casi todo el ancho de la vista principal
+      actual. Se rehace en la fase 7 con `RoundLayout`.
+- [ ] En la pantalla de alerta, "¡DESPIERTA!" en `FONT_LARGE` mide casi todo el ancho
+      seguro. Revisarlo en el reloj y usar `Draw.fittingFont` si hace falta.
 
-## 5. Entrada
+## 4. Compilación y memoria
 
-- [ ] El botón **START/STOP** dispara `onSelect()` y alterna a "Guardia activa" (cian).
-      (En la fase 2 el texto de `StatusActive` pasó de "Monitoreo activo" a "Guardia activa".)
-- [ ] El **toque** dispara `onTap()` una sola vez (sin doble alternancia vía `onSelect`).
-- [ ] **BACK** sale de la app (comportamiento por defecto).
+- [ ] Comprobar en tiempo de ejecución que el `.prg` release no contiene la guía de estilo:
+      mantener UP en la app instalada desde el `.iq` no debe abrir nada.
+- [ ] Las funciones auxiliares sin `(:test)` de `tests/` (`colorsMatch`, `insideCircle`) y
+      los textos `StyleGuide*`/`TypeRole*` se empaquetan también en release. Medir con el
+      perfilador de memoria del simulador si el costo importa (fase 12).
 
-## 6. Pruebas (`scripts\test.ps1`)
+## 5. AMOLED y accesibilidad (reloj real)
 
-- [ ] La sintaxis `monkeydo <prg> fr165 /t` es correcta en Windows.
-- [ ] Las 3 pruebas de `tests/MonitorStateTest.mc` pasan.
-- [ ] Comprobar si `monkeydo` devuelve código de salida distinto de 0 cuando una prueba falla
-      (si no, el script no detecta fallos y hay que analizar la salida).
+- [ ] `ORANGE`, `ORANGE_DEEP` y `RED_INTENSE` se distinguen entre sí en el reloj; en el
+      simulador sí se distinguen.
+- [ ] La pista `BORDER` del anillo se ve sin llamar la atención con brillo bajo.
+- [ ] El botón grande (226×54 px, área táctil 248×76 px) se acierta con el reloj puesto y la
+      mano en movimiento.
 
-## 7. Sensores y vibración (antes de la fase 3)
+## 6. Ícono y tienda (fase 13)
 
-- [ ] El fr165 soporta `Sensor.registerSensorDataListener` con acelerómetro: frecuencia de
-      muestreo máxima (¿25 Hz?), tamaño de lote por periodo, unidades (mili-g) y orientación
-      de los ejes.
-- [ ] `Attention has :vibrate` en el fr165 y límites de `VibeProfile` (duración/intensidad).
-- [ ] Si la app sigue recibiendo datos del acelerómetro cuando la pantalla AMOLED se apaga o
-      entra en bajo consumo, y si el sistema cierra la `watch-app` por inactividad.
-
-## 8. Ícono y tienda
-
-- [ ] Tamaño exacto del ícono del launcher del fr165 (`launcherIcon` en
-      `Devices\fr165\compiler.json`). El ícono actual (anillo cian + pulso) es de 60×60;
-      si el tamaño es otro, regenerarlo con `scripts\icon.ps1 -Size <n>` en lugar de dejar
-      que el compilador lo escale.
-- [ ] Ver el ícono en el launcher del simulador: que el pulso se lea a tamaño real y que el
-      disco oscuro no choque con el fondo del menú de apps.
-- [ ] `scripts\export.ps1` genera `bin\FocusPulse.iq` (`monkeyc -e -r` sin `-d`).
-- [ ] Revisar requisitos actuales de la Connect IQ Store (ícono, capturas, descripción es/en).
-
-## 9. Sistema de diseño (fase 2)
-
-### Compilación
-
-- [ ] `AlertnessColors.bandForScore` devuelve el enum con nombre `as AlertnessBand`. Si el
-      compilador no acepta enums con nombre como tipo, cambiar a `as Number`.
-- [ ] `const JUSTIFY_CENTER = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER`
-      en el módulo `Draw` compila como constante y `drawText` acepta su tipo.
-- [ ] Las constantes de clase de `RoundLayout` se pueden leer desde fuera como
-      `RoundLayout.MIN_TOUCH` (lo usan las pruebas).
-- [ ] El tipo `FontType` en las firmas de `Draw` y `Array<FontDefinition>` en
-      `StyleGuideView` se resuelven con `import Toybox.Graphics` (si no, calificar como
-      `Graphics.FontType` / `Graphics.FontDefinition`).
-- [ ] `Number.format("%06X")` imprime el hex en mayúsculas con ceros a la izquierda en la
-      página de paleta.
-- [ ] La anotación `(:debug)` en las clases `StyleGuideView`/`StyleGuideDelegate` y en
-      `MainDelegate.onMenu` las excluye de `scripts\export.ps1` (release, `-r`) y las incluye
-      en `build.ps1`/`run.ps1`/`test.ps1`.
-- [ ] Las funciones auxiliares sin `(:test)` de `tests/` (`colorsMatch`, `insideCircle`)
-      compilan también en el build normal, porque `tests` está en `sourcePath`. Si molestan
-      en release, mover las pruebas a una ruta solo de pruebas en `monkey.jungle`.
-- [ ] Los textos de la guía de estilo (`StyleGuide*`, `TypeRole*`) se empaquetan también en
-      release aunque la vista no exista; medir si el costo en memoria importa.
-
-### Pruebas
-
-- [ ] Pasan las 9 pruebas de `tests/AlertnessColorsTest.mc` y las 8 de
-      `tests/RoundLayoutTest.mc`.
-
-### Simulador y tipografía
-
-- [ ] Alturas reales de `FONT_NUMBER_MEDIUM`, `FONT_NUMBER_MILD`, `FONT_LARGE`,
-      `FONT_MEDIUM`, `FONT_SMALL` y `FONT_XTINY` en el fr165; ajustar `Typography` si la hora
-      queda demasiado grande o pequeña frente al orbe (radio 97 px).
-- [ ] **Decidir si la hora necesita una fuente personalizada** (bitmap o vectorial) para
-      acercarse a la demo web, y si su costo en memoria es aceptable.
-- [ ] Si `FONT_NUMBER_*` incluye `%`; si no, el porcentaje de alerta se dibuja como número
-      en `NUMBER` y `%` en `LABEL`.
-- [ ] Las fuentes del sistema muestran `¡`, `…`, `·`, `ñ` y vocales con tilde.
-- [ ] Textos largos que no caben en una línea dentro de la zona segura (p. ej.
-      "Micro-sueños repetidos · toma un descanso de 15 min", "Cabeceo / pérdida de tono
-      muscular"): en la fase de interfaz usar `WatchUi.TextArea` o partirlos en líneas.
-
-### Guía de estilo y dibujo
-
-- [ ] La pulsación larga de UP dispara `onMenu()` en el fr165, y qué control del simulador la
-      reproduce.
-- [ ] Ninguna página se solapa: título contra las muestras de la paleta, franjas de alerta
-      contra el botón, píldora contra el botón en la página de componentes.
-- [ ] `drawArc` con `ARC_CLOCKWISE` de 90° a `(450 - sweep) % 360` dibuja el avance en
-      sentido horario desde las 12, y los extremos redondos (`roundCap`) coinciden con los
-      bordes del arco.
-- [ ] `setAntiAlias` existe en el fr165 y mejora los bordes del anillo y del botón.
-
-### AMOLED y accesibilidad
-
-- [ ] En el simulador y luego en el reloj: `ORANGE`, `ORANGE_DEEP` y `RED_INTENSE` se
-      distinguen entre sí; la pista `BORDER` del anillo se ve sin llamar la atención.
-- [ ] El texto claro sobre `RED_INTENSE` (4,47:1) se lee bien en el reloj; si no, usar
-      blanco puro solo en esa pantalla.
-- [ ] Áreas táctiles: el botón grande (226×54 px, área táctil 248×76 px) se acierta con el
-      reloj puesto y la mano en movimiento.
+- [ ] Ver el ícono de 54×54 en el menú de apps del simulador y del reloj: que el pulso se
+      lea a tamaño real.
+- [ ] Revisar los requisitos actuales de la Connect IQ Store: ícono, capturas y descripción
+      en español e inglés.
