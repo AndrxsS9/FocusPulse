@@ -124,6 +124,7 @@ class MainView extends WatchUi.View {
     private var _dateLowercase as Boolean = false;
     private var _statusPaused as String = "";
     private var _statusActive as String = "";
+    private var _statusCalibrating as String = "";
     private var _statusSensorUnavailable as String = "";
     private var _badgeDemo as String = "";
     private var _buttonStart as String = "";
@@ -147,6 +148,7 @@ class MainView extends WatchUi.View {
         _dateLowercase = (WatchUi.loadResource(Rez.Strings.DateCase) as String).equals("lower");
         _statusPaused = WatchUi.loadResource(Rez.Strings.StatusPaused) as String;
         _statusActive = WatchUi.loadResource(Rez.Strings.StatusActive) as String;
+        _statusCalibrating = WatchUi.loadResource(Rez.Strings.StatusCalibrating) as String;
         _statusSensorUnavailable = WatchUi.loadResource(Rez.Strings.StatusSensorUnavailable) as String;
         _badgeDemo = WatchUi.loadResource(Rez.Strings.BadgeDemo) as String;
         _buttonStart = WatchUi.loadResource(Rez.Strings.ButtonStartGuard) as String;
@@ -395,13 +397,14 @@ class MainView extends WatchUi.View {
     }
 
     //! Píldora de estado: en pausa (gris), guardia activa (cian, con un punto que late
-    //! cada HEARTBEAT_PERIOD_MS) o sensor no disponible (ámbar).
+    //! cada HEARTBEAT_PERIOD_MS; "Calibrando…" mientras el detector aprende la línea
+    //! base) o sensor no disponible (ámbar).
     private function drawStatus(dc as Dc, layout as RoundLayout, animate as Boolean) as Void {
         var text = _statusPaused;
         var color = Palette.TEXT_SECONDARY;
         var active = _guard.isActive();
         if (active) {
-            text = _statusActive;
+            text = _guard.isCalibrating() ? _statusCalibrating : _statusActive;
             color = Palette.ACCENT;
         } else if (_guard.isSensorUnavailable()) {
             text = _statusSensorUnavailable;

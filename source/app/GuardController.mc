@@ -1,22 +1,34 @@
 import Toybox.Lang;
+import Toybox.System;
+import Toybox.Time;
 import Toybox.WatchUi;
 
 //! Coordina la guardia: estado (MonitorState), fuente del acelerómetro, motor de
-//! telemetría y grabación de la actividad.
+//! telemetría, detector de somnolencia, clasificador y grabación de la actividad.
 //!
-//! - start(): reinicia el motor y el puntaje de alerta (88), arranca la fuente (real, o simulada si se eligió la
-//!   fuente demo) y, si el ajuste recordActivity está activo, la grabación.
-//! - pause(): detiene la fuente, guarda la actividad y congela el puntaje.
+//! - start(): reinicia el motor y el puntaje de alerta (88), arranca la fuente (real, o
+//!   simulada si se eligió la fuente demo), el detector (que empieza calibrando, con
+//!   los tiempos del modo demo si la fuente es simulada) y, si el ajuste recordActivity
+//!   está activo, la grabación.
+//! - pause(): detiene la fuente, guarda la actividad, congela el puntaje y reinicia el
+//!   detector y el clasificador.
 //! - shutdown(): lo mismo, al cerrar la app con la guardia activa.
 //!
-//! El puntaje de alerta (AlertnessScore) se actualiza con cada lote de telemetría, no
-//! con el redibujo de la vista. Las vistas leen el estado, el puntaje y el snapshot; los
-//! delegados llaman a toggle().
+//! Con cada lote (onBatch), en este orden: motor → snapshot → detector → clasificador →
+//! puntaje. Todo se actualiza con los lotes de telemetría, no con el redibujo de la
+//! vista. El último evento del detector se guarda con su hora para las vistas. Las vistas
+//! leen el estado, el puntaje y el snapshot; los delegados llaman a toggle().
 class GuardController {
 
     private var _state as MonitorState;
     private var _engine as TelemetryEngine;
     private var _score as AlertnessScore;
+    private var _detector as DrowsinessDetector;
+    private var _classifier as StateClassifier;
+
+    //! Último evento del detector y su hora (se conservan al pausar).
+    private var _lastEvent as DrowsinessEvent.Id = DrowsinessEvent.NONE;
+    private var _lastEventMoment as Time.Moment? = null;
 
     //! Último snapshot calculado (uno por lote). Las vistas lo leen en cada cuadro sin
     //! crear objetos nuevos.
@@ -41,6 +53,8 @@ class GuardController {
         _state = state;
         _engine = new TelemetryEngine();
         _score = new AlertnessScore();
+        _detector = new DrowsinessDetector();
+        _classifier = new StateClassifier();
         _snapshot = _engine.snapshot();
         _recorder = new SessionRecorder(sessionName);
         _realSource = new RealAccelSource();
@@ -80,6 +94,7 @@ class GuardController {
         }
         _sensorUnavailable = false;
         _score.reset();
+        startDetection();
         _lastBatchMs = null;
         if (AppSettings.recordActivity()) {
             _recorder.start();
@@ -110,6 +125,8 @@ class GuardController {
 
     private function stopAll() as Void {
         _score.setActive(false);
+        _detector.reset();
+        _classifier.reset();
         _realSource.stop();
         _demoSource.stop();
         _recorder.stop(true);
@@ -134,9 +151,61 @@ class GuardController {
         }
         _lastBatchMs = timestampMs;
         _snapshot = _engine.snapshot();
+
+        var event = _detector.update(_snapshot, timestampMs);
+        _classifier.update(_snapshot, _detector);
+        if (event != DrowsinessEvent.NONE) {
+            _lastEvent = event;
+            _lastEventMoment = Time.now();
+            logEvent(event, timestampMs);
+        }
         _score.update(_snapshot, dt);
 
         WatchUi.requestUpdate();
+    }
+
+    //! Arranca el detector (calibrando) y el clasificador desde cero.
+    private function startDetection() as Void {
+        _detector.start(System.getTimer(), _useDemoSource);
+        _classifier.reset();
+    }
+
+    //! En depuración, cada evento queda en la consola del simulador.
+    (:debug)
+    private function logEvent(event as DrowsinessEvent.Id, timestampMs as Number) as Void {
+        System.println("EVENTO " + (event == DrowsinessEvent.NOD ? "cabeceo" : "inactividad")
+            + " t=" + timestampMs + " ms, quietud " + _detector.stillSeconds().format("%.1f")
+            + " s, inclinación " + _detector.tiltDegrees().format("%.0f") + "°, umbral "
+            + _detector.stillThreshold().format("%.0f") + " mg²");
+    }
+
+    (:release)
+    private function logEvent(event as DrowsinessEvent.Id, timestampMs as Number) as Void {
+    }
+
+    //! Detector de somnolencia (solo lectura para las vistas).
+    function detector() as DrowsinessDetector {
+        return _detector;
+    }
+
+    //! Clasificador de estado (solo lectura para las vistas).
+    function classifier() as StateClassifier {
+        return _classifier;
+    }
+
+    //! true con la guardia activa mientras se calibra la línea base.
+    function isCalibrating() as Boolean {
+        return _state.isActive() && _detector.isCalibrating();
+    }
+
+    //! Último evento detectado (NONE si aún no hubo ninguno).
+    function lastEvent() as DrowsinessEvent.Id {
+        return _lastEvent;
+    }
+
+    //! Hora del último evento (null si aún no hubo ninguno).
+    function lastEventMoment() as Time.Moment? {
+        return _lastEventMoment;
     }
 
     //! Puntaje de alerta (0–100). Congelado en pausa; 88 antes de la primera guardia.
@@ -201,6 +270,8 @@ class GuardController {
                 pause();
                 return;
             }
+            // Otra fuente, otro modo: vuelve a calibrar.
+            startDetection();
         }
         WatchUi.requestUpdate();
     }
