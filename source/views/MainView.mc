@@ -3,6 +3,7 @@ import Toybox.Lang;
 import Toybox.System;
 import Toybox.Time;
 import Toybox.Time.Gregorian;
+import Toybox.Timer;
 import Toybox.WatchUi;
 
 //! Esfera principal (vista de guardia).
@@ -14,7 +15,19 @@ import Toybox.WatchUi;
 //!   4. contenido.
 //!
 //! Medidas: RoundLayout (source/util/Layout.mc) y docs/DISENO.md.
+//!
+//! Refresco: un Timer redibuja cada REFRESH_PAUSED_MS en pausa (la hora) y cada
+//! REFRESH_ACTIVE_MS con la guardia activa (la animación del orbe y del punto de la
+//! fase siguiente subirá esa tasa). Se detiene en onHide y se reanuda en onShow. El
+//! puntaje no depende del timer: se actualiza con cada lote de telemetría
+//! (GuardController.onBatch), que además pide su propio redibujo.
 class MainView extends WatchUi.View {
+
+    //! Periodo de redibujo (ms) en pausa: basta para que cambie la hora.
+    const REFRESH_PAUSED_MS = 1000;
+
+    //! Periodo de redibujo (ms) con la guardia activa (~5 por segundo).
+    const REFRESH_ACTIVE_MS = 200;
 
     //! Batería en o por debajo de este porcentaje: ícono y número en rojo.
     const BATTERY_LOW = 15;
@@ -35,6 +48,10 @@ class MainView extends WatchUi.View {
 
     private var _guard as GuardController;
     private var _layout as RoundLayout?;
+
+    //! Timer de redibujo y su periodo actual (0 = detenido).
+    private var _timer as Timer.Timer? = null;
+    private var _timerPeriod as Number = 0;
 
     private var _percentFormat as String = "";
     private var _alertLabel as String = "";
@@ -66,7 +83,26 @@ class MainView extends WatchUi.View {
         _buttonPause = WatchUi.loadResource(Rez.Strings.ButtonPauseGuard) as String;
     }
 
+    //! La vista vuelve a primer plano: reanuda el redibujo periódico.
+    function onShow() as Void {
+        updateTimer();
+    }
+
+    //! La vista deja de verse (otra vista encima, app en segundo plano): detiene el
+    //! timer para no gastar batería redibujando algo que no se ve.
+    function onHide() as Void {
+        stopTimer();
+    }
+
+    //! Callback del timer.
+    function onTick() as Void {
+        WatchUi.requestUpdate();
+    }
+
     function onUpdate(dc as Dc) as Void {
+        // El estado pudo cambiar (START, toque): ajusta la tasa de redibujo.
+        updateTimer();
+
         var layout = _layout;
         if (layout == null) {
             return;
@@ -78,6 +114,29 @@ class MainView extends WatchUi.View {
         drawOrb(dc, layout, score);
         drawRing(dc, layout, score);
         drawContent(dc, layout, score);
+    }
+
+    //! Arranca el timer con el periodo que toca según el estado de la guardia, o lo
+    //! reinicia si el periodo cambió.
+    private function updateTimer() as Void {
+        var period = _guard.isActive() ? REFRESH_ACTIVE_MS : REFRESH_PAUSED_MS;
+        if (_timer != null && period == _timerPeriod) {
+            return;
+        }
+        stopTimer();
+        var timer = new Timer.Timer();
+        timer.start(method(:onTick), period, true);
+        _timer = timer;
+        _timerPeriod = period;
+    }
+
+    private function stopTimer() as Void {
+        var timer = _timer;
+        if (timer != null) {
+            timer.stop();
+        }
+        _timer = null;
+        _timerPeriod = 0;
     }
 
     //! Orbe IA detrás de la hora. Reservado para la fase siguiente: el espacio
