@@ -6,7 +6,7 @@ import Toybox.Timer;
 module AccelScenario {
 
     enum Id {
-        //! Movimiento normal: ruido ±70 mg con Z ≈ 975 mg.
+        //! Movimiento normal: ruido ±70 mg (triangular) con Z ≈ 975 mg.
         NORMAL = 0,
         //! Tecleo activo: ±250 mg en X/Y y Z 960 ± 220 mg.
         TYPING = 1,
@@ -37,7 +37,11 @@ class SimulatedAccelSource extends AccelSource {
     //! Periodo de entrega de lotes (ms), igual que RealAccelSource.PERIOD_SECONDS.
     static const PERIOD_MS = 1000;
 
-    //! Postura base del movimiento normal (mg) y amplitud del ruido.
+    //! Postura base del movimiento normal (mg) y amplitud del ruido. El ruido es
+    //! triangular (suma de dos uniformes de ±35): sigue dentro de ±70 mg, pero los valores
+    //! extremos son raros, como en un brazo que se mueve sin brusquedad. Su varianza
+    //! (≈ 800 mg²) queda entre la quietud (< 100) y la actividad alta de AlertnessScore
+    //! (> 1500); con ruido uniforme de ±70 sería ≈ 1 630 mg² y contaría como tecleo.
     static const NORMAL_X = 40;
     static const NORMAL_Y = -180;
     static const NORMAL_Z = 975;
@@ -178,9 +182,9 @@ class SimulatedAccelSource extends AccelSource {
                 zs[i] = _manualZ + noise(INERT_NOISE);
                 break;
             default:
-                xs[i] = NORMAL_X + noise(NORMAL_NOISE);
-                ys[i] = NORMAL_Y + noise(NORMAL_NOISE);
-                zs[i] = NORMAL_Z + noise(NORMAL_NOISE);
+                xs[i] = NORMAL_X + softNoise(NORMAL_NOISE);
+                ys[i] = NORMAL_Y + softNoise(NORMAL_NOISE);
+                zs[i] = NORMAL_Z + softNoise(NORMAL_NOISE);
                 break;
         }
     }
@@ -190,9 +194,9 @@ class SimulatedAccelSource extends AccelSource {
     private function nodSample(xs as Array<Number>, ys as Array<Number>, zs as Array<Number>,
             i as Number) as Void {
         if (_sampleIndex < NOD_LEAD_SAMPLES) {
-            xs[i] = NOD_FROM_X + noise(NORMAL_NOISE);
-            ys[i] = NOD_FROM_Y + noise(NORMAL_NOISE);
-            zs[i] = NOD_FROM_Z + noise(NORMAL_NOISE);
+            xs[i] = NOD_FROM_X + softNoise(NORMAL_NOISE);
+            ys[i] = NOD_FROM_Y + softNoise(NORMAL_NOISE);
+            zs[i] = NOD_FROM_Z + softNoise(NORMAL_NOISE);
             return;
         }
         var step = _sampleIndex - NOD_LEAD_SAMPLES;
@@ -206,6 +210,13 @@ class SimulatedAccelSource extends AccelSource {
     //! Punto entre from y to, con t en milésimas (puede pasar de 1000 en el rebote).
     private static function lerp(from as Number, to as Number, permille as Number) as Number {
         return from + (to - from) * permille / 1000;
+    }
+
+    //! Ruido triangular entero en [-amplitude, amplitude]: suma de dos uniformes de
+    //! la mitad de amplitud cada uno.
+    private function softNoise(amplitude as Number) as Number {
+        var half = amplitude / 2;
+        return noise(half) + noise(amplitude - half);
     }
 
     //! Ruido uniforme entero en [-amplitude, amplitude].

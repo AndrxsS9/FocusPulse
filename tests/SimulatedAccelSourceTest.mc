@@ -70,6 +70,8 @@ function simulatedNormalStaysInsideItsSignature(logger as Logger) as Boolean {
     var s = runScenario(new SimulatedAccelSource(AccelScenario.NORMAL, SIM_TEST_SEED), 5).snapshot();
     logger.debug("normal: varianza=" + s.variance + " sacudida=" + s.jerk);
     Test.assert(s.variance > SlidingWindow.STILL_VARIANCE_MAX);
+    // Ni quieto ni actividad alta: el puntaje de alerta lo trata como movimiento normal.
+    Test.assert(s.variance < AlertnessScore.ACTIVE_VARIANCE);
     Test.assert(!s.isStill);
     Test.assert(s.batchPeakJerk < 400);
     return true;
