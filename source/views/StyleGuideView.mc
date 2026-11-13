@@ -223,14 +223,22 @@ class StyleGuideView extends WatchUi.View {
 
     //! Anillo en los 3 estados (cian, ámbar, rojo) con los colores de su orbe,
     //! píldora de estado y botón grande de ejemplo.
+    //!
+    //! Se coloca de abajo hacia arriba a partir del botón, usando las alturas
+    //! reales de las fuentes, para que nada se solape.
     private function drawComponents(dc as Dc, layout as RoundLayout) as Void {
         var scores = [82, 47, 21] as Array<Number>;
-        var ringRadius = layout.scaled(115);
+        var gap = layout.scaled(30);
+        var ringRadius = layout.scaled(105);
         var penWidth = layout.scaled(22);
-        var ringY = layout.centerY - layout.scaled(90);
         var spacing = layout.scaled(285);
         var dotRadius = layout.scaled(10);
-        var dotsY = ringY + ringRadius + penWidth / 2 + layout.scaled(35);
+
+        var button = layout.buttonRect;
+        var pillHeight = Draw.pillHeight(dc, Typography.BODY);
+        var pillY = button.y - gap - pillHeight / 2;
+        var dotsY = pillY - pillHeight / 2 - gap - dotRadius;
+        var ringY = dotsY - dotRadius - gap - ringRadius - penWidth / 2;
 
         for (var i = 0; i < scores.size(); i++) {
             var score = scores[i];
@@ -238,7 +246,7 @@ class StyleGuideView extends WatchUi.View {
             var color = AlertnessColors.colorForAlertness(score);
 
             Draw.progressRing(dc, x, ringY, ringRadius, penWidth, score, Palette.BORDER, color);
-            Draw.centeredText(dc, x, ringY, Typography.BODY, score.format("%d") + "%", color);
+            Draw.centeredText(dc, x, ringY, Typography.LABEL, score.format("%d") + "%", color);
 
             var orb = AlertnessColors.orbPalette(score);
             for (var j = 0; j < orb.size(); j++) {
@@ -247,8 +255,6 @@ class StyleGuideView extends WatchUi.View {
             }
         }
 
-        var button = layout.buttonRect;
-        var pillY = (dotsY + dotRadius + button.y) / 2;
         Draw.pill(dc, layout.centerX, pillY, _statusActive, Typography.BODY,
             Palette.ACCENT, Palette.SURFACE, Palette.BORDER_STRONG);
         Draw.largeButton(dc, button, _startGuard, Typography.BODY, Palette.ACCENT, Palette.BACKGROUND);

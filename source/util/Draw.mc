@@ -64,8 +64,7 @@ module Draw {
     //! color. Devuelve el rectángulo ocupado (útil para hit-testing).
     function pill(dc as Dc, cx as Number, cy as Number, text as String, font as FontType,
             textColor as Number, fillColor as Number, borderColor as Number) as Rect {
-        var fontHeight = dc.getFontHeight(font);
-        var height = fontHeight + fontHeight / 3;
+        var height = pillHeight(dc, font);
         var width = dc.getTextWidthInPixels(text, font) + height;
         var rect = new Rect(cx - width / 2, cy - height / 2, width, height);
         var corner = height / 2;
@@ -79,6 +78,12 @@ module Draw {
 
         centeredText(dc, cx, cy, font, text, textColor);
         return rect;
+    }
+
+    //! Alto de una píldora con texto en font (para colocarla antes de dibujarla).
+    function pillHeight(dc as Dc, font as FontType) as Number {
+        var fontHeight = dc.getFontHeight(font);
+        return fontHeight + fontHeight / 3;
     }
 
     //! Botón grande con extremos redondos dentro de rect, con el texto centrado.
