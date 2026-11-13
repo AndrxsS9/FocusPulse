@@ -47,6 +47,7 @@
     <string id="DemoProlongedInactivity">Prolonged inactivity</string>
     <string id="DemoMaxAlert">Maximum alert</string>
     <string id="DemoNormalMovement">Normal movement</string>
+    <string id="DemoManual">Manual (fixed X/Y/Z)</string>
 
     <!-- Ajustes -->
     <string id="SettingsTitle">Settings</string>
@@ -65,6 +66,13 @@
     <string id="AiClassNormal">Normal</string>
     <string id="AiClassNod">Nodding</string>
     <string id="AiClassInert">Inert</string>
+
+    <!-- Menú de depuración (solo en compilaciones de depuración) -->
+    <string id="DebugMenuTitle">Debug</string>
+    <string id="DebugSource">Data source</string>
+    <string id="DebugSourceReal">Real sensor</string>
+    <string id="DebugSimulated">Simulated</string>
+    <string id="DebugStyleGuide">Style guide</string>
 
     <!-- Guía de estilo (pantalla oculta de depuración) -->
     <string id="StyleGuidePalette">Palette</string>
