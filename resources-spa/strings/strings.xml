@@ -9,6 +9,9 @@
     <string id="StatusSensorUnavailable">Sensor no disponible</string>
     <string id="StatusDemo">Modo demo</string>
 
+    <!-- Nombre de la actividad grabada en el historial (máx. recomendado 15 caracteres) -->
+    <string id="SessionName">Guardia focus</string>
+
     <!-- Botones -->
     <string id="ButtonStartGuard">Iniciar guardia</string>
     <string id="ButtonPauseGuard">Pausar guardia</string>

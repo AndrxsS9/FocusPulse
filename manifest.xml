@@ -24,6 +24,9 @@
         <iq:permissions>
             <!-- Acceso al acelerometro via Toybox.Sensor -->
             <iq:uses-permission id="Sensor"/>
+            <!-- Grabar la guardia como actividad (ActivityRecording): mantiene sensores
+                 y vibracion si la app pasa a inactiva. Ver SessionRecorder.mc -->
+            <iq:uses-permission id="Fit"/>
         </iq:permissions>
 
         <iq:languages>
