@@ -11,7 +11,8 @@ import Toybox.WatchUi;
 //! Orden de dibujo, de atrás hacia delante:
 //!   1. fondo (BACKGROUND);
 //!   2. orbe IA detrás de la hora y sus partículas (OrbModel);
-//!   3. anillo de nivel de alerta en el borde;
+//!   3. anillo de nivel de alerta en el borde y, con la guardia activa, el arco de
+//!      escaneo que gira por dentro de él;
 //!   4. contenido.
 //!
 //! Medidas: RoundLayout (source/util/Layout.mc) y docs/DISENO.md.
@@ -52,6 +53,19 @@ class MainView extends WatchUi.View {
     //! batería: queda entre y ≈ 55 y y ≈ 225.
     const ORB_CENTER_DROP = 25;
     const ORB_SCALE = 880;
+
+    //! Arco de escaneo: largo total (grados), número de tramos (el de la cabeza más
+    //! brillante, la cola se desvanece), duración de una vuelta (ms) y opacidad de la
+    //! cabeza (milésimas).
+    const SCAN_LENGTH = 15;
+    const SCAN_SEGMENTS = 3;
+    const SCAN_PERIOD_MS = 3000;
+    const SCAN_ALPHA = 550;
+
+    //! Grosor del arco de escaneo y separación con el borde interior del anillo de
+    //! alerta, en milésimas del lado (fr165: 3 px y 3 px).
+    const SCAN_PEN = 8;
+    const SCAN_INSET = 8;
 
     //! dt máximo (s) entre cuadros: tras un onHide largo la animación no da un salto.
     const MAX_FRAME_DT = 0.25f;
@@ -156,6 +170,9 @@ class MainView extends WatchUi.View {
         Draw.clear(dc, Palette.BACKGROUND);
         drawOrb(dc, layout, score);
         drawRing(dc, layout, score);
+        if (_guard.isActive()) {
+            drawScanArc(dc, layout);
+        }
         drawContent(dc, layout, score);
     }
 
@@ -241,6 +258,35 @@ class MainView extends WatchUi.View {
     private function drawRing(dc as Dc, layout as RoundLayout, score as Number) as Void {
         Draw.progressRing(dc, layout.centerX, layout.centerY, layout.ringRadius, layout.ringWidth,
             score, Palette.RING_TRACK, AlertnessColors.colorForAlertness(score));
+    }
+
+    //! Arco corto cian tenue que gira en sentido horario por dentro del anillo de
+    //! alerta, una vuelta cada SCAN_PERIOD_MS: indica que la guardia está vigilando.
+    //! Se dibuja en SCAN_SEGMENTS tramos; la cabeza es la más opaca.
+    private function drawScanArc(dc as Dc, layout as RoundLayout) as Void {
+        var pen = layout.scaled(SCAN_PEN);
+        var radius = layout.ringInnerRadius - layout.scaled(SCAN_INSET) - pen / 2;
+        // drawArc: 0° = 3 en punto, crece en sentido antihorario. La cabeza parte de las
+        // 12 (90°) y avanza en sentido horario.
+        var head = 90 - (System.getTimer() % SCAN_PERIOD_MS) * 360 / SCAN_PERIOD_MS;
+        var segment = SCAN_LENGTH / SCAN_SEGMENTS;
+
+        dc.setPenWidth(pen);
+        for (var i = 0; i < SCAN_SEGMENTS; i++) {
+            var alpha = SCAN_ALPHA * (SCAN_SEGMENTS - i) / SCAN_SEGMENTS;
+            dc.setColor(ColorMath.blend(Palette.ACCENT, Palette.BACKGROUND, alpha),
+                Graphics.COLOR_TRANSPARENT);
+            var start = head + i * segment;
+            dc.drawArc(layout.centerX, layout.centerY, radius, Graphics.ARC_CLOCKWISE,
+                normalizeDegrees(start + segment), normalizeDegrees(start));
+        }
+        dc.setPenWidth(1);
+    }
+
+    //! Ángulo en 0..359.
+    private static function normalizeDegrees(degrees as Number) as Number {
+        var d = degrees % 360;
+        return d < 0 ? d + 360 : d;
     }
 
     private function drawContent(dc as Dc, layout as RoundLayout, score as Number) as Void {
