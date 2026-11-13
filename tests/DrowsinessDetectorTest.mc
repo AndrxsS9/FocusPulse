@@ -57,6 +57,22 @@ function detectorTypingJerksNeverMakeANod(logger as Logger) as Boolean {
 }
 
 (:test)
+function detectorFallPendingNeedsNearStillness(logger as Logger) as Boolean {
+    // Al pasar de teclear a moverse con normalidad queda una sacudida reciente, pero el
+    // movimiento no se calma lo bastante: no hay caída pendiente ni cabeceo.
+    var rig = new DetectorRig(AccelScenario.TYPING, SIM_TEST_SEED, true);
+    rig.run(10);
+    rig.source.setScenario(AccelScenario.NORMAL);
+    for (var i = 0; i < 10; i++) {
+        rig.step();
+        Test.assert(!rig.detector.isFallPending());
+        Test.assert(rig.detector.state() != DetectorState.FALL_DETECTED);
+    }
+    Test.assertEqual(rig.events(), 0);
+    return true;
+}
+
+(:test)
 function detectorNodEmitsExactlyOneNodWithin5s(logger as Logger) as Boolean {
     var rig = new DetectorRig(AccelScenario.NOD, SIM_TEST_SEED, true);
     var sawFall = false;

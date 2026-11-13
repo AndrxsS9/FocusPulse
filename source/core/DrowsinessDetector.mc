@@ -71,9 +71,10 @@ class DrowsinessDetector {
     static const NOD_JERK_MIN = 400;
 
     //! Sacudida máxima (mg) en las últimas muestras del lote para considerar que el
-    //! movimiento ya se calmó tras la caída (estado FALL_DETECTED). El tecleo no baja de
-    //! aquí, así que no muestra "caída detectada" a cada tecla.
-    static const NOD_CALM_JERK = 150;
+    //! movimiento casi se detuvo tras la caída (estado FALL_DETECTED). Un brazo que cuelga
+    //! o descansa da ≈ 10 mg; el movimiento normal, ≈ 70, y el tecleo, más de 400. Así
+    //! ni el tecleo ni el movimiento normal que lo sigue muestran "caída detectada".
+    static const NOD_CALM_JERK = 50;
 
     //! Tiempo máximo (ms) entre la sacudida y la quietud.
     static const NOD_STILL_WITHIN_MS = 5000;
