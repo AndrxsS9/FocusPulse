@@ -7,18 +7,18 @@
     para que los bordes queden suaves. Los colores se leen de
     source\util\Palette.mc, así que el ícono sigue siempre a la paleta.
 
-    No necesita el SDK de Connect IQ. Vuelve a ejecutarlo con -Size cuando se
-    confirme el tamaño exacto del launcher del fr165 (ver docs\PENDIENTES.md).
+    No necesita el SDK de Connect IQ. El tamaño por defecto (54) es el que pide
+    el fr165/fr165m en compiler.json ("launcherIcon": 54x54).
 
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File scripts\icon.ps1
-    powershell -ExecutionPolicy Bypass -File scripts\icon.ps1 -Size 70
+    powershell -ExecutionPolicy Bypass -File scripts\icon.ps1 -Size 60
 #>
 [CmdletBinding()]
 param(
-    # Lado del ícono en píxeles.
+    # Lado del ícono en píxeles (fr165/fr165m: 54).
     [ValidateRange(16, 512)]
-    [int]$Size = 60,
+    [int]$Size = 54,
 
     # Archivo PNG de salida.
     [string]$Output

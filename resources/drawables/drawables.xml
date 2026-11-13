@@ -1,6 +1,5 @@
 <drawables>
-    <!-- Ícono del launcher: anillo cian + pulso. Se genera con scripts/icon.ps1
-         (colores de Palette.mc). Es de 60x60; PENDIENTE: confirmar el tamaño exacto
-         del launcher del fr165 en compiler.json y regenerarlo con -Size. -->
+    <!-- Ícono del launcher: anillo cian + pulso, 54x54 (tamaño "launcherIcon" del
+         fr165/fr165m en compiler.json). Se genera con scripts/icon.ps1. -->
     <bitmap id="LauncherIcon" filename="launcher_icon.png" />
 </drawables>
