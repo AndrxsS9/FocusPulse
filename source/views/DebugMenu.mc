@@ -6,6 +6,7 @@ import Toybox.WatchUi;
 //! larga de UP en la pantalla principal.
 //!
 //! - Telemetría en vivo (TelemetryDebugView).
+//! - Detector en vivo (DetectorDebugView): estado, probabilidades, línea base y eventos.
 //! - Fuente de datos: sensor real o simulada con un escenario (selector temporal hasta
 //!   que la fase del modo demo tenga su propia pantalla).
 //! - Guía de estilo.
@@ -13,6 +14,7 @@ import Toybox.WatchUi;
 module DebugMenu {
 
     const ITEM_TELEMETRY = :telemetry;
+    const ITEM_DETECTOR = :detector;
     const ITEM_SOURCE = :source;
     const ITEM_STYLE_GUIDE = :styleGuide;
 
@@ -20,6 +22,8 @@ module DebugMenu {
         var menu = new WatchUi.Menu2({ :title => text(Rez.Strings.DebugMenuTitle) });
         menu.addItem(new WatchUi.MenuItem(text(Rez.Strings.DebugTelemetry), null,
             ITEM_TELEMETRY, {}));
+        menu.addItem(new WatchUi.MenuItem(text(Rez.Strings.DebugDetector), null,
+            ITEM_DETECTOR, {}));
         menu.addItem(new WatchUi.MenuItem(text(Rez.Strings.DebugSource),
             DebugSource.label(guard), ITEM_SOURCE, {}));
         menu.addItem(new WatchUi.MenuItem(text(Rez.Strings.DebugStyleGuide), null,
@@ -47,6 +51,9 @@ class DebugMenuDelegate extends WatchUi.Menu2InputDelegate {
         var id = item.getId();
         if (id == DebugMenu.ITEM_TELEMETRY) {
             WatchUi.pushView(new TelemetryDebugView(_guard), new TelemetryDebugDelegate(_guard),
+                WatchUi.SLIDE_UP);
+        } else if (id == DebugMenu.ITEM_DETECTOR) {
+            WatchUi.pushView(new DetectorDebugView(_guard), new TelemetryDebugDelegate(_guard),
                 WatchUi.SLIDE_UP);
         } else if (id == DebugMenu.ITEM_SOURCE) {
             DebugSource.openSelector(_guard, item);

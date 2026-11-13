@@ -94,7 +94,7 @@ class TelemetryDebugView extends WatchUi.View {
     }
 }
 
-//! Entrada de la telemetría en vivo.
+//! Entrada de la telemetría en vivo y del detector en vivo (DetectorDebugView).
 //!
 //! - START/STOP o toque: inicia o pausa la guardia.
 //! - DOWN / UP: siguiente / anterior fuente (sensor real y los 5 escenarios).

@@ -22,6 +22,13 @@ function clockFormatUses12HourWithoutLeadingZero(logger as Logger) as Boolean {
 }
 
 (:test)
+function clockFormatAddsSecondsForEvents(logger as Logger) as Boolean {
+    Test.assertEqual(ClockFormat.hoursMinutesSeconds(7, 5, 3, true), "07:05:03");
+    Test.assertEqual(ClockFormat.hoursMinutesSeconds(13, 42, 59, false), "1:42:59");
+    return true;
+}
+
+(:test)
 function clockFormatRoundsAndClampsBattery(logger as Logger) as Boolean {
     Test.assertEqual(ClockFormat.batteryPercent(84.6f), 85);
     Test.assertEqual(ClockFormat.batteryPercent(84.4f), 84);

@@ -93,6 +93,17 @@
     <string id="DebugStillFormat">Quietud $1$ s</string>
     <string id="DebugRateFormat">$1$ Hz de $2$ Hz</string>
     <string id="DebugSamplesFormat">$1$ muestras</string>
+    <!-- Detector en vivo -->
+    <string id="DebugDetector">Detector en vivo</string>
+    <string id="DetectorWatching">Vigilando</string>
+    <string id="DetectorFallDetected">Caída detectada</string>
+    <string id="DetectorEventFormat">Evento: $1$</string>
+    <string id="EventNod">Cabeceo</string>
+    <string id="EventInactivity">Inactividad</string>
+    <string id="DebugBaselineFormat">Base $1$±$2$ · umbral $3$</string>
+    <string id="DebugStillTiltFormat">Quietud $1$ s · incl. $2$°</string>
+    <string id="DebugLastEventFormat">Último: $1$ $2$</string>
+    <string id="DebugNoEvents">Sin eventos</string>
 
     <!-- Guía de estilo (pantalla oculta de depuración) -->
     <string id="StyleGuidePalette">Paleta</string>

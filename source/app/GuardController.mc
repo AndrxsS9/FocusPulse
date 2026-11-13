@@ -30,6 +30,9 @@ class GuardController {
     private var _lastEvent as DrowsinessEvent.Id = DrowsinessEvent.NONE;
     private var _lastEventMoment as Time.Moment? = null;
 
+    //! System.getTimer() al arrancar el detector (para el registro de depuración).
+    private var _detectionStartMs as Number = 0;
+
     //! Último snapshot calculado (uno por lote). Las vistas lo leen en cada cuadro sin
     //! crear objetos nuevos.
     private var _snapshot as TelemetrySnapshot;
@@ -166,7 +169,8 @@ class GuardController {
 
     //! Arranca el detector (calibrando) y el clasificador desde cero.
     private function startDetection() as Void {
-        _detector.start(System.getTimer(), _useDemoSource);
+        _detectionStartMs = System.getTimer();
+        _detector.start(_detectionStartMs, _useDemoSource);
         _classifier.reset();
     }
 
@@ -174,9 +178,9 @@ class GuardController {
     (:debug)
     private function logEvent(event as DrowsinessEvent.Id, timestampMs as Number) as Void {
         System.println("EVENTO " + (event == DrowsinessEvent.NOD ? "cabeceo" : "inactividad")
-            + " t=" + timestampMs + " ms, quietud " + _detector.stillSeconds().format("%.1f")
-            + " s, inclinación " + _detector.tiltDegrees().format("%.0f") + "°, umbral "
-            + _detector.stillThreshold().format("%.0f") + " mg²");
+            + " a los " + ((timestampMs - _detectionStartMs) / 1000.0f).format("%.1f")
+            + " s de iniciar, inclinación " + _detector.tiltDegrees().format("%.0f")
+            + "°, umbral " + _detector.stillThreshold().format("%.0f") + " mg²");
     }
 
     (:release)

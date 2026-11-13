@@ -19,6 +19,13 @@ module ClockFormat {
         return h.format("%d") + ":" + minute.format("%02d");
     }
 
+    //! Hora, minutos y segundos ("07:42:05" en 24 h, "7:42:05" en 12 h), para marcar
+    //! eventos en la depuración.
+    function hoursMinutesSeconds(hour as Number, minute as Number, second as Number,
+            is24Hour as Boolean) as String {
+        return hoursMinutes(hour, minute, is24Hour) + ":" + second.format("%02d");
+    }
+
     //! Nivel de batería (0–100, Float de System.Stats) redondeado y recortado.
     function batteryPercent(battery as Float) as Number {
         var value = (battery + 0.5f).toNumber();
