@@ -77,8 +77,9 @@ class OrbModel {
     static const PARTICLE_START = 11.25f;
 
     //! Desplazamiento radial de cada partícula, en milésimas del radio del anillo de
-    //! partículas: rompe la simetría para que parezcan estrellas, no un reloj.
-    static const PARTICLE_JITTER = [20, -30, 10, -10, 35, -25, 0, 25, -35, 15, -5, 30, -20, 5, -15, 25];
+    //! partículas (±1,4 %): rompe la simetría para que parezcan estrellas, no las marcas
+    //! de un reloj, sin salirse del hueco estrecho donde se dibujan.
+    static const PARTICLE_JITTER = [8, -12, 4, -4, 14, -10, 0, 10, -14, 6, -2, 12, -8, 2, -6, 10];
 
     //! Velocidad de la onda de brillo (grados por segundo de animación): un ciclo cada
     //! 2,4 s a velocidad normal.

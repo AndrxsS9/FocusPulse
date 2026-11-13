@@ -10,7 +10,7 @@ import Toybox.WatchUi;
 //!
 //! Orden de dibujo, de atrás hacia delante:
 //!   1. fondo (BACKGROUND);
-//!   2. orbe IA detrás de la hora (reservado: llega en la fase siguiente);
+//!   2. orbe IA detrás de la hora y sus partículas (OrbModel);
 //!   3. anillo de nivel de alerta en el borde;
 //!   4. contenido.
 //!
@@ -28,6 +28,33 @@ class MainView extends WatchUi.View {
 
     //! Periodo de redibujo (ms) con la guardia activa (~5 por segundo).
     const REFRESH_ACTIVE_MS = 200;
+
+    //! Opacidad (milésimas) de cada anillo del orbe, del exterior al interior. En el
+    //! fr165 no hay trazos con alfa: se mezcla el color con el fondo (ColorMath).
+    const ORB_ALPHA = [600, 450, 350];
+
+    //! En pausa el orbe se ve más tenue: opacidad × ORB_PAUSED_DIM / 1000.
+    const ORB_PAUSED_DIM = 450;
+
+    //! Grosor (px) de los anillos del orbe.
+    const ORB_PEN = 2;
+
+    //! Opacidad máxima (milésimas) de una partícula en su punto más brillante, y brillo
+    //! fijo de las partículas en pausa.
+    const PARTICLE_MAX_ALPHA = 700;
+    const PARTICLE_PAUSED_BRIGHTNESS = 0.3f;
+
+    //! Radio de cada partícula, en milésimas del lado (fr165: 2 px).
+    const PARTICLE_SIZE = 6;
+
+    //! El orbe se centra un poco por debajo de la hora (en milésimas del lado: 9 px en el
+    //! fr165) y con el 88 % de layout.orbRadius, para que su borde superior no cruce la
+    //! batería: queda entre y ≈ 55 y y ≈ 225.
+    const ORB_CENTER_DROP = 25;
+    const ORB_SCALE = 880;
+
+    //! dt máximo (s) entre cuadros: tras un onHide largo la animación no da un salto.
+    const MAX_FRAME_DT = 0.25f;
 
     //! Batería en o por debajo de este porcentaje: ícono y número en rojo.
     const BATTERY_LOW = 15;
@@ -49,6 +76,16 @@ class MainView extends WatchUi.View {
     private var _guard as GuardController;
     private var _layout as RoundLayout?;
 
+    //! Orbe IA y los arreglos donde se escriben sus puntos (sin crear objetos por cuadro).
+    private var _orb as OrbModel;
+    private var _xs as Array<Number>;
+    private var _ys as Array<Number>;
+    private var _particleXs as Array<Number>;
+    private var _particleYs as Array<Number>;
+
+    //! System.getTimer() del cuadro anterior (null: aún no hubo cuadro).
+    private var _lastFrameMs as Number? = null;
+
     //! Timer de redibujo y su periodo actual (0 = detenido).
     private var _timer as Timer.Timer? = null;
     private var _timerPeriod as Number = 0;
@@ -67,6 +104,11 @@ class MainView extends WatchUi.View {
     function initialize(guard as GuardController) {
         View.initialize();
         _guard = guard;
+        _orb = new OrbModel();
+        _xs = new Array<Number>[OrbModel.POINTS];
+        _ys = new Array<Number>[OrbModel.POINTS];
+        _particleXs = new Array<Number>[OrbModel.PARTICLES];
+        _particleYs = new Array<Number>[OrbModel.PARTICLES];
     }
 
     function onLayout(dc as Dc) as Void {
@@ -109,6 +151,7 @@ class MainView extends WatchUi.View {
         }
         Draw.enableAntiAlias(dc);
         var score = _guard.alertness();
+        advanceOrb(score);
 
         Draw.clear(dc, Palette.BACKGROUND);
         drawOrb(dc, layout, score);
@@ -139,9 +182,58 @@ class MainView extends WatchUi.View {
         _timerPeriod = 0;
     }
 
-    //! Orbe IA detrás de la hora. Reservado para la fase siguiente: el espacio
-    //! (layout.orbRadius alrededor de la hora) y su lugar en el orden de dibujo ya están.
+    //! Actualiza el estado del orbe y avanza su animación el tiempo real desde el cuadro
+    //! anterior (como mucho MAX_FRAME_DT).
+    private function advanceOrb(score as Number) as Void {
+        var now = System.getTimer();
+        var last = _lastFrameMs;
+        _lastFrameMs = now;
+        _orb.setState(OrbModel.stateFor(_guard.isActive(), _guard.latestSnapshot(), score));
+        if (last != null) {
+            var dt = (now - last) / 1000.0f;
+            _orb.advance(dt > MAX_FRAME_DT ? MAX_FRAME_DT : dt);
+        }
+    }
+
+    //! Orbe IA detrás de la hora: 3 anillos orgánicos (OrbModel) en los colores de
+    //! orbPalette(score), atenuados, y 16 partículas que titilan en un anillo cerca del
+    //! borde. En pausa está quieto y más tenue.
     private function drawOrb(dc as Dc, layout as RoundLayout, score as Number) as Void {
+        var palette = OrbModel.paletteFor(score);
+        var paused = _orb.state() == OrbState.PAUSED;
+        var alphas = ORB_ALPHA as Array<Number>;
+        var orbCenterY = layout.timeY + layout.scaled(ORB_CENTER_DROP);
+        var orbRadius = layout.orbRadius * ORB_SCALE / 1000;
+
+        dc.setPenWidth(ORB_PEN);
+        for (var ring = 0; ring < OrbModel.RINGS; ring++) {
+            var alpha = paused ? alphas[ring] * ORB_PAUSED_DIM / 1000 : alphas[ring];
+            dc.setColor(ColorMath.blend(palette[ring], Palette.BACKGROUND, alpha),
+                Graphics.COLOR_TRANSPARENT);
+            _orb.ringPoints(ring, layout.centerX, orbCenterY, orbRadius, _xs, _ys);
+            var last = OrbModel.POINTS - 1;
+            for (var k = 0; k < last; k++) {
+                dc.drawLine(_xs[k], _ys[k], _xs[k + 1], _ys[k + 1]);
+            }
+            dc.drawLine(_xs[last], _ys[last], _xs[0], _ys[0]);
+        }
+        dc.setPenWidth(1);
+
+        // Partículas: en el hueco entre el círculo seguro del contenido y el anillo de
+        // alerta (170–177 px en el fr165), así no caen sobre textos ni el botón.
+        var radius = (layout.contentRadius + layout.ringInnerRadius) / 2;
+        _orb.particlePoints(layout.centerX, layout.centerY, radius, _particleXs, _particleYs);
+        var size = layout.scaled(PARTICLE_SIZE);
+        if (size < 1) {
+            size = 1;
+        }
+        for (var i = 0; i < OrbModel.PARTICLES; i++) {
+            var brightness = paused ? PARTICLE_PAUSED_BRIGHTNESS : _orb.particleBrightness(i);
+            var alpha = (brightness * PARTICLE_MAX_ALPHA).toNumber();
+            dc.setColor(ColorMath.blend(palette[1], Palette.BACKGROUND, alpha),
+                Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(_particleXs[i], _particleYs[i], size);
+        }
     }
 
     //! Anillo de nivel de alerta: pista RING_TRACK completa y avance desde las 12 en

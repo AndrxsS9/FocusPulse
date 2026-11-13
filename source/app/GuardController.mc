@@ -18,6 +18,10 @@ class GuardController {
     private var _engine as TelemetryEngine;
     private var _score as AlertnessScore;
 
+    //! Último snapshot calculado (uno por lote). Las vistas lo leen en cada cuadro sin
+    //! crear objetos nuevos.
+    private var _snapshot as TelemetrySnapshot;
+
     //! Marca de tiempo del último lote, para calcular el dt del puntaje. null tras
     //! iniciar la guardia o cambiar de fuente.
     private var _lastBatchMs as Number? = null;
@@ -37,6 +41,7 @@ class GuardController {
         _state = state;
         _engine = new TelemetryEngine();
         _score = new AlertnessScore();
+        _snapshot = _engine.snapshot();
         _recorder = new SessionRecorder(sessionName);
         _realSource = new RealAccelSource();
         _demoSource = new SimulatedAccelSource(AccelScenario.NORMAL, demoSeed);
@@ -67,6 +72,7 @@ class GuardController {
             return true;
         }
         _engine.reset();
+        _snapshot = _engine.snapshot();
         if (!currentSource().start()) {
             _sensorUnavailable = true;
             WatchUi.requestUpdate();
@@ -127,7 +133,8 @@ class GuardController {
             dt = (timestampMs - last) / 1000.0f;
         }
         _lastBatchMs = timestampMs;
-        _score.update(_engine.snapshot(), dt);
+        _snapshot = _engine.snapshot();
+        _score.update(_snapshot, dt);
 
         WatchUi.requestUpdate();
     }
@@ -137,8 +144,14 @@ class GuardController {
         return _score.value();
     }
 
+    //! Características actuales (snapshot nuevo).
     function snapshot() as TelemetrySnapshot {
         return _engine.snapshot();
+    }
+
+    //! Snapshot del último lote, sin crear objetos: para redibujos frecuentes.
+    function latestSnapshot() as TelemetrySnapshot {
+        return _snapshot;
     }
 
     function isRecording() as Boolean {
