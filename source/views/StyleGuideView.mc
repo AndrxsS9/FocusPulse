@@ -7,8 +7,8 @@ import Toybox.WatchUi;
 //! diseño en el simulador (y mostrarlo en la sustentación).
 //!
 //! Páginas: paleta base, paleta de acentos, tipografía numérica, tipografía de
-//! texto, componentes (anillo en 3 estados, orbe, píldora, botón) y alertas por
-//! nivel.
+//! texto, textos reales largos (acentos, ñ, ¡, · y ajuste de línea), componentes
+//! (anillo en 3 estados, orbe, píldora, botón) y alertas por nivel.
 //!
 //! Se abre con pulsación larga del botón de menú desde la pantalla principal
 //! (MainDelegate.onMenu). La anotación (:debug) la excluye de las compilaciones
@@ -20,9 +20,13 @@ class StyleGuideView extends WatchUi.View {
     const PAGE_PALETTE_ACCENTS = 1;
     const PAGE_TYPE_NUMBERS = 2;
     const PAGE_TYPE_TEXT = 3;
-    const PAGE_COMPONENTS = 4;
-    const PAGE_ALERTS = 5;
-    const PAGE_COUNT = 6;
+    const PAGE_TEXTS = 4;
+    const PAGE_COMPONENTS = 5;
+    const PAGE_ALERTS = 6;
+    const PAGE_COUNT = 7;
+
+    //! Máximo de líneas de cada texto de ejemplo al ajustarlo al ancho.
+    const MAX_LINES = 3;
 
     //! Puntaje de ejemplo para el rol "número".
     const SAMPLE_SCORE = 72;
@@ -42,6 +46,9 @@ class StyleGuideView extends WatchUi.View {
     private var _startGuard as String = "";
     private var _imAwake as String = "";
     private var _alertLevels as Array<String> = [] as Array<String>;
+    private var _wakeUp as String = "";
+    private var _causeNod as String = "";
+    private var _microsleeps as String = "";
 
     function initialize() {
         View.initialize();
@@ -57,6 +64,7 @@ class StyleGuideView extends WatchUi.View {
             palette,
             typography,
             typography,
+            text(Rez.Strings.StyleGuideTexts),
             text(Rez.Strings.StyleGuideComponents),
             text(Rez.Strings.StyleGuideAlerts)
         ] as Array<String>;
@@ -76,6 +84,10 @@ class StyleGuideView extends WatchUi.View {
             text(Rez.Strings.AlertLevel2),
             text(Rez.Strings.AlertLevel3)
         ] as Array<String>;
+
+        _wakeUp = text(Rez.Strings.AlertWakeUp);
+        _causeNod = text(Rez.Strings.AlertCauseNod);
+        _microsleeps = text(Rez.Strings.FatigueRepeatedMicrosleeps);
     }
 
     //! Avanza a la página siguiente (vuelve a la primera tras la última).
@@ -118,6 +130,11 @@ class StyleGuideView extends WatchUi.View {
             drawNumberTypography(dc, layout);
         } else if (_page == PAGE_TYPE_TEXT) {
             drawTextTypography(dc, layout);
+        } else if (_page == PAGE_TEXTS) {
+            drawStack(dc, layout,
+                [Typography.ALERT, Typography.BODY, Typography.LABEL] as Array<FontDefinition>,
+                [_wakeUp, _causeNod, _microsleeps] as Array<String>,
+                [Palette.ORANGE, Palette.TEXT, Palette.TEXT_SECONDARY] as Array<Number>);
         } else if (_page == PAGE_COMPONENTS) {
             drawComponents(dc, layout);
         } else {
@@ -202,21 +219,59 @@ class StyleGuideView extends WatchUi.View {
     }
 
     //! Apila textos centrados entre el título y el indicador de página.
+    //! - Una sola palabra (sin espacios) nunca se parte: si no cabe se reduce la
+    //!   fuente con Draw.fittingFont.
+    //! - Una frase que no cabe en una línea se parte con fitTextToArea, hasta
+    //!   MAX_LINES líneas, dentro del ancho seguro de la zona central.
     private function drawStack(dc as Dc, layout as RoundLayout, fonts as Array<FontDefinition>,
             texts as Array<String>, colors as Array<Number>) as Void {
         var gap = layout.scaled(12);
+        var width = layout.safeWidthAt(layout.centerY + layout.scaled(150));
+        var shownFonts = [] as Array<FontDefinition>;
+        var shownTexts = [] as Array<String>;
+        var heights = [] as Array<Number>;
         var total = gap * (fonts.size() - 1);
         for (var i = 0; i < fonts.size(); i++) {
-            total += dc.getFontHeight(fonts[i]);
+            var font = fonts[i];
+            var shown = texts[i];
+            if (shown.find(" ") == null) {
+                font = Draw.fittingFont(dc, shown, width, font);
+            } else {
+                // fitTextToArea devuelve null si no logra ajustar el texto, y
+                // necesita algo más que MAX_LINES alturas de fuente (interlineado)
+                // para devolver MAX_LINES líneas.
+                var lineHeight = dc.getFontHeight(font);
+                var fitted = Graphics.fitTextToArea(shown, font, width,
+                    lineHeight * MAX_LINES + lineHeight / 2, true);
+                if (fitted != null) {
+                    shown = fitted;
+                }
+            }
+            var height = dc.getFontHeight(font) * lineCount(shown);
+            shownFonts.add(font);
+            shownTexts.add(shown);
+            heights.add(height);
+            total += height;
         }
 
-        var areaTop = layout.topY + dc.getFontHeight(Typography.TITLE) / 2;
+        var areaTop = titleBottom(dc, layout) + gap;
         var y = (areaTop + layout.footerY - total) / 2;
         for (var i = 0; i < fonts.size(); i++) {
-            var height = dc.getFontHeight(fonts[i]);
-            Draw.centeredText(dc, layout.centerX, y + height / 2, fonts[i], texts[i], colors[i]);
-            y += height + gap;
+            Draw.centeredText(dc, layout.centerX, y + heights[i] / 2, shownFonts[i], shownTexts[i], colors[i]);
+            y += heights[i] + gap;
         }
+    }
+
+    //! Número de líneas de un texto (saltos de línea + 1).
+    private function lineCount(value as String) as Number {
+        var lines = 1;
+        var chars = value.toCharArray();
+        for (var i = 0; i < chars.size(); i++) {
+            if (chars[i] == '\n') {
+                lines++;
+            }
+        }
+        return lines;
     }
 
     // --- Página: componentes -------------------------------------------------

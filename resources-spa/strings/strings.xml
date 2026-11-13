@@ -63,6 +63,7 @@
     <!-- Guía de estilo (pantalla oculta de depuración) -->
     <string id="StyleGuidePalette">Paleta</string>
     <string id="StyleGuideTypography">Tipografía</string>
+    <string id="StyleGuideTexts">Textos</string>
     <string id="StyleGuideComponents">Componentes</string>
     <string id="StyleGuideAlerts">Alertas</string>
     <string id="TypeRoleTime">Hora</string>
