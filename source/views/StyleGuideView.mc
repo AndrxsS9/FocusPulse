@@ -110,7 +110,11 @@ class StyleGuideView extends WatchUi.View {
 
         Draw.enableAntiAlias(dc);
         Draw.clear(dc, Palette.BACKGROUND);
-        Draw.centeredText(dc, layout.centerX, layout.topY, Typography.TITLE, _titles[_page], Palette.TEXT);
+        // El título va cerca del borde, donde la pantalla es estrecha: si no cabe
+        // (p. ej. "Componentes" en el fr165), se reduce la fuente.
+        var titleWidth = 2 * layout.halfChord(layout.topY, layout.radius - layout.scaled(30));
+        var titleFont = Draw.fittingFont(dc, _titles[_page], titleWidth, Typography.TITLE);
+        Draw.centeredText(dc, layout.centerX, layout.topY, titleFont, _titles[_page], Palette.TEXT);
 
         if (_page == PAGE_PALETTE_BASE) {
             // Superficies y textos.
