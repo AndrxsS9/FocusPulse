@@ -13,6 +13,9 @@ import Toybox.Math;
 //! - **Quietud**: segundos seguidos con la ventana llena y varianza < STILL_VARIANCE_MAX.
 //!   Empieza a contar cuando la ventana completa ya está quieta, así que va unos
 //!   WINDOW_SECONDS por detrás del momento real en que cesa el movimiento.
+//! - **Gravedad**: media de cada eje (mg). En 2 s el movimiento de la muñeca se promedia
+//!   y queda sobre todo la gravedad, así que su dirección da la inclinación del reloj
+//!   (ver Tilt). Sumas enteras exactas, igual que la magnitud.
 //!
 //! El tiempo entra como parámetro (ms) para poder probarlo sin reloj.
 //! Lógica pura: no depende de Sensor, WatchUi ni Graphics.
@@ -40,6 +43,12 @@ class SlidingWindow {
     //! Suma y suma de cuadrados de las magnitudes de la ventana.
     private var _sum as Long = 0l;
     private var _sumSq as Long = 0l;
+
+    //! Sumas de cada eje en la ventana (gravedad media). Caben en Number: 50 muestras de
+    //! como mucho ±8000 mg.
+    private var _sumX as Number = 0;
+    private var _sumY as Number = 0;
+    private var _sumZ as Number = 0;
 
     //! |Δ| vectorial de las últimas JERK_SAMPLES transiciones (circular).
     private var _deltas as Array<Number>;
@@ -84,8 +93,14 @@ class SlidingWindow {
             var old = _buffer.magnitude(0).toLong();
             _sum -= old;
             _sumSq -= old * old;
+            _sumX -= _buffer.x(0);
+            _sumY -= _buffer.y(0);
+            _sumZ -= _buffer.z(0);
         }
         _buffer.push(x, y, z);
+        _sumX += x;
+        _sumY += y;
+        _sumZ += z;
         var m = magnitude.toLong();
         _sum += m;
         _sumSq += m * m;
@@ -106,6 +121,9 @@ class SlidingWindow {
         _buffer.clear();
         _sum = 0l;
         _sumSq = 0l;
+        _sumX = 0;
+        _sumY = 0;
+        _sumZ = 0;
         _deltaHead = 0;
         _deltaCount = 0;
         _lastDelta = 0;
@@ -141,6 +159,26 @@ class SlidingWindow {
         // (n·Σm² − (Σm)²) / n², exacto en Long hasta la división.
         var numerator = n * _sumSq - _sum * _sum;
         return (numerator.toDouble() / (n * n).toDouble()).toFloat();
+    }
+
+    //! Media del eje x en la ventana (mg): componente x de la gravedad. 0 si está vacía.
+    function meanX() as Float {
+        return axisMean(_sumX);
+    }
+
+    //! Media del eje y en la ventana (mg).
+    function meanY() as Float {
+        return axisMean(_sumY);
+    }
+
+    //! Media del eje z en la ventana (mg).
+    function meanZ() as Float {
+        return axisMean(_sumZ);
+    }
+
+    private function axisMean(sum as Number) as Float {
+        var n = _buffer.size();
+        return n == 0 ? 0.0f : sum.toFloat() / n;
     }
 
     //! Desviación típica de la magnitud (mg).

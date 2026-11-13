@@ -14,6 +14,12 @@ class TelemetrySnapshot {
     //! Media de la magnitud en la ventana (mg).
     var meanMagnitude as Float = 0.0f;
 
+    //! Gravedad estimada: media de cada eje en la ventana de 2 s (mg). Su dirección da
+    //! la inclinación del reloj; la compara el detector antes y después de una caída.
+    var gravityX as Float = 0.0f;
+    var gravityY as Float = 0.0f;
+    var gravityZ as Float = 0.0f;
+
     //! Varianza de la magnitud en la ventana (mg²).
     var variance as Float = 0.0f;
 

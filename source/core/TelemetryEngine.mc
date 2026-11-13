@@ -113,6 +113,9 @@ class TelemetryEngine {
         s.y = _window.lastY();
         s.z = _window.lastZ();
         s.meanMagnitude = _window.mean();
+        s.gravityX = _window.meanX();
+        s.gravityY = _window.meanY();
+        s.gravityZ = _window.meanZ();
         s.variance = _window.variance();
         s.jerk = _window.jerk();
         s.batchPeakJerk = _batchPeakJerk;
