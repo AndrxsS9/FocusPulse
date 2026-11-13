@@ -7,11 +7,11 @@ FocusPulse AI detecta **micro-sueños y cabeceos** a partir del acelerómetro de
 despierta al usuario con **vibraciones progresivas**. Incluye un **modo demo** interno para
 simular eventos sin necesidad de dormirse frente al reloj.
 
-> Estado: **Fase 2 — sistema de diseño**. La app muestra la pantalla inicial y alterna entre
-> "Monitoreo en pausa" y "Guardia activa" con START/STOP o un toque. Ya existen la paleta,
-> la tipografía, el layout redondo, las utilidades de dibujo, los textos es/en de las
-> próximas pantallas y una guía de estilo oculta (pulsación larga de menú, solo en
-> depuración). La detección todavía no está implementada. Ver
+> Estado: **Fase 3 — telemetría del acelerómetro**. START/STOP o un toque inician y pausan la
+> guardia: se lee el acelerómetro a 25 Hz (o una fuente simulada) y, si el ajuste
+> "Grabar guardia como actividad" está activo, se graba la guardia como actividad. Un motor
+> calcula varianza, sacudida y segundos de quietud sobre una ventana de 2 s. La detección
+> de cabeceos y las alertas llegan en las fases siguientes. Ver
 > [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) y [docs/DISENO.md](docs/DISENO.md).
 
 ## Requisitos
@@ -55,16 +55,54 @@ Primer uso:
 .\scripts\run.ps1
 ```
 
+## Probar la telemetría en el simulador
+
+Solo en compilaciones de depuración (`build.ps1` / `run.ps1`; el `.iq` de `export.ps1` no
+incluye nada de esto).
+
+1. `.\scripts\run.ps1` abre la app en el simulador del fr165.
+2. **Mantén pulsado UP** (menú) en la pantalla principal: se abre el menú de depuración.
+3. **Fuente de datos** → elige *Sensor real* o un escenario simulado: *Movimiento normal*,
+   *Tecleo activo*, *Simular cabeceo*, *Inactividad prolongada* o *Manual (X/Y/Z fijos)*.
+   La elección se guarda y se recupera en el siguiente arranque. Con una fuente simulada,
+   la pantalla principal muestra "Modo demo".
+4. **Telemetría en vivo** → START (o un toque) inicia y pausa la guardia. Se ven las
+   muestras recibidas, la fuente, X/Y/Z, la varianza, la sacudida (últimas 10 muestras y
+   pico del lote), la quietud, los Hz efectivos frente a los pedidos y si está grabando.
+   **UP/DOWN** cambian de fuente sin salir; volver a elegir *Simular cabeceo* repite el
+   cabeceo desde el principio (3 s de movimiento, caída y quietud).
+5. BACK vuelve al menú y a la pantalla principal; BACK con la guardia activa la detiene,
+   guarda la actividad y sale.
+
+**Datos del acelerómetro "real" en el simulador.** El simulador no entrega lotes del
+acelerómetro por sí solo (la telemetría se queda en 0 muestras). Para inyectarlos:
+
+- *Simulation > Activity Data*, *Data Source* = **Data Simulation** y pulsa ▶. Llegan lotes a
+  25 Hz, pero son vectores de 1 g en direcciones al azar: sirven para comprobar que el
+  sensor real funciona, no para probar la detección.
+- *Data Source* = **FIT/GPX Playable File** y *Load File* reproduce un FIT. Según la doc del
+  SDK, un FIT grabado en el reloj con `SensorLogging` reproduce el acelerómetro real
+  (pendiente de probar, ver [docs/PENDIENTES.md](docs/PENDIENTES.md)).
+
+Para la sustentación se recomienda la **fuente simulada**: es reproducible y cada escenario
+tiene su firma (tabla en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)).
+
+Las actividades grabadas en el simulador se guardan en
+`%TEMP%\com.garmin.connectiq\GARMIN\Activities\`. El ajuste "Grabar guardia como
+actividad" se cambia en el simulador con *File > Edit Persistent Storage > Edit
+Application.Properties data* y en el reloj desde la app Garmin Connect.
+
 ## Estructura
 
 ```
 manifest.xml        Manifest de Connect IQ (watch-app, fr165/fr165m, permisos, idiomas)
 monkey.jungle       Configuración de compilación
 source/app/         Punto de entrada (FocusPulseApp)
-source/views/       Vistas y delegados de entrada
+source/views/       Vistas y delegados de entrada (incluye el menú de depuración)
 source/core/        Lógica pura (estado, telemetría, detector) sin dependencias de UI
+source/platform/    Adaptadores de hardware: acelerómetro real y simulado, grabación
 source/util/        Sistema de diseño: paleta, tipografía, layout redondo, dibujo
-resources/          Recursos por defecto (inglés): textos, ícono, layouts, settings
+resources/          Recursos por defecto (inglés): textos, ícono, layouts, ajustes
 resources-spa/      Textos en español
 tests/              Pruebas unitarias con Toybox.Test
 scripts/            Scripts de PowerShell
@@ -76,5 +114,6 @@ ml/                 Entrenamiento del modelo de detección (no se empaqueta en e
 
 - [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) — módulos y plan por fases.
 - [docs/DISENO.md](docs/DISENO.md) — sistema de diseño: paleta, tipografía, layout, accesibilidad.
-- [docs/PENDIENTES.md](docs/PENDIENTES.md) — lo que hay que verificar al instalar el SDK.
+- [docs/PENDIENTES.md](docs/PENDIENTES.md) — datos confirmados y lo que falta verificar
+  (sobre todo en el reloj real).
 - [ml/README.md](ml/README.md) — entrenamiento del modelo.
