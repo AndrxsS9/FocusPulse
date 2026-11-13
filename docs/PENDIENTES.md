@@ -1,7 +1,7 @@
 # Pendientes de verificar al instalar el SDK
 
-La fase 1 se escribió **sin el Connect IQ SDK instalado**: nada se ha compilado ni probado
-en el simulador. Esta lista recoge lo que hay que comprobar en cuanto el SDK esté listo.
+Las fases 1 y 2 se escribieron **sin el Connect IQ SDK instalado**: nada se ha compilado ni
+probado en el simulador. Esta lista recoge lo que hay que comprobar en cuanto el SDK esté listo.
 Marca cada punto al verificarlo y corrige el código o este documento si algo no coincide.
 
 ## 1. Instalación
@@ -50,7 +50,8 @@ Marca cada punto al verificarlo y corrige el código o este documento si algo no
 
 ## 5. Entrada
 
-- [ ] El botón **START/STOP** dispara `onSelect()` y alterna a "Monitoreo activo" (cian).
+- [ ] El botón **START/STOP** dispara `onSelect()` y alterna a "Guardia activa" (cian).
+      (En la fase 2 el texto de `StatusActive` pasó de "Monitoreo activo" a "Guardia activa".)
 - [ ] El **toque** dispara `onTap()` una sola vez (sin doble alternancia vía `onSelect`).
 - [ ] **BACK** sale de la app (comportamiento por defecto).
 
@@ -61,7 +62,7 @@ Marca cada punto al verificarlo y corrige el código o este documento si algo no
 - [ ] Comprobar si `monkeydo` devuelve código de salida distinto de 0 cuando una prueba falla
       (si no, el script no detecta fallos y hay que analizar la salida).
 
-## 7. Sensores y vibración (antes de la fase 2)
+## 7. Sensores y vibración (antes de la fase 3)
 
 - [ ] El fr165 soporta `Sensor.registerSensorDataListener` con acelerómetro: frecuencia de
       muestreo máxima (¿25 Hz?), tamaño de lote por periodo, unidades (mili-g) y orientación
@@ -72,7 +73,74 @@ Marca cada punto al verificarlo y corrige el código o este documento si algo no
 
 ## 8. Ícono y tienda
 
-- [ ] Tamaño exacto del ícono del launcher del fr165 (en `compiler.json`). El provisional
-      `resources/drawables/launcher_icon.png` es de 60×60; el compilador avisa si lo escala.
+- [ ] Tamaño exacto del ícono del launcher del fr165 (`launcherIcon` en
+      `Devices\fr165\compiler.json`). El ícono actual (anillo cian + pulso) es de 60×60;
+      si el tamaño es otro, regenerarlo con `scripts\icon.ps1 -Size <n>` en lugar de dejar
+      que el compilador lo escale.
+- [ ] Ver el ícono en el launcher del simulador: que el pulso se lea a tamaño real y que el
+      disco oscuro no choque con el fondo del menú de apps.
 - [ ] `scripts\export.ps1` genera `bin\FocusPulse.iq` (`monkeyc -e -r` sin `-d`).
 - [ ] Revisar requisitos actuales de la Connect IQ Store (ícono, capturas, descripción es/en).
+
+## 9. Sistema de diseño (fase 2)
+
+### Compilación
+
+- [ ] `AlertnessColors.bandForScore` devuelve el enum con nombre `as AlertnessBand`. Si el
+      compilador no acepta enums con nombre como tipo, cambiar a `as Number`.
+- [ ] `const JUSTIFY_CENTER = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER`
+      en el módulo `Draw` compila como constante y `drawText` acepta su tipo.
+- [ ] Las constantes de clase de `RoundLayout` se pueden leer desde fuera como
+      `RoundLayout.MIN_TOUCH` (lo usan las pruebas).
+- [ ] El tipo `FontType` en las firmas de `Draw` y `Array<FontDefinition>` en
+      `StyleGuideView` se resuelven con `import Toybox.Graphics` (si no, calificar como
+      `Graphics.FontType` / `Graphics.FontDefinition`).
+- [ ] `Number.format("%06X")` imprime el hex en mayúsculas con ceros a la izquierda en la
+      página de paleta.
+- [ ] La anotación `(:debug)` en las clases `StyleGuideView`/`StyleGuideDelegate` y en
+      `MainDelegate.onMenu` las excluye de `scripts\export.ps1` (release, `-r`) y las incluye
+      en `build.ps1`/`run.ps1`/`test.ps1`.
+- [ ] Las funciones auxiliares sin `(:test)` de `tests/` (`colorsMatch`, `insideCircle`)
+      compilan también en el build normal, porque `tests` está en `sourcePath`. Si molestan
+      en release, mover las pruebas a una ruta solo de pruebas en `monkey.jungle`.
+- [ ] Los textos de la guía de estilo (`StyleGuide*`, `TypeRole*`) se empaquetan también en
+      release aunque la vista no exista; medir si el costo en memoria importa.
+
+### Pruebas
+
+- [ ] Pasan las 9 pruebas de `tests/AlertnessColorsTest.mc` y las 8 de
+      `tests/RoundLayoutTest.mc`.
+
+### Simulador y tipografía
+
+- [ ] Alturas reales de `FONT_NUMBER_MEDIUM`, `FONT_NUMBER_MILD`, `FONT_LARGE`,
+      `FONT_MEDIUM`, `FONT_SMALL` y `FONT_XTINY` en el fr165; ajustar `Typography` si la hora
+      queda demasiado grande o pequeña frente al orbe (radio 97 px).
+- [ ] **Decidir si la hora necesita una fuente personalizada** (bitmap o vectorial) para
+      acercarse a la demo web, y si su costo en memoria es aceptable.
+- [ ] Si `FONT_NUMBER_*` incluye `%`; si no, el porcentaje de alerta se dibuja como número
+      en `NUMBER` y `%` en `LABEL`.
+- [ ] Las fuentes del sistema muestran `¡`, `…`, `·`, `ñ` y vocales con tilde.
+- [ ] Textos largos que no caben en una línea dentro de la zona segura (p. ej.
+      "Micro-sueños repetidos · toma un descanso de 15 min", "Cabeceo / pérdida de tono
+      muscular"): en la fase de interfaz usar `WatchUi.TextArea` o partirlos en líneas.
+
+### Guía de estilo y dibujo
+
+- [ ] La pulsación larga de UP dispara `onMenu()` en el fr165, y qué control del simulador la
+      reproduce.
+- [ ] Ninguna página se solapa: título contra las muestras de la paleta, franjas de alerta
+      contra el botón, píldora contra el botón en la página de componentes.
+- [ ] `drawArc` con `ARC_CLOCKWISE` de 90° a `(450 - sweep) % 360` dibuja el avance en
+      sentido horario desde las 12, y los extremos redondos (`roundCap`) coinciden con los
+      bordes del arco.
+- [ ] `setAntiAlias` existe en el fr165 y mejora los bordes del anillo y del botón.
+
+### AMOLED y accesibilidad
+
+- [ ] En el simulador y luego en el reloj: `ORANGE`, `ORANGE_DEEP` y `RED_INTENSE` se
+      distinguen entre sí; la pista `BORDER` del anillo se ve sin llamar la atención.
+- [ ] El texto claro sobre `RED_INTENSE` (4,47:1) se lee bien en el reloj; si no, usar
+      blanco puro solo en esa pantalla.
+- [ ] Áreas táctiles: el botón grande (226×54 px, área táctil 248×76 px) se acierta con el
+      reloj puesto y la mano en movimiento.
