@@ -1,6 +1,62 @@
 <!-- Textos en español. Cada id debe existir también en resources/strings/strings.xml. -->
 <strings>
     <string id="AppName">FocusPulse AI</string>
+
+    <!-- Estados de la sesión -->
     <string id="StatusPaused">Monitoreo en pausa</string>
-    <string id="StatusActive">Monitoreo activo</string>
+    <string id="StatusActive">Guardia activa</string>
+    <string id="StatusCalibrating">Calibrando…</string>
+    <string id="StatusSensorUnavailable">Sensor no disponible</string>
+    <string id="StatusDemo">Modo demo</string>
+
+    <!-- Botones -->
+    <string id="ButtonStartGuard">Iniciar guardia</string>
+    <string id="ButtonPauseGuard">Pausar guardia</string>
+    <string id="ButtonImAwake">Estoy despierto</string>
+
+    <!-- Pantalla principal -->
+    <string id="LabelAlertness">Nivel de alerta</string>
+
+    <!-- Alerta a pantalla completa -->
+    <string id="AlertWakeUp">¡DESPIERTA!</string>
+    <string id="AlertLevel1">Nivel 1 de 3</string>
+    <string id="AlertLevel2">Nivel 2 de 3</string>
+    <string id="AlertLevel3">Nivel 3 de 3</string>
+    <string id="AlertVibrationSoft">Vibración suave</string>
+    <string id="AlertVibrationMedium">Vibración media</string>
+    <string id="AlertVibrationMax">Vibración máxima</string>
+    <string id="AlertCauseNod">Cabeceo / pérdida de tono muscular</string>
+    <string id="AlertCauseInactivity">Inactividad prolongada</string>
+
+    <!-- Fatiga -->
+    <string id="FatigueLabel">Fatiga</string>
+    <string id="FatigueRepeatedMicrosleeps">Micro-sueños repetidos · toma un descanso de 15 min</string>
+    <string id="FatigueLow">Bajo</string>
+    <string id="FatigueModerate">Moderado</string>
+    <string id="FatigueHigh">Alto</string>
+
+    <!-- Modo demo -->
+    <string id="DemoTitle">Modo demo</string>
+    <string id="DemoSimulateNod">Simular cabeceo</string>
+    <string id="DemoActiveTyping">Tecleo activo</string>
+    <string id="DemoProlongedInactivity">Inactividad prolongada</string>
+    <string id="DemoMaxAlert">Alerta máxima</string>
+    <string id="DemoNormalMovement">Movimiento normal</string>
+
+    <!-- Ajustes -->
+    <string id="SettingsTitle">Ajustes</string>
+    <string id="SettingSensitivity">Sensibilidad</string>
+    <string id="SettingVibration">Vibración</string>
+    <string id="SettingSound">Sonido</string>
+    <string id="SettingValueLow">Baja</string>
+    <string id="SettingValueMedium">Media</string>
+    <string id="SettingValueHigh">Alta</string>
+    <string id="SettingValueOn">Activado</string>
+    <string id="SettingValueOff">Desactivado</string>
+
+    <!-- Clases del modelo IA -->
+    <string id="AiClassActive">Activo</string>
+    <string id="AiClassNormal">Normal</string>
+    <string id="AiClassNod">Cabeceo</string>
+    <string id="AiClassInert">Inerte</string>
 </strings>

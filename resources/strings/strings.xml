@@ -1,6 +1,64 @@
-<!-- Textos por defecto (inglés). Los textos en español viven en resources-spa/. -->
+<!-- Textos por defecto (inglés). Los textos en español viven en resources-spa/.
+     Cada id debe existir en ambos archivos. Convención de ids: Prefijo por pantalla
+     o grupo (Status, Button, Alert, Fatigue, Demo, Setting, AiClass) + nombre. -->
 <strings>
     <string id="AppName">FocusPulse AI</string>
+
+    <!-- Estados de la sesión -->
     <string id="StatusPaused">Monitoring paused</string>
-    <string id="StatusActive">Monitoring active</string>
+    <string id="StatusActive">Guard active</string>
+    <string id="StatusCalibrating">Calibrating…</string>
+    <string id="StatusSensorUnavailable">Sensor unavailable</string>
+    <string id="StatusDemo">Demo mode</string>
+
+    <!-- Botones -->
+    <string id="ButtonStartGuard">Start guard</string>
+    <string id="ButtonPauseGuard">Pause guard</string>
+    <string id="ButtonImAwake">I'm awake</string>
+
+    <!-- Pantalla principal -->
+    <string id="LabelAlertness">Alertness</string>
+
+    <!-- Alerta a pantalla completa -->
+    <string id="AlertWakeUp">WAKE UP!</string>
+    <string id="AlertLevel1">Level 1 of 3</string>
+    <string id="AlertLevel2">Level 2 of 3</string>
+    <string id="AlertLevel3">Level 3 of 3</string>
+    <string id="AlertVibrationSoft">Soft vibration</string>
+    <string id="AlertVibrationMedium">Medium vibration</string>
+    <string id="AlertVibrationMax">Maximum vibration</string>
+    <string id="AlertCauseNod">Head nod / loss of muscle tone</string>
+    <string id="AlertCauseInactivity">Prolonged inactivity</string>
+
+    <!-- Fatiga -->
+    <string id="FatigueLabel">Fatigue</string>
+    <string id="FatigueRepeatedMicrosleeps">Repeated micro-sleeps · take a 15 min break</string>
+    <string id="FatigueLow">Low</string>
+    <string id="FatigueModerate">Moderate</string>
+    <string id="FatigueHigh">High</string>
+
+    <!-- Modo demo -->
+    <string id="DemoTitle">Demo mode</string>
+    <string id="DemoSimulateNod">Simulate nod</string>
+    <string id="DemoActiveTyping">Active typing</string>
+    <string id="DemoProlongedInactivity">Prolonged inactivity</string>
+    <string id="DemoMaxAlert">Maximum alert</string>
+    <string id="DemoNormalMovement">Normal movement</string>
+
+    <!-- Ajustes -->
+    <string id="SettingsTitle">Settings</string>
+    <string id="SettingSensitivity">Sensitivity</string>
+    <string id="SettingVibration">Vibration</string>
+    <string id="SettingSound">Sound</string>
+    <string id="SettingValueLow">Low</string>
+    <string id="SettingValueMedium">Medium</string>
+    <string id="SettingValueHigh">High</string>
+    <string id="SettingValueOn">On</string>
+    <string id="SettingValueOff">Off</string>
+
+    <!-- Clases del modelo IA -->
+    <string id="AiClassActive">Active</string>
+    <string id="AiClassNormal">Normal</string>
+    <string id="AiClassNod">Nodding</string>
+    <string id="AiClassInert">Inert</string>
 </strings>
