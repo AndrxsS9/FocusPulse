@@ -1,0 +1,8 @@
+<!-- Propiedades persistentes de la app. Las que tienen un ajuste en settings.xml se
+     pueden editar desde la app Garmin Connect (en el simulador: File > Edit Persistent
+     Storage > Edit Application.Properties data). Se leen con source/app/AppSettings.mc. -->
+<properties>
+    <!-- true: al iniciar la guardia se graba una actividad para que el acelerómetro y la
+         vibración sigan funcionando si la app pasa a segundo plano. -->
+    <property id="recordActivity" type="boolean">true</property>
+</properties>

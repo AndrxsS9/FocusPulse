@@ -58,6 +58,7 @@
     <string id="SettingValueHigh">High</string>
     <string id="SettingValueOn">On</string>
     <string id="SettingValueOff">Off</string>
+    <string id="SettingRecordActivity">Record guard as activity</string>
 
     <!-- Clases del modelo IA -->
     <string id="AiClassActive">Active</string>

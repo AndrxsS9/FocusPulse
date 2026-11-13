@@ -56,6 +56,7 @@
     <string id="SettingValueHigh">Alta</string>
     <string id="SettingValueOn">Activado</string>
     <string id="SettingValueOff">Desactivado</string>
+    <string id="SettingRecordActivity">Grabar guardia como actividad</string>
 
     <!-- Clases del modelo IA -->
     <string id="AiClassActive">Activo</string>

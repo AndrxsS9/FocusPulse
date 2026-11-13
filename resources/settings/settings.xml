@@ -1,0 +1,7 @@
+<!-- Ajustes editables desde la app Garmin Connect. Los títulos son textos de
+     resources/strings (inglés) y resources-spa/strings (español). -->
+<settings>
+    <setting propertyKey="@Properties.recordActivity" title="@Strings.SettingRecordActivity">
+        <settingConfig type="boolean"/>
+    </setting>
+</settings>
