@@ -80,6 +80,18 @@ vibración). Se crea en la fase 3 con `SensorSource`. Igual que las vistas, pued
 `Toybox.Test`. Solo depende de `Palette`, que es un módulo de constantes sin imports.
 El sistema de diseño completo está en [DISENO.md](DISENO.md).
 
+## Restricciones del dispositivo
+
+Confirmadas con el SDK 9.3.0 (detalle en [PENDIENTES.md](PENDIENTES.md)). Afectan al diseño de
+los módulos de las fases siguientes:
+
+| Restricción | Consecuencia |
+|---|---|
+| Acelerómetro hasta 100 Hz, lotes de hasta 4 s, valores en mili‑g. **Sin giroscopio.** | `SensorSource` pide la frecuencia con `getMaxSampleRateForSensorType(:accelerometer)` y una frecuencia de trabajo menor (25 Hz) para ahorrar batería. `FeatureExtractor` solo usa el acelerómetro: la inclinación sale de la gravedad, no de la velocidad angular. |
+| Los Forerunner **ignoran el `dutyCycle`** de `VibeProfile`: la vibración siempre tiene la misma fuerza. Hay de 1 a 8 perfiles por llamada. | `Haptics` distingue los niveles 1–3 por duración, número de pulsos y pausas, no por intensidad. El ajuste "intensidad de vibración" de la fase 9 cambia el patrón, no la fuerza. |
+| Si la app pasa a **inactiva** sin grabar una actividad, los sensores bajan a 10 Hz o fallan y la vibración queda denegada. | `FocusPulseApp` debe atender `onActive`/`onInactive`. Hay que decidir si la guardia graba una actividad (`ActivityRecording`, permiso `Fit`). |
+| fr165 y fr165m comparten pantalla, teclas, sensores y API 5.2.0. | Un solo código para ambos productos; `scripts\build.ps1` compila para `fr165` y `export.ps1` para los dos. |
+
 ## Plan por fases
 
 | Fase | Objetivo |
