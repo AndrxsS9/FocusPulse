@@ -19,6 +19,10 @@ module Palette {
     //! Borde tenue: pista del anillo de progreso, separadores.
     const BORDER = 0x1C222B;
 
+    //! Pista del anillo de nivel de alerta de la esfera principal (parte sin avance).
+    //! Un punto más oscura que BORDER para que el avance destaque en el borde.
+    const RING_TRACK = 0x1A1F27;
+
     //! Borde marcado: contorno de controles y muestras de color.
     const BORDER_STRONG = 0x2E3743;
 
