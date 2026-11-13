@@ -254,7 +254,7 @@ class StyleGuideView extends WatchUi.View {
         Draw.largeButton(dc, layout.buttonRect, _imAwake, Typography.BODY, Palette.TEXT, Palette.BACKGROUND);
     }
 
-    private function text(id as Symbol) as String {
+    private function text(id as ResourceId) as String {
         return WatchUi.loadResource(id) as String;
     }
 }
