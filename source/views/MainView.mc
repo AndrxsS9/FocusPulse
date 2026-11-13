@@ -17,18 +17,26 @@ import Toybox.WatchUi;
 //!
 //! Medidas: RoundLayout (source/util/Layout.mc) y docs/DISENO.md.
 //!
-//! Refresco: un Timer redibuja cada REFRESH_PAUSED_MS en pausa (la hora) y cada
-//! REFRESH_ACTIVE_MS con la guardia activa (la animación del orbe y del punto de la
-//! fase siguiente subirá esa tasa). Se detiene en onHide y se reanuda en onShow. El
-//! puntaje no depende del timer: se actualiza con cada lote de telemetría
-//! (GuardController.onBatch), que además pide su propio redibujo.
+//! Refresco: un Timer redibuja cada REFRESH_PAUSED_MS en pausa (la hora; el orbe está
+//! quieto) y cada REFRESH_ACTIVE_MS con la guardia activa (unos 12 cuadros por segundo
+//! para el orbe, el arco y el latido). Con ANIMATIONS_ENABLED = false la guardia activa
+//! también redibuja una vez por segundo y nada se anima. Se detiene en onHide y se
+//! reanuda en onShow. El puntaje no depende del timer: se actualiza con cada lote de
+//! telemetría (GuardController.onBatch), que además pide su propio redibujo.
+//!
+//! En depuración, FrameStats mide los cuadros por segundo reales y el tiempo de dibujo
+//! y los escribe en la consola cada 5 s.
 class MainView extends WatchUi.View {
 
     //! Periodo de redibujo (ms) en pausa: basta para que cambie la hora.
     const REFRESH_PAUSED_MS = 1000;
 
-    //! Periodo de redibujo (ms) con la guardia activa (~5 por segundo).
-    const REFRESH_ACTIVE_MS = 200;
+    //! Periodo de redibujo (ms) con la guardia activa: unos 12 cuadros por segundo.
+    const REFRESH_ACTIVE_MS = 83;
+
+    //! false desactiva el orbe animado, el arco de escaneo y el latido (orbe quieto,
+    //! 1 redibujo por segundo). Lo usará el ajuste "Animaciones reducidas".
+    const ANIMATIONS_ENABLED = true;
 
     //! Opacidad (milésimas) de cada anillo del orbe, del exterior al interior. En el
     //! fr165 no hay trazos con alfa: se mezcla el color con el fondo (ColorMath).
@@ -103,6 +111,9 @@ class MainView extends WatchUi.View {
     //! System.getTimer() del cuadro anterior (null: aún no hubo cuadro).
     private var _lastFrameMs as Number? = null;
 
+    //! Medición de cuadros por segundo y tiempo de dibujo (solo se informa en depuración).
+    private var _frameStats as FrameStats = new FrameStats();
+
     //! Timer de redibujo y su periodo actual (0 = detenido).
     private var _timer as Timer.Timer? = null;
     private var _timerPeriod as Number = 0;
@@ -166,27 +177,53 @@ class MainView extends WatchUi.View {
         if (layout == null) {
             return;
         }
+        var start = System.getTimer();
         Draw.enableAntiAlias(dc);
         var score = _guard.alertness();
-        advanceOrb(score);
+        var animate = isAnimating();
+        advanceOrb(score, animate);
 
         Draw.clear(dc, Palette.BACKGROUND);
         drawOrb(dc, layout, score);
         drawRing(dc, layout, score);
-        if (_guard.isActive()) {
+        if (animate) {
             drawScanArc(dc, layout);
         }
-        drawContent(dc, layout, score);
+        drawContent(dc, layout, score, animate);
+
+        if (_frameStats.frame(start, System.getTimer())) {
+            reportFrameStats();
+        }
+    }
+
+    //! true si este cuadro anima (guardia activa y animaciones habilitadas).
+    private function isAnimating() as Boolean {
+        return ANIMATIONS_ENABLED && _guard.isActive();
+    }
+
+    //! Escribe en la consola la medición de los últimos 5 s.
+    (:debug)
+    private function reportFrameStats() as Void {
+        System.println("FPS " + _frameStats.fps.format("%.1f") + " (" + _frameStats.frames
+            + " cuadros), dibujo medio " + _frameStats.drawAvgMs.format("%.1f") + " ms, max "
+            + _frameStats.drawMaxMs + " ms, periodo " + _timerPeriod + " ms, orbe "
+            + _orb.state() + " t=" + _orb.time().format("%.2f") + " s");
+    }
+
+    //! En release la medición no se informa.
+    (:release)
+    private function reportFrameStats() as Void {
     }
 
     //! Arranca el timer con el periodo que toca según el estado de la guardia, o lo
     //! reinicia si el periodo cambió.
     private function updateTimer() as Void {
-        var period = _guard.isActive() ? REFRESH_ACTIVE_MS : REFRESH_PAUSED_MS;
+        var period = isAnimating() ? REFRESH_ACTIVE_MS : REFRESH_PAUSED_MS;
         if (_timer != null && period == _timerPeriod) {
             return;
         }
         stopTimer();
+        _frameStats.reset();
         var timer = new Timer.Timer();
         timer.start(method(:onTick), period, true);
         _timer = timer;
@@ -202,13 +239,17 @@ class MainView extends WatchUi.View {
         _timerPeriod = 0;
     }
 
-    //! Actualiza el estado del orbe y avanza su animación el tiempo real desde el cuadro
-    //! anterior (como mucho MAX_FRAME_DT).
-    private function advanceOrb(score as Number) as Void {
+    //! Actualiza el estado del orbe y, si se anima, avanza su animación el tiempo real
+    //! desde el cuadro anterior (como mucho MAX_FRAME_DT).
+    private function advanceOrb(score as Number, animate as Boolean) as Void {
         var now = System.getTimer();
         var last = _lastFrameMs;
         _lastFrameMs = now;
         _orb.setState(OrbModel.stateFor(_guard.isActive(), _guard.latestSnapshot(), score));
+        if (!animate) {
+            // Sin animación el orbe no avanza, pero conserva el color de su estado.
+            return;
+        }
         if (last != null) {
             var dt = (now - last) / 1000.0f;
             _orb.advance(dt > MAX_FRAME_DT ? MAX_FRAME_DT : dt);
@@ -292,11 +333,12 @@ class MainView extends WatchUi.View {
         return d < 0 ? d + 360 : d;
     }
 
-    private function drawContent(dc as Dc, layout as RoundLayout, score as Number) as Void {
+    private function drawContent(dc as Dc, layout as RoundLayout, score as Number,
+            animate as Boolean) as Void {
         drawBattery(dc, layout);
         drawClock(dc, layout);
         drawScore(dc, layout, score);
-        drawStatus(dc, layout);
+        drawStatus(dc, layout, animate);
         drawButton(dc, layout);
         drawDemoBadge(dc, layout);
     }
@@ -354,7 +396,7 @@ class MainView extends WatchUi.View {
 
     //! Píldora de estado: en pausa (gris), guardia activa (cian, con un punto que late
     //! cada HEARTBEAT_PERIOD_MS) o sensor no disponible (ámbar).
-    private function drawStatus(dc as Dc, layout as RoundLayout) as Void {
+    private function drawStatus(dc as Dc, layout as RoundLayout, animate as Boolean) as Void {
         var text = _statusPaused;
         var color = Palette.TEXT_SECONDARY;
         var active = _guard.isActive();
@@ -365,8 +407,8 @@ class MainView extends WatchUi.View {
             text = _statusSensorUnavailable;
             color = Palette.AMBER;
         }
-        // Latido: fase 0–1 dentro de cada periodo; -1 (sin halo) si la guardia no está activa.
-        var pulse = active
+        // Latido: fase 0–1 dentro de cada periodo; -1 (sin halo) si no se anima.
+        var pulse = animate
             ? (System.getTimer() % HEARTBEAT_PERIOD_MS) / HEARTBEAT_PERIOD_MS.toFloat()
             : -1.0f;
         Draw.statusPill(dc, layout.centerX, layout.pillY, text, Typography.LABEL, color,
