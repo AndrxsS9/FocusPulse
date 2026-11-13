@@ -1,11 +1,11 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-//! Coordina la guardia: estado (MonitorState), fuente del acelerÃ³metro, motor de
-//! telemetrÃ­a y grabaciÃ³n de la actividad.
+//! Coordina la guardia: estado (MonitorState), fuente del acelerómetro, motor de
+//! telemetría y grabación de la actividad.
 //!
-//! - start(): reinicia el motor, arranca la fuente (real, o simulada si se eligiÃ³ la
-//!   fuente demo) y, si el ajuste recordActivity estÃ¡ activo, la grabaciÃ³n.
+//! - start(): reinicia el motor, arranca la fuente (real, o simulada si se eligió la
+//!   fuente demo) y, si el ajuste recordActivity está activo, la grabación.
 //! - pause(): detiene la fuente y guarda la actividad.
 //! - shutdown(): lo mismo, al cerrar la app con la guardia activa.
 //!
@@ -19,10 +19,10 @@ class GuardController {
     private var _realSource as RealAccelSource;
     private var _demoSource as SimulatedAccelSource;
 
-    //! true: la guardia usa la fuente simulada (modo demo / depuraciÃ³n).
+    //! true: la guardia usa la fuente simulada (modo demo / depuración).
     private var _useDemoSource as Boolean = false;
 
-    //! true si el Ãºltimo intento de iniciar la guardia fallÃ³ por el sensor.
+    //! true si el último intento de iniciar la guardia falló por el sensor.
     private var _sensorUnavailable as Boolean = false;
 
     //! sessionName: nombre de la actividad grabada (texto localizado).
@@ -52,7 +52,7 @@ class GuardController {
         return _state.isActive();
     }
 
-    //! Inicia la guardia. Devuelve false, sin cambiar de estado, si la fuente no estÃ¡
+    //! Inicia la guardia. Devuelve false, sin cambiar de estado, si la fuente no está
     //! disponible. Que no se pueda grabar la actividad no impide la guardia.
     function start() as Boolean {
         if (_state.isActive()) {
@@ -85,7 +85,7 @@ class GuardController {
     //!
     //! Se llama dos veces al salir con BACK: desde MainDelegate.onBack, antes de que la
     //! app empiece a cerrarse (el simulador 9.3.0 se cae si la app termina con una
-    //! sesiÃ³n aÃºn grabando, aunque onStop la guarde), y desde onStop como respaldo para
+    //! sesión aún grabando, aunque onStop la guarde), y desde onStop como respaldo para
     //! los cierres del sistema. La segunda llamada no hace nada.
     function shutdown() as Void {
         stopAll();
@@ -124,7 +124,7 @@ class GuardController {
 
     // --- Fuente -----------------------------------------------------------------
 
-    //! true si la guardia usa (o usarÃ¡) la fuente simulada.
+    //! true si la guardia usa (o usará) la fuente simulada.
     function isDemoSource() as Boolean {
         return _useDemoSource;
     }
