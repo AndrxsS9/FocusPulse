@@ -67,6 +67,9 @@ class MainView extends WatchUi.View {
     const SCAN_PEN = 8;
     const SCAN_INSET = 8;
 
+    //! Periodo del latido del punto de "Guardia activa" (ms).
+    const HEARTBEAT_PERIOD_MS = 1600;
+
     //! dt máximo (s) entre cuadros: tras un onHide largo la animación no da un salto.
     const MAX_FRAME_DT = 0.25f;
 
@@ -349,8 +352,8 @@ class MainView extends WatchUi.View {
         dc.drawText(left + labelWidth + gap, layout.scoreY, SCORE_FONT, text, justify);
     }
 
-    //! Píldora de estado: en pausa (gris), guardia activa (cian, con punto) o sensor no
-    //! disponible (ámbar). El punto se animará en la fase siguiente.
+    //! Píldora de estado: en pausa (gris), guardia activa (cian, con un punto que late
+    //! cada HEARTBEAT_PERIOD_MS) o sensor no disponible (ámbar).
     private function drawStatus(dc as Dc, layout as RoundLayout) as Void {
         var text = _statusPaused;
         var color = Palette.TEXT_SECONDARY;
@@ -362,8 +365,12 @@ class MainView extends WatchUi.View {
             text = _statusSensorUnavailable;
             color = Palette.AMBER;
         }
+        // Latido: fase 0–1 dentro de cada periodo; -1 (sin halo) si la guardia no está activa.
+        var pulse = active
+            ? (System.getTimer() % HEARTBEAT_PERIOD_MS) / HEARTBEAT_PERIOD_MS.toFloat()
+            : -1.0f;
         Draw.statusPill(dc, layout.centerX, layout.pillY, text, Typography.LABEL, color,
-            Palette.SURFACE, Palette.BORDER_STRONG, active);
+            Palette.SURFACE, Palette.BORDER_STRONG, active, pulse);
     }
 
     //! Botón grande: "Iniciar guardia" (cian, texto oscuro) o "Pausar guardia"

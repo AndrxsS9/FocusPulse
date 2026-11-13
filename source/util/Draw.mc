@@ -83,9 +83,12 @@ module Draw {
     //! Píldora de estado con un punto opcional a la izquierda del texto (p. ej. la
     //! guardia activa). Mismo alto que pill(); el punto mide un tercio del alto y va en
     //! el color del texto. Devuelve el rectángulo ocupado.
+    //!
+    //! pulse (0–1) anima el punto como un latido: un halo que crece desde el punto hasta
+    //! el borde de la píldora y se desvanece. Con pulse < 0 no hay halo.
     function statusPill(dc as Dc, cx as Number, cy as Number, text as String, font as FontType,
             textColor as Number, fillColor as Number, borderColor as Number,
-            showDot as Boolean) as Rect {
+            showDot as Boolean, pulse as Float) as Rect {
         if (!showDot) {
             return pill(dc, cx, cy, text, font, textColor, fillColor, borderColor);
         }
@@ -106,8 +109,16 @@ module Draw {
         dc.setPenWidth(1);
 
         var left = cx - contentWidth / 2;
+        var dotX = left + dotRadius;
+        if (pulse >= 0.0f && pulse <= 1.0f) {
+            // Halo: del radio del punto a 2,5 veces, de 60 % de opacidad a 0.
+            var haloRadius = dotRadius + (dotRadius * 1.5f * pulse).toNumber();
+            var alpha = (600 * (1.0f - pulse)).toNumber();
+            dc.setColor(ColorMath.blend(textColor, fillColor, alpha), Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(dotX, cy, haloRadius);
+        }
         dc.setColor(textColor, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(left + dotRadius, cy, dotRadius);
+        dc.fillCircle(dotX, cy, dotRadius);
         dc.drawText(left + 2 * dotRadius + gap, cy, font, text,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         return rect;
