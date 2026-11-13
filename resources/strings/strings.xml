@@ -2,4 +2,5 @@
 <strings>
     <string id="AppName">FocusPulse AI</string>
     <string id="StatusPaused">Monitoring paused</string>
+    <string id="StatusActive">Monitoring active</string>
 </strings>

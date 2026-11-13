@@ -5,8 +5,12 @@ import Toybox.WatchUi;
 //! Punto de entrada de FocusPulse AI (declarado como `entry` en manifest.xml).
 class FocusPulseApp extends Application.AppBase {
 
+    //! Estado compartido entre la vista y su delegado.
+    private var _monitorState as MonitorState;
+
     function initialize() {
         AppBase.initialize();
+        _monitorState = new MonitorState();
     }
 
     //! Se llama al iniciar la app, antes de mostrar la vista inicial.
@@ -19,7 +23,7 @@ class FocusPulseApp extends Application.AppBase {
 
     //! Vista inicial de la app.
     function getInitialView() as [Views] or [Views, InputDelegates] {
-        return [new MainView()];
+        return [new MainView(_monitorState), new MainDelegate(_monitorState)];
     }
 }
 
