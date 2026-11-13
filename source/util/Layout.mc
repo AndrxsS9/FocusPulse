@@ -14,7 +14,7 @@ import Toybox.Math;
 class RoundLayout {
 
     //! Tamaño mínimo (px) de cualquier área táctil.
-    const MIN_TOUCH = 44;
+    static const MIN_TOUCH = 44;
 
     // Proporciones en milésimas del lado menor de la pantalla.
     const RING_MARGIN = 18;      // borde de pantalla → borde exterior del anillo
