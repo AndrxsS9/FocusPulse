@@ -6,6 +6,9 @@ module DetectorState {
     enum Id {
         //! Guardia en pausa: el detector no mira nada.
         IDLE = 0,
+        //! Primeros 30 s (5 s en demo): aprende la línea base. Ya detecta eventos, con el
+        //! umbral de quietud por defecto.
+        CALIBRATING = 1,
         //! Vigilando: sin caída pendiente ni evento reciente.
         WATCHING = 2,
         //! Hubo una sacudida y el movimiento se calmó: se espera la quietud.
@@ -54,6 +57,12 @@ module DrowsinessEvent {
 //! y la cuenta de quietud vuelve a empezar: si el usuario sigue inmóvil, el siguiente
 //! evento llega como pronto a los 10 s.
 //!
+//! **Línea base.** Al empezar calibra la línea base del usuario (Baseline) y después la
+//! adapta despacio. Solo le pasa ventanas ordinarias: ni quietas, ni con una caída
+//! calmada pendiente, ni de un evento o su refractario. De ella sale el umbral de
+//! quietud (stillThreshold). Los eventos no esperan a la calibración: con el umbral por
+//! defecto ya funcionan, y perder un cabeceo en los primeros 30 s sería peor.
+//!
 //! El tiempo entra como parámetro (ms, el del lote). Lógica pura: no depende de Sensor,
 //! WatchUi ni Graphics.
 class DrowsinessDetector {
@@ -83,6 +92,8 @@ class DrowsinessDetector {
 
     //! Quietud que ya se da por hecha al ver la ventana quieta: su duración.
     static const STILL_CREDIT_MS = SlidingWindow.WINDOW_SECONDS * 1000;
+
+    private var _baseline as Baseline;
 
     private var _running as Boolean = false;
     private var _demo as Boolean = false;
@@ -120,20 +131,24 @@ class DrowsinessDetector {
     private var _eventCount as Number = 0;
 
     function initialize() {
+        _baseline = new Baseline();
     }
 
-    //! Empieza a vigilar (al iniciar la guardia). demo: usa los tiempos del modo demo.
+    //! Empieza a vigilar y a calibrar (al iniciar la guardia). demo: usa los tiempos
+    //! del modo demo.
     function start(nowMs as Number, demo as Boolean) as Void {
         reset();
         _running = true;
         _demo = demo;
         _lastTimeMs = nowMs;
-        _state = DetectorState.WATCHING;
+        _baseline.start(nowMs, demo ? Baseline.CALIBRATION_DEMO_MS : Baseline.CALIBRATION_MS);
+        _state = DetectorState.CALIBRATING;
     }
 
     //! Olvida todo y deja de vigilar (guardia en pausa).
     function reset() as Void {
         _running = false;
+        _baseline.reset();
         _state = DetectorState.IDLE;
         _hasPrevious = false;
         _fallMs = null;
@@ -155,6 +170,7 @@ class DrowsinessDetector {
         _lastTimeMs = timeMs;
         if (!snapshot.windowFull) {
             // Con menos de 2 s de datos no hay varianza ni gravedad fiables.
+            _baseline.observe(null, timeMs);
             _state = currentState(timeMs);
             return DrowsinessEvent.NONE;
         }
@@ -218,6 +234,11 @@ class DrowsinessDetector {
         }
         // La candidata pudo descartarse o consumirse en decide().
         _fallCalm = _fallMs != null && snapshot.jerk < NOD_CALM_JERK;
+
+        // 5. Línea base: solo con ventanas ordinarias (el umbral nuevo rige desde el
+        // lote siguiente).
+        var ordinary = event == DrowsinessEvent.NONE && !still && !_fallCalm && canEmit(timeMs);
+        _baseline.observe(ordinary ? snapshot.variance : null, timeMs);
         _state = currentState(timeMs);
         return event;
     }
@@ -257,6 +278,9 @@ class DrowsinessDetector {
         if (_fallCalm) {
             return DetectorState.FALL_DETECTED;
         }
+        if (_baseline.isCalibrating()) {
+            return DetectorState.CALIBRATING;
+        }
         return DetectorState.WATCHING;
     }
 
@@ -274,9 +298,20 @@ class DrowsinessDetector {
         return _demo;
     }
 
-    //! Varianza (mg²) por debajo de la cual la ventana cuenta como quieta.
+    //! Varianza (mg²) por debajo de la cual la ventana cuenta como quieta: la adapta la
+    //! línea base (100 mientras calibra).
     function stillThreshold() as Float {
-        return SlidingWindow.STILL_VARIANCE_MAX;
+        return _baseline.stillThreshold();
+    }
+
+    //! Línea base del usuario (solo lectura para las vistas y las pruebas).
+    function baseline() as Baseline {
+        return _baseline;
+    }
+
+    //! true mientras calibra la línea base.
+    function isCalibrating() as Boolean {
+        return _running && _baseline.isCalibrating();
     }
 
     //! Quietud continua que dispara la inactividad (ms): 60 s, o 8 s en modo demo.

@@ -144,7 +144,8 @@ function detectorResetsWhenPaused(logger as Logger) as Boolean {
     Test.assertEqual(rig.events(), 0);
     Test.assertEqual(rig.detector.eventCount(), 0);
 
+    // Al reanudar vuelve a calibrar.
     rig.detector.start(rig.timeMs, true);
-    Test.assertEqual(rig.detector.state(), DetectorState.WATCHING);
+    Test.assertEqual(rig.detector.state(), DetectorState.CALIBRATING);
     return true;
 }
