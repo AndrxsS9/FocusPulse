@@ -40,8 +40,8 @@ class SimulatedAccelSource extends AccelSource {
     //! Postura base del movimiento normal (mg) y amplitud del ruido. El ruido es
     //! triangular (suma de dos uniformes de ±35): sigue dentro de ±70 mg, pero los valores
     //! extremos son raros, como en un brazo que se mueve sin brusquedad. Su varianza
-    //! (≈ 800 mg²) queda entre la quietud (< 100) y la actividad alta de AlertnessScore
-    //! (> 1500); con ruido uniforme de ±70 sería ≈ 1 630 mg² y contaría como tecleo.
+    //! (≈ 600–800 mg²) queda lejos de la quietud (< 100) y de la actividad alta (el
+    //! tecleo, ≈ 18 000); con ruido uniforme de ±70 sería ≈ 1 630 mg².
     static const NORMAL_X = 40;
     static const NORMAL_Y = -180;
     static const NORMAL_Z = 975;

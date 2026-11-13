@@ -10,15 +10,6 @@ const ORB_TEST_CX = 195;
 const ORB_TEST_CY = 130;
 const ORB_TEST_RADIUS = 97;
 
-//! Snapshot de prueba con la ventana llena.
-function orbSnapshot(variance as Float, still as Boolean) as TelemetrySnapshot {
-    var s = new TelemetrySnapshot();
-    s.windowFull = true;
-    s.variance = variance;
-    s.isStill = still;
-    return s;
-}
-
 function orbPointArray() as Array<Number> {
     return new Array<Number>[OrbModel.POINTS];
 }
@@ -155,19 +146,28 @@ function orbActiveAdvancesTwiceAsFastAsNormal(logger as Logger) as Boolean {
 }
 
 (:test)
-function orbStateFollowsGuardSnapshotAndScore(logger as Logger) as Boolean {
-    var normal = orbSnapshot(600.0f, false);
-    var typing = orbSnapshot(17000.0f, false);
-    var still = orbSnapshot(5.0f, true);
-
-    Test.assertEqual(OrbModel.stateFor(false, typing, 88), OrbState.PAUSED);
-    Test.assertEqual(OrbModel.stateFor(true, normal, 88), OrbState.NORMAL);
-    Test.assertEqual(OrbModel.stateFor(true, typing, 88), OrbState.ACTIVE);
-    Test.assertEqual(OrbModel.stateFor(true, still, 88), OrbState.DROWSY);
-    Test.assertEqual(OrbModel.stateFor(true, normal, 59), OrbState.DROWSY);
-    Test.assertEqual(OrbModel.stateFor(true, normal, 60), OrbState.NORMAL);
+function orbStateFollowsGuardClassAndScore(logger as Logger) as Boolean {
+    Test.assertEqual(OrbModel.stateFor(false, DrowsinessClass.ACTIVE, 88), OrbState.PAUSED);
+    Test.assertEqual(OrbModel.stateFor(true, DrowsinessClass.NORMAL, 88), OrbState.NORMAL);
+    Test.assertEqual(OrbModel.stateFor(true, DrowsinessClass.ACTIVE, 88), OrbState.ACTIVE);
+    Test.assertEqual(OrbModel.stateFor(true, DrowsinessClass.INERT, 88), OrbState.DROWSY);
+    Test.assertEqual(OrbModel.stateFor(true, DrowsinessClass.NOD, 88), OrbState.DROWSY);
+    Test.assertEqual(OrbModel.stateFor(true, DrowsinessClass.NORMAL, 59), OrbState.DROWSY);
+    Test.assertEqual(OrbModel.stateFor(true, DrowsinessClass.NORMAL, 60), OrbState.NORMAL);
     // Con actividad alta manda la actividad aunque el puntaje aún sea bajo.
-    Test.assertEqual(OrbModel.stateFor(true, typing, 40), OrbState.ACTIVE);
+    Test.assertEqual(OrbModel.stateFor(true, DrowsinessClass.ACTIVE, 40), OrbState.ACTIVE);
+    return true;
+}
+
+(:test)
+function orbStateFollowsSimulatedScenarios(logger as Logger) as Boolean {
+    var scenarios = [AccelScenario.TYPING, AccelScenario.NORMAL, AccelScenario.INACTIVITY] as Array<AccelScenario.Id>;
+    var expected = [OrbState.ACTIVE, OrbState.NORMAL, OrbState.DROWSY] as Array<OrbState.Id>;
+    for (var i = 0; i < scenarios.size(); i++) {
+        var rig = new DetectorRig(scenarios[i], SIM_TEST_SEED, true);
+        rig.run(6);
+        Test.assertEqual(OrbModel.stateFor(true, rig.classifier.topClass(), rig.score.value()), expected[i]);
+    }
     return true;
 }
 

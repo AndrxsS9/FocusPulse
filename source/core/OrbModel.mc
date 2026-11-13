@@ -10,7 +10,7 @@ module OrbState {
         NORMAL = 1,
         //! Actividad alta (tecleo): el doble de rápido y las partículas titilan más.
         ACTIVE = 2,
-        //! Quietud o puntaje < 60: cámara lenta, "se está durmiendo".
+        //! Cabeceo, inerte o puntaje < 60: cámara lenta, "se está durmiendo".
         DROWSY = 3
     }
 }
@@ -105,23 +105,24 @@ class OrbModel {
         return _trig;
     }
 
-    //! Estado del orbe a partir de la guardia, el snapshot y el puntaje:
+    //! Estado del orbe a partir de la guardia, la clase ganadora del clasificador
+    //! (StateClassifier.topClass) y el puntaje:
     //! - en pausa → PAUSED;
-    //! - ventana quieta → DROWSY (aunque el puntaje aún sea alto);
-    //! - varianza > AlertnessScore.ACTIVE_VARIANCE → ACTIVE (tiene prioridad sobre un
-    //!   puntaje bajo: el usuario se está moviendo y el puntaje subiendo);
+    //! - Activo → ACTIVE (tiene prioridad sobre un puntaje bajo: el usuario se está
+    //!   moviendo y el puntaje subiendo);
+    //! - Cabeceo o Inerte → DROWSY (aunque el puntaje aún sea alto);
     //! - puntaje < DROWSY_SCORE → DROWSY;
     //! - si no → NORMAL.
-    static function stateFor(guardActive as Boolean, snapshot as TelemetrySnapshot,
+    static function stateFor(guardActive as Boolean, topClass as DrowsinessClass.Id,
             score as Number) as OrbState.Id {
         if (!guardActive) {
             return OrbState.PAUSED;
         }
-        if (snapshot.isStill) {
-            return OrbState.DROWSY;
-        }
-        if (snapshot.windowFull && snapshot.variance > AlertnessScore.ACTIVE_VARIANCE) {
+        if (topClass == DrowsinessClass.ACTIVE) {
             return OrbState.ACTIVE;
+        }
+        if (topClass == DrowsinessClass.NOD || topClass == DrowsinessClass.INERT) {
+            return OrbState.DROWSY;
         }
         if (score < DROWSY_SCORE) {
             return OrbState.DROWSY;

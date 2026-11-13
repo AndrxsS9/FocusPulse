@@ -15,7 +15,7 @@ import Toybox.WatchUi;
 //! - shutdown(): lo mismo, al cerrar la app con la guardia activa.
 //!
 //! Con cada lote (onBatch), en este orden: motor → snapshot → detector → clasificador →
-//! puntaje. Todo se actualiza con los lotes de telemetría, no con el redibujo de la
+//! puntaje (que sigue las probabilidades del clasificador). Todo se actualiza con los lotes de telemetría, no con el redibujo de la
 //! vista. El último evento del detector se guarda con su hora para las vistas. Las vistas
 //! leen el estado, el puntaje y el snapshot; los delegados llaman a toggle().
 class GuardController {
@@ -159,7 +159,7 @@ class GuardController {
             _lastEventMoment = Time.now();
             logEvent(event, timestampMs);
         }
-        _score.update(_snapshot, dt);
+        _score.update(_classifier.isReady() ? _classifier.probabilities() : null, dt);
 
         WatchUi.requestUpdate();
     }
@@ -191,6 +191,11 @@ class GuardController {
     //! Clasificador de estado (solo lectura para las vistas).
     function classifier() as StateClassifier {
         return _classifier;
+    }
+
+    //! Clase ganadora del clasificador (Normal antes del primer lote y en pausa).
+    function topClass() as DrowsinessClass.Id {
+        return _classifier.topClass();
     }
 
     //! true con la guardia activa mientras se calibra la línea base.

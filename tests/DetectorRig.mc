@@ -1,7 +1,7 @@
 import Toybox.Lang;
 
 //! Banco de pruebas del detector: fuente simulada → TelemetryEngine → DrowsinessDetector
-//! → StateClassifier, en el mismo orden que GuardController.onBatch. Un paso es un lote de 1 s; la guardia
+//! → StateClassifier → AlertnessScore, en el mismo orden que GuardController.onBatch. Un paso es un lote de 1 s; la guardia
 //! empieza en t = 0 y el lote i termina en i × 1000 ms, así que el tiempo está controlado.
 (:test)
 class DetectorRig {
@@ -10,6 +10,9 @@ class DetectorRig {
     var engine as TelemetryEngine;
     var detector as DrowsinessDetector;
     var classifier as StateClassifier;
+
+    //! Puntaje de alerta, ya iniciado (88). Se puede reemplazar para partir de otro valor.
+    var score as AlertnessScore;
 
     //! Instante del último lote (ms).
     var timeMs as Number = 0;
@@ -32,6 +35,8 @@ class DetectorRig {
         detector = new DrowsinessDetector();
         detector.start(0, demo);
         classifier = new StateClassifier();
+        score = new AlertnessScore();
+        score.reset();
         eventTimes = [] as Array<Number>;
     }
 
@@ -49,6 +54,7 @@ class DetectorRig {
         }
         var event = detector.update(snapshot, timeMs);
         classifier.update(snapshot, detector);
+        score.update(classifier.isReady() ? classifier.probabilities() : null, 1.0f);
         if (event == DrowsinessEvent.NOD) {
             nods += 1;
             if (firstNodMs == null) {

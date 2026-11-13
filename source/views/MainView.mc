@@ -247,7 +247,7 @@ class MainView extends WatchUi.View {
         var now = System.getTimer();
         var last = _lastFrameMs;
         _lastFrameMs = now;
-        _orb.setState(OrbModel.stateFor(_guard.isActive(), _guard.latestSnapshot(), score));
+        _orb.setState(OrbModel.stateFor(_guard.isActive(), _guard.topClass(), score));
         if (!animate) {
             // Sin animación el orbe no avanza, pero conserva el color de su estado.
             return;
