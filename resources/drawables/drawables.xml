@@ -1,0 +1,4 @@
+<drawables>
+    <!-- Ícono provisional 60x60. PENDIENTE: confirmar el tamaño exacto del launcher del fr165. -->
+    <bitmap id="LauncherIcon" filename="launcher_icon.png" />
+</drawables>
