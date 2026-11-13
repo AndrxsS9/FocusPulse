@@ -6,8 +6,9 @@ import Toybox.WatchUi;
 //! Guía de estilo: pantalla oculta de depuración para revisar el sistema de
 //! diseño en el simulador (y mostrarlo en la sustentación).
 //!
-//! Páginas: paleta, tipografía numérica, tipografía de texto, componentes
-//! (anillo en 3 estados, orbe, píldora, botón) y alertas por nivel.
+//! Páginas: paleta base, paleta de acentos, tipografía numérica, tipografía de
+//! texto, componentes (anillo en 3 estados, orbe, píldora, botón) y alertas por
+//! nivel.
 //!
 //! Se abre con pulsación larga del botón de menú desde la pantalla principal
 //! (MainDelegate.onMenu). La anotación (:debug) la excluye de las compilaciones
@@ -15,17 +16,18 @@ import Toybox.WatchUi;
 (:debug)
 class StyleGuideView extends WatchUi.View {
 
-    const PAGE_PALETTE = 0;
-    const PAGE_TYPE_NUMBERS = 1;
-    const PAGE_TYPE_TEXT = 2;
-    const PAGE_COMPONENTS = 3;
-    const PAGE_ALERTS = 4;
-    const PAGE_COUNT = 5;
+    const PAGE_PALETTE_BASE = 0;
+    const PAGE_PALETTE_ACCENTS = 1;
+    const PAGE_TYPE_NUMBERS = 2;
+    const PAGE_TYPE_TEXT = 3;
+    const PAGE_COMPONENTS = 4;
+    const PAGE_ALERTS = 5;
+    const PAGE_COUNT = 6;
 
     //! Puntaje de ejemplo para el rol "número".
     const SAMPLE_SCORE = 72;
 
-    private var _page as Number = PAGE_PALETTE;
+    private var _page as Number = PAGE_PALETTE_BASE;
     private var _layout as RoundLayout?;
 
     // Textos cargados en onLayout.
@@ -48,9 +50,11 @@ class StyleGuideView extends WatchUi.View {
     function onLayout(dc as Dc) as Void {
         _layout = new RoundLayout(dc.getWidth(), dc.getHeight());
 
+        var palette = text(Rez.Strings.StyleGuidePalette);
         var typography = text(Rez.Strings.StyleGuideTypography);
         _titles = [
-            text(Rez.Strings.StyleGuidePalette),
+            palette,
+            palette,
             typography,
             typography,
             text(Rez.Strings.StyleGuideComponents),
@@ -96,8 +100,20 @@ class StyleGuideView extends WatchUi.View {
         Draw.clear(dc, Palette.BACKGROUND);
         Draw.centeredText(dc, layout.centerX, layout.topY, Typography.TITLE, _titles[_page], Palette.TEXT);
 
-        if (_page == PAGE_PALETTE) {
-            drawPalette(dc, layout);
+        if (_page == PAGE_PALETTE_BASE) {
+            // Superficies y textos.
+            drawPalette(dc, layout,
+                [Palette.BACKGROUND, Palette.SURFACE,
+                 Palette.BORDER, Palette.BORDER_STRONG, Palette.TEXT_SECONDARY,
+                 Palette.TEXT, Palette.WHITE] as Array<Number>,
+                [2, 3, 2] as Array<Number>);
+        } else if (_page == PAGE_PALETTE_ACCENTS) {
+            // Acentos y estados: cian/violeta, ámbar/naranjas y rojos.
+            drawPalette(dc, layout,
+                [Palette.ACCENT, Palette.ACCENT_LIGHT, Palette.VIOLET,
+                 Palette.AMBER, Palette.ORANGE, Palette.ORANGE_DEEP,
+                 Palette.RED, Palette.RED_INTENSE] as Array<Number>,
+                [3, 3, 2] as Array<Number>);
         } else if (_page == PAGE_TYPE_NUMBERS) {
             drawNumberTypography(dc, layout);
         } else if (_page == PAGE_TYPE_TEXT) {
@@ -114,23 +130,31 @@ class StyleGuideView extends WatchUi.View {
 
     // --- Página: paleta ------------------------------------------------------
 
-    //! Muestras de cada token con su valor hexadecimal, en filas 3-4-4-3
-    //! para aprovechar la pantalla redonda.
-    private function drawPalette(dc as Dc, layout as RoundLayout) as Void {
-        var colors = [
-            Palette.BACKGROUND, Palette.SURFACE, Palette.BORDER,
-            Palette.BORDER_STRONG, Palette.TEXT, Palette.TEXT_SECONDARY, Palette.ACCENT,
-            Palette.ACCENT_LIGHT, Palette.VIOLET, Palette.AMBER, Palette.RED,
-            Palette.RED_INTENSE, Palette.ORANGE, Palette.ORANGE_DEEP
-        ] as Array<Number>;
-        var rows = [3, 4, 4, 3] as Array<Number>;
+    //! Muestras de color con su valor hexadecimal. rows indica cuántas muestras
+    //! van en cada fila (filas cortas arriba y abajo por la pantalla redonda).
+    //! La separación entre columnas sale del ancho real de las etiquetas para que
+    //! nunca se solapen.
+    private function drawPalette(dc as Dc, layout as RoundLayout, colors as Array<Number>,
+            rows as Array<Number>) as Void {
+        var labels = [] as Array<String>;
+        var labelWidth = 0;
+        for (var i = 0; i < colors.size(); i++) {
+            var label = colors[i].format("%06X");
+            labels.add(label);
+            var width = dc.getTextWidthInPixels(label, Typography.LABEL);
+            if (width > labelWidth) {
+                labelWidth = width;
+            }
+        }
 
-        var swatchRadius = layout.scaled(45);
+        var swatchRadius = layout.scaled(60);
         var labelHeight = dc.getFontHeight(Typography.LABEL);
         var unitHeight = 2 * swatchRadius + labelHeight;
-        var columnSpacing = layout.scaled(190);
+        var widest = labelWidth > 2 * swatchRadius ? labelWidth : 2 * swatchRadius;
+        var columnSpacing = widest + layout.scaled(30);
         var rowSpacing = unitHeight + layout.scaled(15);
-        var firstRowY = layout.centerY + layout.scaled(35) - (rows.size() - 1) * rowSpacing / 2;
+        var areaCenter = (titleBottom(dc, layout) + layout.footerY) / 2;
+        var firstRowY = areaCenter - (rows.size() - 1) * rowSpacing / 2;
 
         var index = 0;
         for (var row = 0; row < rows.size(); row++) {
@@ -149,7 +173,7 @@ class StyleGuideView extends WatchUi.View {
                 dc.setColor(Palette.TEXT_SECONDARY, Graphics.COLOR_TRANSPARENT);
                 dc.drawCircle(x, swatchY, swatchRadius);
 
-                Draw.centeredText(dc, x, labelY, Typography.LABEL, color.format("%06X"),
+                Draw.centeredText(dc, x, labelY, Typography.LABEL, labels[index],
                     Palette.TEXT_SECONDARY);
                 index++;
             }
@@ -252,6 +276,11 @@ class StyleGuideView extends WatchUi.View {
         }
 
         Draw.largeButton(dc, layout.buttonRect, _imAwake, Typography.BODY, Palette.TEXT, Palette.BACKGROUND);
+    }
+
+    //! Borde inferior del título de la página.
+    private function titleBottom(dc as Dc, layout as RoundLayout) as Number {
+        return layout.topY + dc.getFontHeight(Typography.TITLE) / 2;
     }
 
     private function text(id as ResourceId) as String {
