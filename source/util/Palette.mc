@@ -30,6 +30,10 @@ module Palette {
     //! Texto secundario (estados, ayudas, etiquetas).
     const TEXT_SECONDARY = 0x9AA4B2;
 
+    //! Blanco puro: solo para texto sobre RED_INTENSE (alerta de nivel 3), donde
+    //! TEXT se queda en 4,47:1 y el blanco llega a 4,8:1.
+    const WHITE = 0xFFFFFF;
+
     // --- Acentos -------------------------------------------------------------
 
     //! Acento cian: marca, guardia activa, nivel de alerta alto (bien despierto).

@@ -100,11 +100,12 @@ module AlertnessColors {
         return Palette.RED_INTENSE;
     }
 
-    //! Color del texto sobre alertBackgroundColor(level), elegido por contraste:
-    //! texto oscuro sobre los naranjas y texto claro sobre el rojo intenso.
+    //! Color del texto sobre alertBackgroundColor(level), elegido por contraste
+    //! (mínimo 4,5:1): texto oscuro sobre los naranjas y blanco puro sobre el rojo
+    //! intenso.
     function alertTextColor(level as Number) as Number {
         if (clampAlertLevel(level) == MAX_ALERT_LEVEL) {
-            return Palette.TEXT;
+            return Palette.WHITE;
         }
         return Palette.BACKGROUND;
     }

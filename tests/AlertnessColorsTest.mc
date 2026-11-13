@@ -103,11 +103,11 @@ function alertLevelColors(logger as Logger) as Boolean {
 
     Test.assertEqual(AlertnessColors.alertTextColor(1), Palette.BACKGROUND);
     Test.assertEqual(AlertnessColors.alertTextColor(2), Palette.BACKGROUND);
-    Test.assertEqual(AlertnessColors.alertTextColor(3), Palette.TEXT);
+    Test.assertEqual(AlertnessColors.alertTextColor(3), Palette.WHITE);
 
     // Fuera de rango se recorta a 1..3.
     Test.assertEqual(AlertnessColors.alertBackgroundColor(0), Palette.ORANGE);
     Test.assertEqual(AlertnessColors.alertBackgroundColor(7), Palette.RED_INTENSE);
-    Test.assertEqual(AlertnessColors.alertTextColor(7), Palette.TEXT);
+    Test.assertEqual(AlertnessColors.alertTextColor(7), Palette.WHITE);
     return true;
 }
