@@ -2,10 +2,10 @@
 <!--
     FocusPulse AI - manifest de la aplicacion Connect IQ.
 
-    PENDIENTE DE VERIFICAR con el SDK instalado (ver docs/PENDIENTES.md):
-      - id exacto del producto Forerunner 165 ("fr165"; existe tambien la variante "fr165m").
-      - minApiLevel: se fijo 3.4.0 de forma conservadora (Sensor.registerSensorDataListener
-        requiere 3.0.0); subirlo si se necesitan APIs mas nuevas.
+    Productos verificados con el SDK 9.3.0 (Devices/<id>/compiler.json):
+      - fr165  (Forerunner 165)       - API 5.2.0, 390x390 AMOLED, tactil.
+      - fr165m (Forerunner 165 Music) - mismo hardware de pantalla, teclas y sensores.
+    minApiLevel = nivel de API real de ambos (5.2.0).
 -->
 <iq:manifest version="3" xmlns:iq="http://www.garmin.com/xml/connectiq">
     <iq:application
@@ -14,10 +14,11 @@
         name="@Strings.AppName"
         entry="FocusPulseApp"
         launcherIcon="@Drawables.LauncherIcon"
-        minApiLevel="3.4.0">
+        minApiLevel="5.2.0">
 
         <iq:products>
             <iq:product id="fr165"/>
+            <iq:product id="fr165m"/>
         </iq:products>
 
         <iq:permissions>
