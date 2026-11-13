@@ -1,4 +1,5 @@
 <!-- Textos en español. Cada id debe existir también en resources/strings/strings.xml. -->
 <strings>
     <string id="AppName">FocusPulse AI</string>
+    <string id="StatusPaused">Monitoreo en pausa</string>
 </strings>

@@ -1,4 +1,5 @@
 <!-- Textos por defecto (inglés). Los textos en español viven en resources-spa/. -->
 <strings>
     <string id="AppName">FocusPulse AI</string>
+    <string id="StatusPaused">Monitoring paused</string>
 </strings>
