@@ -1,7 +1,7 @@
 # Pendientes de verificar
 
 Las fases 1 y 2 se compilaron, probaron y revisaron en el simulador con el **Connect IQ SDK
-9.3.0** (2026-11-12), y la fase 3 el 2026-11-13. La primera sección resume lo que quedó confirmado; el resto del
+9.3.0** (2026-11-12), y las fases 3 y 4 el 2026-11-13. La primera sección resume lo que quedó confirmado; el resto del
 documento lista **solo lo que sigue abierto**. Al cerrar un punto, muévelo a la sección de
 datos confirmados o bórralo, y corrige el código si algo no coincide.
 
@@ -93,6 +93,27 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
   antes de salir lo evita. Por eso `MainDelegate.onBack` detiene y guarda la guardia antes de
   devolver el control al sistema; verificado: START → BACK ya no tumba el simulador.
 
+### Esfera principal (fase 4, simulador)
+
+- Las **57 pruebas** pasan (15 nuevas: `AlertnessScore`, `ClockFormat` y el hit-testing del
+  botón). `build.ps1` y `export.ps1` sin advertencias.
+- La esfera se revisó en el **fr165 y el fr165m** (`run.ps1 -TargetDevice fr165m`), en
+  **español e inglés**: nada se corta contra el borde redondo. Anatomía y medidas en
+  `DISENO.md` §5.1.
+- Con la fuente simulada, el anillo y el porcentaje **bajan en inactividad** (88 → 60 %
+  cian → 24 % rojo en unos 30 s) y **suben con tecleo** (24 → 45 % ámbar en unos 10 s).
+- **Entrada táctil:** en el fr165, START y cualquier toque llegan primero a `onSelect`; con
+  `onSelect` devolviendo `true`, `onTap` no se llamaba nunca (verificado con mensajes en
+  consola). La esfera devuelve `false` y decide en `onKey` (`KEY_ENTER`) y `onTap`. Medido:
+  toque en el botón = (196, 308), toque en la hora = (196, 166). START y el toque en el botón
+  alternan la guardia; un toque fuera no hace nada.
+- **Refresco:** 1 redibujo/s en pausa, 5/s con la guardia activa; ninguno entre *Force
+  onHide* y *Force onShow* (6,8 s sin ticks) y se reanuda solo.
+- La guía de estilo sigue bien con las nuevas zonas de `RoundLayout`.
+- El escenario simulado **normal** daba una varianza de ≈2 000 mg² con ruido uniforme de
+  ±70 mg, por encima del umbral de actividad alta del puntaje (1 500 mg²): el puntaje lo
+  trataba como tecleo. Ahora usa ruido triangular dentro de ±70 mg (≈600–800 mg²).
+
 ## 1. Entorno
 
 - [ ] **Hacer copia de seguridad de la llave** `%USERPROFILE%\Downloads\FocusPulse-keys\`
@@ -126,24 +147,34 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 - [ ] Desde dónde lanza el usuario la app en el fr165 (menú de apps o glance), para evitar el
       cierre por tiempo de las apps abiertas desde glances.
 
-## 3. Interfaz (fase 7)
+## 3. Interfaz
 
 - [ ] **Decidir si la hora necesita una fuente personalizada** para acercarse a la demo web,
       y si su costo en memoria es aceptable dentro de los 768 KB.
-- [ ] En el **reloj real**, si `FONT_NUMBER_*` dibuja `%` y letras. El simulador usa Roboto
-      TTF para todo y no sirve para comprobarlo. Mientras tanto el `%` va aparte en `LABEL`.
-- [ ] "Iniciar guardia" baja a `FONT_TINY` y "Estoy despierto" a `FONT_XTINY` en el botón de
-      226 px. En la pantalla de alerta hay espacio para un botón más ancho, y en la principal se
-      puede revisar la posición. Decidirlo al diseñar esas pantallas.
-- [ ] "Monitoreo en pausa" en `FONT_SMALL` ocupa casi todo el ancho de la vista principal
-      actual. Se rehace en la fase 7 con `RoundLayout`.
+- [ ] En el **reloj real**, si `FONT_NUMBER_MEDIUM` (la hora) se ve igual que en el
+      simulador, que usa Roboto TTF para todo. El porcentaje de la esfera usa `FONT_SMALL`
+      (fuente de texto) para no depender de que las numéricas traigan `%`.
+- [ ] "Estoy despierto" baja a `FONT_XTINY` en un botón de 226 px. En la pantalla de alerta
+      (fase 7) hay espacio para un botón más ancho. ("Iniciar guardia" en `FONT_TINY` se ve
+      bien en la esfera: decidido en la fase 4.)
 - [ ] En la pantalla de alerta, "¡DESPIERTA!" en `FONT_LARGE` mide casi todo el ancho
       seguro. Revisarlo en el reloj y usar `Draw.fittingFont` si hace falta.
+- [ ] Ver en el simulador la píldora **"Sensor no disponible"** (ámbar) y la batería baja
+      en rojo (≤ 15 %, *Settings > Set Battery Status*). No se forzaron en la fase 4: el
+      acelerómetro del simulador siempre se registra bien.
+- [ ] Ver la hora en **12 h y 24 h** con una hora que las distinga (antes de las 10 o
+      después de las 13; *Settings > Time Display*). En la revisión eran las 11, igual en
+      ambos formatos; el formato lo cubren las pruebas de `ClockFormat`.
+- [ ] En el reloj real: que el toque en el botón (área de 248×76 px) se acierte con el reloj
+      puesto, y que la píldora, cuyo borde inferior queda 3 px dentro del área táctil del
+      botón, no provoque toques no deseados.
+- [ ] **Quemado AMOLED:** la hora en `TEXT` y la marca DEMO no se mueven. Para guardias
+      largas, valorar un desplazamiento de unos píxeles cada minuto (fase 12).
 
 ## 4. Compilación y memoria
 
 - [ ] Consumo de batería de una guardia larga grabando actividad (25 Hz + FIT) frente a sin
-      grabar (fase 12).
+      grabar, y del redibujo a 5 Hz con la guardia activa (fase 12).
 - [ ] Comprobar en tiempo de ejecución que el `.prg` release no contiene la guía de estilo ni
       el menú de depuración: mantener UP en la app instalada desde el `.iq` no debe abrir nada.
 - [ ] Las funciones auxiliares sin `(:test)` de `tests/` (`colorsMatch`, `insideCircle`) y

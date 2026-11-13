@@ -7,11 +7,12 @@ FocusPulse AI detecta **micro-sueños y cabeceos** a partir del acelerómetro de
 despierta al usuario con **vibraciones progresivas**. Incluye un **modo demo** interno para
 simular eventos sin necesidad de dormirse frente al reloj.
 
-> Estado: **Fase 3 — telemetría del acelerómetro**. START/STOP o un toque inician y pausan la
-> guardia: se lee el acelerómetro a 25 Hz (o una fuente simulada) y, si el ajuste
-> "Grabar guardia como actividad" está activo, se graba la guardia como actividad. Un motor
-> calcula varianza, sacudida y segundos de quietud sobre una ventana de 2 s. La detección
-> de cabeceos y las alertas llegan en las fases siguientes. Ver
+> Estado: **Fase 4 — esfera principal**. La pantalla inicial es la esfera de guardia: anillo de
+> nivel de alerta en el borde, batería, hora, fecha, porcentaje de alerta, píldora de estado
+> y botón grande "Iniciar guardia" (START o un toque en el botón). Durante la guardia se lee
+> el acelerómetro a 25 Hz (o una fuente simulada, marcada como "DEMO") y un puntaje de alerta
+> provisional sube con la actividad y baja con la quietud. La guardia se puede grabar como
+> actividad. La detección de cabeceos y las alertas llegan en las fases siguientes. Ver
 > [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) y [docs/DISENO.md](docs/DISENO.md).
 
 ## Requisitos
@@ -43,7 +44,7 @@ powershell -ExecutionPolicy Bypass -File scripts\build.ps1
 |---|---|---|
 | `setup.ps1` | Instala la extensión de VS Code y genera la llave si no existe (nunca la sobrescribe). Informa si faltan Java o el SDK. | Llave en `Downloads\FocusPulse-keys\` |
 | `build.ps1` | Compila para `fr165` con verificación de tipos estricta (`-l 3`). | `bin\FocusPulse.prg` |
-| `run.ps1` | Compila, abre el simulador y ejecuta la app en `fr165`. `-NoBuild` omite la compilación. | — |
+| `run.ps1` | Compila, abre el simulador y ejecuta la app en `fr165`. `-NoBuild` omite la compilación; `-TargetDevice fr165m` usa el 165 Music. | — |
 | `test.ps1` | Compila con pruebas (`-t`), las ejecuta en el simulador y termina con error si alguna falla. | `bin\FocusPulse-test.prg` |
 | `export.ps1` | Genera el paquete firmado en modo release para la tienda (`fr165` y `fr165m`). | `bin\FocusPulse.iq` |
 | `icon.ps1` | Genera el ícono del launcher con los colores de `Palette.mc`. `-Size` cambia el tamaño. No necesita el SDK. | `resources\drawables\launcher_icon.png` |
