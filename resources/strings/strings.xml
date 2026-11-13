@@ -61,4 +61,16 @@
     <string id="AiClassNormal">Normal</string>
     <string id="AiClassNod">Nodding</string>
     <string id="AiClassInert">Inert</string>
+
+    <!-- Guía de estilo (pantalla oculta de depuración) -->
+    <string id="StyleGuidePalette">Palette</string>
+    <string id="StyleGuideTypography">Typography</string>
+    <string id="StyleGuideComponents">Components</string>
+    <string id="StyleGuideAlerts">Alerts</string>
+    <string id="TypeRoleTime">Time</string>
+    <string id="TypeRoleNumber">Number</string>
+    <string id="TypeRoleAlert">Alert</string>
+    <string id="TypeRoleTitle">Title</string>
+    <string id="TypeRoleBody">Body</string>
+    <string id="TypeRoleLabel">Label</string>
 </strings>
