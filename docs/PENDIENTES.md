@@ -1,7 +1,7 @@
 # Pendientes de verificar
 
 Las fases 1 y 2 se compilaron, probaron y revisaron en el simulador con el **Connect IQ SDK
-9.3.0** (2026-11-12), y las fases 3, 4 y 5 el 2026-11-13. La primera sección resume lo que quedó confirmado; el resto del
+9.3.0** (2026-11-12), y las fases 3, 4, 5 y 6 el 2026-11-13. La primera sección resume lo que quedó confirmado; el resto del
 documento lista **solo lo que sigue abierto**. Al cerrar un punto, muévelo a la sección de
 datos confirmados o bórralo, y corrige el código si algo no coincide.
 
@@ -144,6 +144,23 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 - El paso por ámbar quedó en el registro (estado somnoliento) pero no en una captura: la
   paleta en 60/59/35/34 la cubren las pruebas.
 
+### Detector de somnolencia (fase 6, simulador)
+
+- Las **100 pruebas** pasan (26 nuevas). `build.ps1` y `export.ps1` sin advertencias.
+  Las secuencias de 2 minutos (120 lotes, 3 000 muestras) no disparan el *watchdog* del
+  simulador.
+- Una clase anotada `(:test)` (`DetectorRig`) compila en las dos compilaciones y queda
+  fuera de la normal. Una función sin `(:test)` que la use rompe la compilación normal
+  (`Undefined symbol`), así que los auxiliares que la necesitan son métodos de la clase.
+- Recorrido en *Detector en vivo* (fr165, español), con los tiempos medidos en la consola
+  (`EVENTO … a los N s de iniciar`): inactividad a los **8,0 s**; cabeceo a los **6,0 s**
+  con 76° de inclinación, pasando por "Caída detectada"; tecleo y movimiento normal sin
+  eventos en 20 s; "Calibrando…" en la píldora los primeros 5 s; al pausar, el detector y
+  el clasificador vuelven a cero y el último evento sigue a la vista. Detalle en
+  [DETECTOR.md](DETECTOR.md) §6.3.
+- En `FONT_XTINY` la línea superior de la vista (y ≈ 58 px) admite unos 18 caracteres:
+  "Caída · verificando quietud" no cabía y quedó "Caída detectada".
+
 ## 1. Entorno
 
 - [ ] **Hacer copia de seguridad de la llave** `%USERPROFILE%\Downloads\FocusPulse-keys\`
@@ -177,6 +194,20 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 - [ ] Desde dónde lanza el usuario la app en el fr165 (menú de apps o glance), para evitar el
       cierre por tiempo de las apps abiertas desde glances.
 
+- [ ] **Validar el detector con datos de muñeca reales** (fase 11 o antes, con
+      `SensorLogging`): la sacudida de 400 mg, los 35° de inclinación, los 50 mg de
+      "calma", el piso de 25 mg² del umbral y los pesos del clasificador salen de
+      escenarios simulados.
+- [ ] **Ruido del acelerómetro del fr165 en reposo**: el umbral adaptativo no baja de
+      25 mg² (σ = 5 mg). Si el ruido real de un brazo inerte supera eso, la quietud nunca
+      llegaría para quien calibró moviéndose poco.
+- [ ] **Falso positivo posible: girar la muñeca para mirar la hora y quedarse leyendo**
+      (sacudida + inclinación > 35° + magnitud constante). Probarlo en el reloj; si
+      dispara, exigir la dirección de la caída ([DETECTOR.md](DETECTOR.md) §7).
+- [ ] Con el acelerómetro del simulador (*Activity Data*, vectores de 1 g al azar) el
+      detector daría cabeceos continuos. No se probó; para la sustentación, usar la fuente
+      simulada.
+
 ## 3. Interfaz
 
 - [ ] **Decidir si la hora necesita una fuente personalizada** para acercarse a la demo web,
@@ -201,6 +232,8 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 - [ ] **Quemado AMOLED:** la hora en `TEXT` y la marca DEMO no se mueven. Para guardias
       largas, valorar un desplazamiento de unos píxeles cada minuto (fase 12). El orbe y las
       partículas sí se mueven, pero en pausa quedan fijos (tenues).
+- [ ] Revisar *Detector en vivo* en **inglés** y en el **fr165m**: solo se vio en español
+      en el fr165. Los textos en inglés son más cortos o iguales.
 - [ ] Ver en el reloj real que el arco de escaneo (3 px, cian al 55 %) y el orbe tenue en
       pausa se distinguen con brillo bajo, y que el orbe no resta legibilidad a la hora al
       sol.

@@ -18,8 +18,9 @@ Documento vivo. Describe los módulos previstos y el plan por fases. Lo marcado 
 
 ## Flujo de datos
 
-Implementado en la fase 3 (fuentes → motor → snapshot). Lo que va después del snapshot
-(detector, alertas) llega en las fases 5 y 6.
+Implementado en la fase 3 (fuentes → motor → snapshot) y la fase 6 (detector, línea base,
+clasificador). Las alertas llegan en la fase 7. El algoritmo del detector está explicado
+en [DETECTOR.md](DETECTOR.md).
 
 ```
    source/platform                         source/core
@@ -47,8 +48,12 @@ Implementado en la fase 3 (fuentes → motor → snapshot). Lo que va después d
    MainView / TelemetryDebugView         │ TelemetrySnapshot │ x, y, z, varianza,
    (source/views)                        └─────────┬─────────┘ sacudida, quietud, Hz…
                                                    ▼
-                         AlertnessScore (v1, fase 4) → anillo y porcentaje de la esfera
-                         NodDetector → AlertEscalator → Haptics / vistas (fases 6–7)
+                         DrowsinessDetector + Baseline (fase 6) → evento y estado
+                                                   ▼
+                         StateClassifier (fase 6) → p(Activo, Normal, Cabeceo, Inerte)
+                                                   ▼
+                         AlertnessScore → anillo y porcentaje · OrbModel → orbe
+                         AlertEscalator → Haptics / AlertView (fase 7)
 ```
 
 - **Las dos fuentes entregan el mismo lote**: arreglos `x`, `y`, `z` en mili‑g y la marca
@@ -66,16 +71,17 @@ Implementado en la fase 3 (fuentes → motor → snapshot). Lo que va después d
 |---|---|---|
 | Media y varianza | De la magnitud √(x²+y²+z²) en mg enteros. La suma y la suma de cuadrados van en `Long`, así que sumar la muestra nueva y restar la que sale es exacto, sin deriva. | `WINDOW_SAMPLES = 50` (2 s × 25 Hz) |
 | Sacudida | Mayor módulo de Δ vectorial entre muestras consecutivas dentro de las 10 últimas. El snapshot añade el pico del último lote, para no perder un pico del principio del lote de 25. | `JERK_SAMPLES = 10` |
-| Quietud | Segundos seguidos con la ventana llena y varianza < umbral. Empieza a contar cuando toda la ventana está quieta (≈2 s de retraso). | `STILL_VARIANCE_MAX = 100 mg²` (σ = 10 mg) |
+| Quietud | Segundos seguidos con la ventana llena y varianza < umbral. Empieza a contar cuando toda la ventana está quieta (≈2 s de retraso). El detector usa su propio umbral adaptativo (≤ 100 mg², fase 6). | `STILL_VARIANCE_MAX = 100 mg²` (σ = 10 mg) |
+| Gravedad (fase 6) | Media de cada eje en la ventana, con sumas enteras exactas. El ángulo entre dos gravedades es el cambio de inclinación. | `Tilt.angleDegrees` |
 | Hz efectivos | Muestras recibidas después del primer lote / tiempo desde él. | — |
 
 **Limitaciones conocidas:**
 
 - La varianza de la **magnitud** no ve los giros puros: si la muñeca rota sin acelerar, la
-  magnitud sigue en ≈1 g y la varianza no cambia. Lo detecta la sacudida, y la inclinación
-  respecto a la gravedad (fase 4) cubrirá los cambios de postura.
-- El tecleo también da sacudidas de más de 400 mg. El detector de la fase 5 no puede usar
-  la sacudida sola, sino **sacudida seguida de quietud**.
+  magnitud sigue en ≈1 g y la varianza no cambia. Lo detecta la sacudida, y desde la fase 6
+  la inclinación (gravedad media de la ventana, `Tilt`) cubre los cambios de postura.
+- El tecleo también da sacudidas de más de 400 mg. Por eso el detector de la fase 6 no
+  usa la sacudida sola, sino **sacudida seguida de quietud y cambio de inclinación**.
 
 ### Firmas de los escenarios simulados
 
@@ -100,7 +106,7 @@ pruebas son reproducibles.
 | `source/util` | `Palette` | Tokens de color (constantes). | 1 ✅, 2 ✅ |
 | `source/core` | `MonitorState` | Estado de sesión (activo / en pausa). | 1 ✅ |
 | `source/views` | `MainView`, `MainDelegate` | Esfera principal: anillo de alerta, batería, hora, fecha, puntaje, píldora de estado, botón de guardia con hit-testing y marca DEMO. Anatomía en [DISENO.md](DISENO.md) §5.1. | 1 ✅, 4 ✅ |
-| `source/core` | `AlertnessScore` | Puntaje de alerta provisional (0–100): sube con actividad alta, baja en quietud y tiende a 85 con movimiento normal. Tasas por segundo; se actualiza con cada lote. | 4 ✅ |
+| `source/core` | `AlertnessScore` | Puntaje de alerta (0–100). Desde la fase 6 se acerca a la media de los niveles de cada clase pesada por las probabilidades del clasificador, a +3 / −2 puntos por segundo como mucho. | 4 ✅, 6 ✅ |
 | `source/util` | `ClockFormat` | Hora en 24 h / 12 h y porcentaje de batería. | 4 ✅ |
 | `source/core` | `AlertnessColors` | Banda y color según el puntaje de alerta, colores del orbe IA y de la alerta por nivel. | 2 ✅ |
 | `source/util` | `Typography`, `RoundLayout`, `Rect` | Roles tipográficos, geometría de la pantalla redonda y áreas táctiles. | 2 ✅ |
@@ -120,15 +126,18 @@ pruebas son reproducibles.
 | `source/core` | `OrbModel`, `OrbState` | Orbe IA: 3 anillos orgánicos, 16 partículas, estado (pausa / normal / activo / somnoliento) y velocidad por estado. | 5 ✅ |
 | `source/util` | `ColorMath`, `FrameStats` | Mezcla de colores con el fondo (transparencia simulada) y medición de cuadros por segundo y tiempo de dibujo. | 5 ✅ |
 | `source/views` | `MainView` (orbe, arco, latido) | Dibujo animado a ≈12 cuadros/s con la guardia activa; ver [DISENO.md](DISENO.md) §5.2. | 5 ✅ |
-| `source/core` | `FeatureExtractor` | Inclinación respecto a la gravedad y caída brusca, sobre la ventana de la fase 3. | 6 |
-| `source/core` | `NodDetector` | Máquina de estados heurística: postura estable → caída de cabeza/muñeca → inmovilidad. Calibración inicial por usuario. Reemplaza o alimenta a `AlertnessScore`. | 6 |
+| `source/core` | `Tilt` | Ángulo entre dos vectores de gravedad (media de cada eje en la ventana). | 6 ✅ |
+| `source/core` | `DrowsinessDetector` | Eventos CABECEO (sacudida > 400 mg + quietud antes de 5 s + inclinación > 35°) e INACTIVIDAD (quietud ≥ 60 s, 8 s en demo), refractario de 10 s, estados calibrando / vigilando / caída detectada / evento. | 6 ✅ |
+| `source/core` | `Baseline` | Línea base del usuario en ln(varianza + 1): calibración de 30 s (5 s demo), EMA lenta y umbral de quietud adaptativo. | 6 ✅ |
+| `source/core` | `StateClassifier`, `ClassifierWeights` | Regresión logística multiclase (Activo, Normal, Cabeceo, Inerte) con probabilidades suavizadas; pesos v1 a mano en formato scikit-learn. El orbe y el puntaje usan su salida. | 6 ✅ |
+| `source/views` | `DetectorDebugView` | Detector en vivo (`(:debug)`): estado, barras de probabilidad, línea base, umbral, último evento y su hora. | 6 ✅ |
 | `source/core` | `AlertEscalator` | Decide el nivel de alerta (1 suave → 3 intenso) y cuándo reiniciar. | 7 |
 | `source/platform` | `Haptics` | `Attention.vibrate` con `VibeProfile` según el nivel. | 7 |
 | `source/views` | `AlertView` | Alerta a pantalla completa que exige confirmación. | 7 |
 | `source/views` | Modo demo | Pantalla del modo demo sobre `SimulatedAccelSource`; sustituye al selector de depuración. | 8 |
 | `resources/settings` | `properties.xml`, `settings.xml` | Sensibilidad, intensidad de vibración, modo demo (junto a `recordActivity`). | 9 |
 | `source/core` | `SessionStats` | Resumen de sesión (duración, eventos) e historial en `Application.Storage`. | 10 |
-| `ml/` + `source/core` | `ModelWeights`, `ModelDetector` | Captura de datos, entrenamiento en Python, exportación de parámetros a Monkey C. | 11 |
+| `ml/` + `source/core` | `ClassifierWeights` | Captura de datos, entrenamiento en Python y generación de `ClassifierWeights.mc` con pesos entrenados (mismo formato que los de la fase 6). | 11 |
 
 `source/platform/` es la carpeta de adaptadores de hardware (sensores, grabación,
 vibración), creada en la fase 3. Igual que las vistas, puede importar `Toybox.Sensor`,
@@ -162,7 +171,7 @@ los módulos de las fases siguientes:
 | 3 | Telemetría del acelerómetro (real + simulada), ventana de características y grabación de la guardia. ✅ |
 | 4 | Esfera principal: anillo de alerta, batería, hora, fecha, puntaje provisional, píldora, botón de guardia y marca DEMO. ✅ |
 | 5 | Orbe IA animado, arco de escaneo y punto que late. ✅ |
-| 6 | Inclinación y detector heurístico de cabeceos/micro-sueño con calibración. |
+| 6 | Inclinación, detector de cabeceos e inactividad, línea base adaptativa y clasificador v1. ✅ |
 | 7 | Alertas con vibración progresiva y pantalla de alerta. |
 | 8 | Modo demo interno para simular eventos. |
 | 9 | Ajustes de usuario (sensibilidad, intensidad). |
@@ -190,3 +199,9 @@ número respecto al plan inicial.
   `ColorMath` y `FrameStats`.
 - Fase 4: 57 pruebas; las nuevas cubren `AlertnessScore` (dirección según el escenario,
   límites, pausa, independencia de dt), `ClockFormat` y el hit-testing del botón.
+- Fase 6: 100 pruebas. `tests/DetectorRig.mc` (clase `(:test)`, fuera de la compilación
+  normal) pasa secuencias completas de la fuente simulada por motor → detector →
+  clasificador → puntaje con el tiempo controlado. Las nuevas cubren `Tilt`,
+  `DrowsinessDetector` (eventos, falsos positivos, refractario, pausa), `Baseline`,
+  `StateClassifier` (con una matriz de confusión que se escribe en el registro) y el
+  puntaje y el orbe a partir del clasificador. Ver [DETECTOR.md](DETECTOR.md) §6.

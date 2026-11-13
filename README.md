@@ -7,15 +7,18 @@ FocusPulse AI detecta **micro-sueños y cabeceos** a partir del acelerómetro de
 despierta al usuario con **vibraciones progresivas**. Incluye un **modo demo** interno para
 simular eventos sin necesidad de dormirse frente al reloj.
 
-> Estado: **Fase 5 — orbe IA animado**. La pantalla inicial es la esfera de guardia: anillo de
+> Estado: **Fase 6 — detector de somnolencia**. La pantalla inicial es la esfera de guardia: anillo de
 > nivel de alerta en el borde, batería, hora, fecha, porcentaje de alerta, píldora de estado
 > y botón grande "Iniciar guardia" (START o un toque en el botón). Detrás de la hora, un orbe
 > IA de 3 anillos orgánicos cambia de color con el puntaje y de velocidad con la actividad
 > (quieto en pausa, el doble con tecleo, cámara lenta al quedarse quieto); con la guardia
 > activa gira un arco de escaneo y el punto de estado late. Durante la guardia se lee el
-> acelerómetro a 25 Hz (o una fuente simulada, marcada como "DEMO"). La detección de
-> cabeceos y las alertas llegan en las fases siguientes. Ver
-> [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) y [docs/DISENO.md](docs/DISENO.md).
+> acelerómetro a 25 Hz (o una fuente simulada, marcada como "DEMO"). Tras unos segundos de
+> calibración ("Calibrando…"), el detector reconoce **cabeceos** (sacudida, quietud y caída
+> del brazo) e **inactividad prolongada**, y un clasificador (Activo, Normal, Cabeceo,
+> Inerte) mueve el puntaje y el orbe; los eventos se ven en el menú de depuración. Las
+> alertas con vibración llegan en la fase 7. Ver [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md),
+> [docs/DETECTOR.md](docs/DETECTOR.md) y [docs/DISENO.md](docs/DISENO.md).
 
 ## Requisitos
 
@@ -116,6 +119,8 @@ ml/                 Entrenamiento del modelo de detección (no se empaqueta en e
 ## Documentación
 
 - [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) — módulos y plan por fases.
+- [docs/DETECTOR.md](docs/DETECTOR.md) — algoritmo del detector, línea base, clasificador y
+  matriz de confusión.
 - [docs/DISENO.md](docs/DISENO.md) — sistema de diseño: paleta, tipografía, layout, accesibilidad.
 - [docs/PENDIENTES.md](docs/PENDIENTES.md) — datos confirmados y lo que falta verificar
   (sobre todo en el reloj real).

@@ -186,7 +186,7 @@ en español e inglés. Medidas reales en el fr165 (390×390):
 | Hora (`timeY` 130) | `HH:MM` en 24 h si el sistema la usa (`is24Hour`), si no `H:MM` en 12 h sin a. m./p. m. | `TIME` (109 px de caja) | `TEXT` |
 | Fecha (`dateY` 183) | Día de la semana, día y mes abreviados por el sistema: "vie 13 nov" (español, en minúsculas) / "Fri Nov 13" (inglés). | `LABEL` | `TEXT_SECONDARY` |
 | Puntaje (`scoreY` 217) | "ALERTA" + porcentaje, centrados juntos con 7 px de separación. | `LABEL` + `FONT_SMALL` (45 px) | etiqueta `TEXT_SECONDARY`; número del color del anillo |
-| Píldora (`pillY` 252) | "Monitoreo en pausa" / "Guardia activa" (con punto delante) / "Sensor no disponible". 40 px de alto. | `LABEL` | `TEXT_SECONDARY` / `ACCENT` / `AMBER`; relleno `SURFACE`, borde `BORDER_STRONG` |
+| Píldora (`pillY` 252) | "Monitoreo en pausa" / "Guardia activa" (con punto delante; "Calibrando…" mientras el detector aprende la línea base, 30 s o 5 s en demo) / "Sensor no disponible". 40 px de alto. | `LABEL` | `TEXT_SECONDARY` / `ACCENT` / `AMBER`; relleno `SURFACE`, borde `BORDER_STRONG` |
 | Botón (`buttonRect`) | "Iniciar guardia" o "Pausar guardia"; `fittingFont` baja de `BODY` si no cabe ("Iniciar guardia" va en `FONT_TINY`). | `BODY` → `TINY` | inicio: `ACCENT` con texto `BACKGROUND`; pausa: `SURFACE` + borde `BORDER_STRONG`, texto `TEXT` |
 | Marca DEMO (`footerY` 352) | Solo con la fuente simulada. | `LABEL` | `TEXT_SECONDARY` |
 
@@ -216,13 +216,15 @@ medio al revés) y sus fases φ avanzan, así que la forma "respira". Alrededor,
 titilan con una onda de brillo desfasada entre ellas (ángulo áureo). El cálculo vive en
 `source/core/OrbModel.mc` y usa `TrigTable` (senos precalculados): ni un `Math.sin` por cuadro.
 
-**Estados** (`OrbModel.stateFor`, por orden de prioridad):
+**Estados** (`OrbModel.stateFor`, por orden de prioridad). Desde la fase 6 los decide la
+clase ganadora del clasificador de estado ([DETECTOR.md](DETECTOR.md) §5), no reglas
+sobre la varianza:
 
 | Estado | Cuándo | Velocidad | Qué representa |
 |---|---|---|---|
 | Pausa | Guardia en pausa. | 0 (quieto) | Nadie vigila: orbe tenue (opacidad × 0,45), partículas fijas al 30 %. |
-| Somnoliento | La ventana de 2 s está quieta (varianza < 100 mg²). | 0,35× (cámara lenta) | "Se está durmiendo": la muñeca dejó de moverse. |
-| Activo | Varianza > 1500 mg² (tecleo). | 2× | Mucha actividad: gira el doble y las partículas titilan más rápido. |
+| Activo | Clase Activo (tecleo, gestos). | 2× | Mucha actividad: gira el doble y las partículas titilan más rápido. |
+| Somnoliento | Clase Cabeceo o Inerte. | 0,35× (cámara lenta) | "Se está durmiendo": cayó el brazo o la muñeca dejó de moverse. |
 | Somnoliento | Puntaje < 60. | 0,35× | El puntaje ya entró en la banda ámbar o roja. |
 | Normal | El resto. | 1× | Movimiento tranquilo. |
 

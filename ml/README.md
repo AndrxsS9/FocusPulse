@@ -15,8 +15,11 @@ solo usa `source/`, `tests/` y `resources*/` (ver `monkey.jungle`).
    logística, árboles pequeños) que quepan en la memoria y el presupuesto de CPU de un
    Forerunner 165.
 4. **Exportación**: un script que convierta los parámetros entrenados en constantes de
-   Monkey C (por ejemplo `source/core/ModelWeights.mc`), ya que Connect IQ no ejecuta
-   modelos de ML de forma nativa.
+   Monkey C, ya que Connect IQ no ejecuta modelos de ML de forma nativa. El destino ya
+   existe: `source/core/ClassifierWeights.mc` (fase 6) espera `StandardScaler.mean_` y
+   `.scale_`, y `coef_` e `intercept_` de una `LogisticRegression` multinomial con las 5
+   características y las 4 clases de `StateClassifier` (ver
+   [docs/DETECTOR.md](../docs/DETECTOR.md) §5).
 
 ## Entorno
 
