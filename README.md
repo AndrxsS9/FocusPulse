@@ -1,6 +1,6 @@
 # FocusPulse AI
 
-Aplicación nativa de **Garmin Connect IQ** (Monkey C) para el **Forerunner 165**
+Aplicación nativa de **Garmin Connect IQ** (Monkey C) para el **Forerunner 165** y **165 Music**
 (pantalla redonda AMOLED de 390×390, táctil + botones).
 
 FocusPulse AI detecta **micro-sueños y cabeceos** a partir del acelerómetro del reloj y
@@ -19,7 +19,7 @@ simular eventos sin necesidad de dormirse frente al reloj.
 | Herramienta | Detalle |
 |---|---|
 | **JDK** | Java 17 o superior en el `PATH` (`java -version`). |
-| **Connect IQ SDK Manager** | Descárgalo desde developer.garmin.com/connect-iq/sdk. Con él instala **un SDK** (márcalo como actual) y el dispositivo **Forerunner 165 (`fr165`)**. |
+| **Connect IQ SDK Manager** | Descárgalo desde developer.garmin.com/connect-iq/sdk. Con él instala **un SDK** (márcalo como actual) y los dispositivos **Forerunner 165 (`fr165`)** y **165 Music (`fr165m`)**. Probado con el SDK 9.3.0. |
 | **VS Code + Monkey C** | Extensión `garmin.monkey-c` (la instala `setup.ps1`). Opcional pero recomendada. |
 | **Llave de desarrollador** | Archivo `developer_key.der` en `%USERPROFILE%\Downloads\FocusPulse-keys\`. La genera `setup.ps1`. |
 | **OpenSSL** | Solo para generar la llave. Si no está en el `PATH` se usa el de Git for Windows (`C:\Program Files\Git\usr\bin\openssl.exe`). |
@@ -42,10 +42,10 @@ powershell -ExecutionPolicy Bypass -File scripts\build.ps1
 | Script | Qué hace | Salida |
 |---|---|---|
 | `setup.ps1` | Instala la extensión de VS Code y genera la llave si no existe (nunca la sobrescribe). Informa si faltan Java o el SDK. | Llave en `Downloads\FocusPulse-keys\` |
-| `build.ps1` | Compila para `fr165`. | `bin\FocusPulse.prg` |
+| `build.ps1` | Compila para `fr165` con verificación de tipos estricta (`-l 3`). | `bin\FocusPulse.prg` |
 | `run.ps1` | Compila, abre el simulador y ejecuta la app en `fr165`. `-NoBuild` omite la compilación. | — |
-| `test.ps1` | Compila con pruebas (`-t`) y las ejecuta en el simulador. | `bin\FocusPulse-test.prg` |
-| `export.ps1` | Genera el paquete firmado en modo release para la tienda. | `bin\FocusPulse.iq` |
+| `test.ps1` | Compila con pruebas (`-t`), las ejecuta en el simulador y termina con error si alguna falla. | `bin\FocusPulse-test.prg` |
+| `export.ps1` | Genera el paquete firmado en modo release para la tienda (`fr165` y `fr165m`). | `bin\FocusPulse.iq` |
 | `icon.ps1` | Genera el ícono del launcher con los colores de `Palette.mc`. `-Size` cambia el tamaño. No necesita el SDK. | `resources\drawables\launcher_icon.png` |
 
 Primer uso:
@@ -58,7 +58,7 @@ Primer uso:
 ## Estructura
 
 ```
-manifest.xml        Manifest de Connect IQ (watch-app, fr165, permisos, idiomas)
+manifest.xml        Manifest de Connect IQ (watch-app, fr165/fr165m, permisos, idiomas)
 monkey.jungle       Configuración de compilación
 source/app/         Punto de entrada (FocusPulseApp)
 source/views/       Vistas y delegados de entrada
