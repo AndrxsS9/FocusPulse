@@ -36,7 +36,8 @@ Contraste calculado con la fórmula WCAG 2.x contra `BACKGROUND`.
 |---|---|---|---|
 | `BACKGROUND` | `0x07090C` | Fondo de todas las pantallas. | — |
 | `SURFACE` | `0x11151B` | Relleno de píldoras y tarjetas pequeñas. | — |
-| `BORDER` | `0x1C222B` | Pista del anillo de progreso, separadores. | decorativo |
+| `BORDER` | `0x1C222B` | Pista del anillo de progreso (guía de estilo), separadores. | decorativo |
+| `RING_TRACK` | `0x1A1F27` | Pista del anillo de nivel de la esfera principal (parte sin avance). | decorativo |
 | `BORDER_STRONG` | `0x2E3743` | Contorno de controles, puntos de página inactivos. | 1,7:1 (decorativo) |
 | `TEXT` | `0xF5F7FA` | Texto principal, botón de la alerta. | 18,6:1 |
 | `TEXT_SECONDARY` | `0x9AA4B2` | Estados, ayudas, etiquetas. | 7,9:1 |
@@ -128,25 +129,17 @@ hay números fijos de 390. Valores resultantes en el fr165:
 | Radio seguro para contenido | interior − 20 ‰ | 170 |
 | Radio del orbe IA | 250 ‰ | 97 |
 | Batería / título (`topY`) | 130 ‰ | 50 |
-| Hora (`timeY`) | 420 ‰ | 163 |
-| Porcentaje (`scoreY`) | 575 ‰ | 224 |
-| Píldora de estado (`pillY`) | 660 ‰ | 257 |
+| Hora (`timeY`) | 335 ‰ | 130 |
+| Fecha (`dateY`) | 470 ‰ | 183 |
+| "ALERTA" + porcentaje (`scoreY`) | 558 ‰ | 217 |
+| Píldora de estado (`pillY`) | 648 ‰ | 252 |
 | Botón grande (`buttonRect`) | arriba 720 ‰, alto 140 ‰ | x 82, y 280, 226×54 |
 | Área táctil del botón (`buttonTouchRect`) | botón + 30 ‰ por lado | x 71, y 269, 248×76 |
-| Indicador de página (`footerY`) | 905 ‰ | 352 |
+| Marca "DEMO" / indicador de página (`footerY`) | 905 ‰ | 352 |
 
-```
-            ╭──────────────╮
-         ╭──┤   🔋 85 %     ├──╮      topY       batería
-       ╱    │              │    ╲
-      │     │    07:42     │     │    timeY      hora (orbe IA detrás)
-      │     │     72 %     │     │    scoreY     porcentaje de alerta
-      │     │ (Guardia act)│     │    pillY      píldora de estado
-       ╲    │[Iniciar guar]│    ╱     buttonRect botón grande
-         ╰──┤      • •     ├──╯       footerY    indicador de página
-            ╰──────────────╯
-        anillo de nivel de alerta en el borde
-```
+En la fase 4 la hora subió (de 420 ‰ a 335 ‰) para dejar sitio a la fecha, y el porcentaje
+y la píldora se acercaron para que quede aire entre la píldora y el botón. La anatomía
+completa de la esfera está en la sección 5.1.
 
 ### Zonas seguras para texto
 
@@ -164,6 +157,51 @@ Regla: ningún texto ni control cruza `contentRadius`; el anillo vive entre
 
 ## 5. Componentes
 
+### 5.1 Anatomía de la esfera principal (fase 4)
+
+`MainView` (`source/views/MainView.mc`), revisada en el simulador del fr165 y del fr165m
+en español e inglés. Medidas reales en el fr165 (390×390):
+
+```
+                 ╭────── anillo de alerta (r 183, 11 px) ──────╮
+              ╭──┤          ▭ 50 %                 y 50       ├──╮   batería
+            ╱   │                                              │   ╲
+           │    │          11:06                   y 130       │    │  hora (orbe IA detrás)
+           │    │       vie 13 nov                 y 183       │    │  fecha
+           │    │     ALERTA 88 %                  y 217       │    │  puntaje
+           │    │  ( • Guardia activa )            y 232–272   │    │  píldora
+            ╲   │  [  Pausar guardia  ]            y 280–334   │   ╱   botón
+              ╰─┤          DEMO                    y 352       ├─╯     fuente simulada
+                 ╰──────────────────────────────────────────────╯
+```
+
+| Zona | Contenido | Fuente / tamaño | Color |
+|---|---|---|---|
+| Anillo | Pista completa + avance desde las 12 en sentido horario, `percent` = puntaje. Extremos redondos. | trazo de 11 px, r 183 | pista `RING_TRACK`; avance `colorForAlertness(puntaje)` |
+| Batería (`topY` 50) | Ícono dibujado (27×14 px, borne a la derecha, relleno proporcional) + porcentaje real de `System.getSystemStats().battery`. | `LABEL` (30 px) | `TEXT_SECONDARY`; `RED` con ≤ 15 % |
+| Hora (`timeY` 130) | `HH:MM` en 24 h si el sistema la usa (`is24Hour`), si no `H:MM` en 12 h sin a. m./p. m. | `TIME` (109 px de caja) | `TEXT` |
+| Fecha (`dateY` 183) | Día de la semana, día y mes abreviados por el sistema: "vie 13 nov" (español, en minúsculas) / "Fri Nov 13" (inglés). | `LABEL` | `TEXT_SECONDARY` |
+| Puntaje (`scoreY` 217) | "ALERTA" + porcentaje, centrados juntos con 7 px de separación. | `LABEL` + `FONT_SMALL` (45 px) | etiqueta `TEXT_SECONDARY`; número del color del anillo |
+| Píldora (`pillY` 252) | "Monitoreo en pausa" / "Guardia activa" (con punto delante) / "Sensor no disponible". 40 px de alto. | `LABEL` | `TEXT_SECONDARY` / `ACCENT` / `AMBER`; relleno `SURFACE`, borde `BORDER_STRONG` |
+| Botón (`buttonRect`) | "Iniciar guardia" o "Pausar guardia"; `fittingFont` baja de `BODY` si no cabe ("Iniciar guardia" va en `FONT_TINY`). | `BODY` → `TINY` | inicio: `ACCENT` con texto `BACKGROUND`; pausa: `SURFACE` + borde `BORDER_STRONG`, texto `TEXT` |
+| Marca DEMO (`footerY` 352) | Solo con la fuente simulada. | `LABEL` | `TEXT_SECONDARY` |
+
+**Orden de dibujo:** fondo → orbe IA (reservado: `drawOrb` vacío hasta la fase siguiente,
+dentro de `orbRadius` = 97 px alrededor de la hora) → anillo → contenido.
+
+**Refresco:** un `Timer` redibuja cada 1000 ms en pausa y cada 200 ms con la guardia activa
+(`REFRESH_PAUSED_MS` / `REFRESH_ACTIVE_MS`); se detiene en `onHide` y se reanuda en `onShow`
+(verificado en el simulador con *Settings > Force onHide / Force onShow*). El puntaje no
+depende del timer: lo actualiza cada lote de telemetría.
+
+**Entrada:** START (`onKey`, `KEY_ENTER`) y un toque dentro de `buttonTouchRect` inician o
+pausan la guardia; un toque en cualquier otra parte no hace nada. Ver la sección 6.
+
+**AMOLED:** el único relleno claro es el botón "Iniciar guardia" (226×54 px); con la guardia
+activa el botón pasa a `SURFACE`, así que durante la guardia no queda ningún relleno claro.
+
+### 5.2 Funciones de dibujo
+
 Funciones en `source/util/Draw.mc`:
 
 | Componente | Función | Notas |
@@ -171,6 +209,8 @@ Funciones en `source/util/Draw.mc`:
 | Texto centrado | `Draw.centeredText` | Centrado en ambos ejes. |
 | Anillo de progreso | `Draw.progressRing` | Pista completa en `BORDER` + avance con `drawArc` desde las 12 en punto en sentido horario, extremos redondos. Color del avance: `colorForAlertness`. |
 | Píldora de estado | `Draw.pill` | Relleno `SURFACE`, borde `BORDER_STRONG`, texto de color. Devuelve su `Rect`; `Draw.pillHeight` da su alto antes de dibujarla, para colocar el resto alrededor. |
+| Píldora con punto | `Draw.statusPill` | Igual que `pill`, con un punto del color del texto delante (guardia activa). |
+| Batería | `Draw.battery` | Cuerpo redondeado + borne, relleno proporcional al porcentaje. |
 | Botón grande | `Draw.largeButton` | `fillRoundedRectangle` con extremos redondos. Cian con texto oscuro en la pantalla principal; blanco con texto oscuro en la alerta. Si el texto no cabe, reduce la fuente con `Draw.fittingFont`. |
 | Indicador de página | `Draw.pageDots` | Punto actual en `ACCENT`, el resto en `BORDER_STRONG`. |
 
@@ -196,9 +236,17 @@ Funciones en `source/util/Draw.mc`:
 - El área táctil (`buttonTouchRect`) es más grande que el botón dibujado (`buttonRect`)
   para perdonar toques imprecisos con la mano en movimiento.
 - Toda acción táctil tiene equivalente con botones físicos (START/STOP, BACK, UP/DOWN).
-- En el fr165 el sistema traduce el **toque a `onSelect`** (igual que START). Los delegados
-  que implementan `onTap` deben devolver `true` para que el toque no se procese dos veces
-  (verificado: un toque alterna el estado una sola vez).
+- En el fr165, **START y cualquier toque disparan primero el comportamiento `onSelect`**
+  de `BehaviorDelegate`; solo si devuelve `false` llegan los eventos crudos: `onKey`
+  (`KEY_ENTER`) para START y `onTap` (con coordenadas) para el toque. Verificado en la
+  fase 4 con mensajes en consola: con `onSelect` devolviendo `true`, `onTap` nunca se
+  llamaba. Por eso:
+  - la esfera principal devuelve `false` en `onSelect` y decide en `onKey`/`onTap`, y solo
+    un toque dentro de `buttonTouchRect` actúa (`RoundLayout.hitsButton`);
+  - las vistas donde cualquier toque vale (guía de estilo, telemetría de depuración) pueden
+    seguir usando `onSelect`.
+- Coordenadas medidas: un toque en el centro del botón llega como (196, 308); uno sobre la
+  hora, como (196, 166).
 
 ### No depender solo del color
 
@@ -213,7 +261,12 @@ Funciones en `source/util/Draw.mc`:
   y `resources-spa/strings/strings.xml` (español), con el mismo `id`.
 - Ids en inglés, con prefijo por grupo: `Status*`, `Button*`, `Label*`, `Alert*`,
   `Fatigue*`, `Demo*`, `Setting*`, `AiClass*`, `StyleGuide*`, `TypeRole*`.
-- Mayúsculas solo en "¡DESPIERTA!" / "WAKE UP!".
+- Mayúsculas solo en "¡DESPIERTA!" / "WAKE UP!" y en las etiquetas cortas de la esfera
+  ("ALERTA" / "ALERT" y "DEMO"), que son rótulos pequeños, no frases.
+- Formatos con valores (`PercentFormat`, `DateFormat`) viven también en los recursos: el
+  español separa el `%` con un espacio ("88 %") y el inglés no ("88%").
+- `DateCase` no es un texto visible: `lower` (español) pasa a minúsculas el día y el mes que
+  da el sistema ("Vie", "Nov" → "vie", "nov"); `keep` (inglés) los deja igual.
 
 ## 8. Ícono del launcher
 

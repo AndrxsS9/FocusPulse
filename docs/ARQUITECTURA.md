@@ -47,8 +47,8 @@ Implementado en la fase 3 (fuentes → motor → snapshot). Lo que va después d
    MainView / TelemetryDebugView         │ TelemetrySnapshot │ x, y, z, varianza,
    (source/views)                        └─────────┬─────────┘ sacudida, quietud, Hz…
                                                    ▼
-                                     NodDetector → AlertEscalator → Haptics / vistas
-                                               (fases 5–7)
+                         AlertnessScore (v1, fase 4) → anillo y porcentaje de la esfera
+                         NodDetector → AlertEscalator → Haptics / vistas (fases 6–7)
 ```
 
 - **Las dos fuentes entregan el mismo lote**: arreglos `x`, `y`, `z` en mili‑g y la marca
@@ -83,7 +83,7 @@ Medidas con `tests/SimulatedAccelSourceTest.mc` y en la telemetría en vivo del 
 
 | Escenario | Señal (mg) | Varianza | Sacudida | Quietud |
 |---|---|---|---|---|
-| Normal | (40, −180, 975) ± 70 | ≈ 2 100 mg² | ≈ 160–190 | no |
+| Normal | (40, −180, 975) ± 70, ruido triangular | ≈ 600–800 mg² | ≈ 70 | no |
 | Tecleo | X/Y ± 250, Z 960 ± 220 | ≈ 17 000–19 000 mg² | 450–650 | no |
 | Inactividad | (22, −18, 996) ± 4 | ≈ 5–7 mg² | < 15 | sí, desde los 2 s |
 | Cabeceo | 3 s de movimiento normal en (0, 0, 980); caída de 12 muestras (≈0,5 s, con un tramo brusco de 5) hasta (−240, −940, 240); reposo ± 4 | alta → ≈ 6 mg² | pico ≈ 466 en la caída | sí, ≈2 s después |
@@ -99,7 +99,9 @@ pruebas son reproducibles.
 | `source/app` | `FocusPulseApp` | Punto de entrada, ciclo de vida, cableado de dependencias. | 1 ✅ |
 | `source/util` | `Palette` | Tokens de color (constantes). | 1 ✅, 2 ✅ |
 | `source/core` | `MonitorState` | Estado de sesión (activo / en pausa). | 1 ✅ |
-| `source/views` | `MainView`, `MainDelegate` | Pantalla inicial; START/STOP y toque alternan el monitoreo. | 1 ✅ |
+| `source/views` | `MainView`, `MainDelegate` | Esfera principal: anillo de alerta, batería, hora, fecha, puntaje, píldora de estado, botón de guardia con hit-testing y marca DEMO. Anatomía en [DISENO.md](DISENO.md) §5.1. | 1 ✅, 4 ✅ |
+| `source/core` | `AlertnessScore` | Puntaje de alerta provisional (0–100): sube con actividad alta, baja en quietud y tiende a 85 con movimiento normal. Tasas por segundo; se actualiza con cada lote. | 4 ✅ |
+| `source/util` | `ClockFormat` | Hora en 24 h / 12 h y porcentaje de batería. | 4 ✅ |
 | `source/core` | `AlertnessColors` | Banda y color según el puntaje de alerta, colores del orbe IA y de la alerta por nivel. | 2 ✅ |
 | `source/util` | `Typography`, `RoundLayout`, `Rect` | Roles tipográficos, geometría de la pantalla redonda y áreas táctiles. | 2 ✅ |
 | `source/util` | `Draw` | Texto centrado, anillo de progreso, píldora, botón grande, indicador de página. | 2 ✅ |
@@ -114,11 +116,12 @@ pruebas son reproducibles.
 | `source/app` | `GuardController`, `AppSettings` | Inicia y pausa la guardia: fuente + grabación según el ajuste `recordActivity`. | 3 ✅ |
 | `source/views` | `DebugMenu`, `TelemetryDebugView` | Menú de depuración (`(:debug)`): telemetría en vivo, selector de fuente y escenario, guía de estilo. | 3 ✅ |
 | `resources/settings` | `recordActivity` | "Grabar guardia como actividad" (activado por defecto), editable desde Garmin Connect. | 3 ✅ |
-| `source/core` | `FeatureExtractor` | Inclinación respecto a la gravedad y caída brusca, sobre la ventana de la fase 3. | 4 |
-| `source/core` | `NodDetector` | Máquina de estados heurística: postura estable → caída de cabeza/muñeca → inmovilidad. Calibración inicial por usuario. | 5 |
-| `source/core` | `AlertEscalator` | Decide el nivel de alerta (1 suave → 3 intenso) y cuándo reiniciar. | 6 |
-| `source/platform` | `Haptics` | `Attention.vibrate` con `VibeProfile` según el nivel. | 6 |
-| `source/views` | `MonitorView`, `AlertView` | Monitoreo en curso y alerta a pantalla completa que exige confirmación. | 7 |
+| `source/views` | Orbe IA, arco de escaneo | Animación detrás de la hora (`MainView.drawOrb`, ya reservado en el orden de dibujo) y punto que late en la píldora. | 5 |
+| `source/core` | `FeatureExtractor` | Inclinación respecto a la gravedad y caída brusca, sobre la ventana de la fase 3. | 6 |
+| `source/core` | `NodDetector` | Máquina de estados heurística: postura estable → caída de cabeza/muñeca → inmovilidad. Calibración inicial por usuario. Reemplaza o alimenta a `AlertnessScore`. | 6 |
+| `source/core` | `AlertEscalator` | Decide el nivel de alerta (1 suave → 3 intenso) y cuándo reiniciar. | 7 |
+| `source/platform` | `Haptics` | `Attention.vibrate` con `VibeProfile` según el nivel. | 7 |
+| `source/views` | `AlertView` | Alerta a pantalla completa que exige confirmación. | 7 |
 | `source/views` | Modo demo | Pantalla del modo demo sobre `SimulatedAccelSource`; sustituye al selector de depuración. | 8 |
 | `resources/settings` | `properties.xml`, `settings.xml` | Sensibilidad, intensidad de vibración, modo demo (junto a `recordActivity`). | 9 |
 | `source/core` | `SessionStats` | Resumen de sesión (duración, eventos) e historial en `Application.Storage`. | 10 |
@@ -154,16 +157,19 @@ los módulos de las fases siguientes:
 | 1 | Scaffolding: manifest, jungle, estructura, vista inicial, delegado, scripts, docs. |
 | 2 | Sistema de diseño: paleta, tipografía, layout redondo, utilidades de dibujo, textos es/en, ícono y guía de estilo. |
 | 3 | Telemetría del acelerómetro (real + simulada), ventana de características y grabación de la guardia. ✅ |
-| 4 | Extracción de características por ventana. |
-| 5 | Detector heurístico de cabeceos/micro-sueño con calibración. |
-| 6 | Alertas con vibración progresiva. |
-| 7 | Interfaz de monitoreo y pantalla de alerta. |
+| 4 | Esfera principal: anillo de alerta, batería, hora, fecha, puntaje provisional, píldora, botón de guardia y marca DEMO. ✅ |
+| 5 | Orbe IA animado, arco de escaneo y punto que late. |
+| 6 | Inclinación y detector heurístico de cabeceos/micro-sueño con calibración. |
+| 7 | Alertas con vibración progresiva y pantalla de alerta. |
 | 8 | Modo demo interno para simular eventos. |
 | 9 | Ajustes de usuario (sensibilidad, intensidad). |
 | 10 | Resumen de sesión e historial. |
 | 11 | Captura de datos, entrenamiento del modelo en `/ml` y detector basado en modelo. |
 | 12 | Rendimiento, memoria, batería y pruebas en dispositivo real. |
 | 13 | Preparación para la Connect IQ Store: íconos finales, capturas, textos de tienda es/en, export. |
+
+En la fase 4 se adelantó la esfera principal (antes en la 7) para la sustentación en el
+simulador; las características de inclinación pasan a la fase 6 junto al detector.
 
 La fase 2 se insertó como sistema de diseño, así que las fases siguientes se corrieron un
 número respecto al plan inicial.
@@ -176,3 +182,5 @@ número respecto al plan inicial.
   demo se reutilizan como datos de prueba del detector.
 - Fase 3: 42 pruebas en total; las nuevas cubren `RingBuffer`, `SlidingWindow`,
   `TelemetryEngine` y la firma de cada escenario de `SimulatedAccelSource`.
+- Fase 4: 57 pruebas; las nuevas cubren `AlertnessScore` (dirección según el escenario,
+  límites, pausa, independencia de dt), `ClockFormat` y el hit-testing del botón.
