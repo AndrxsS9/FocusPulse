@@ -1,0 +1,42 @@
+# ------------------------------------------------------------------
+# Llaves de desarrollador: NUNCA se versionan.
+# La llave vive fuera del repo, en %USERPROFILE%\Downloads\FocusPulse-keys
+# ------------------------------------------------------------------
+developer_key*
+*.der
+*.pem
+
+# ------------------------------------------------------------------
+# Salidas de compilacion de Connect IQ
+# ------------------------------------------------------------------
+bin/
+gen/
+mir/
+internal-mir/
+*.prg
+*.prg.debug.xml
+*.iq
+
+# ------------------------------------------------------------------
+# Windows
+# ------------------------------------------------------------------
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ------------------------------------------------------------------
+# Python (entrenamiento del modelo en /ml)
+# ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+.pytest_cache/
