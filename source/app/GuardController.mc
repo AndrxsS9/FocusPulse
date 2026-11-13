@@ -4,16 +4,23 @@ import Toybox.WatchUi;
 //! Coordina la guardia: estado (MonitorState), fuente del acelerómetro, motor de
 //! telemetría y grabación de la actividad.
 //!
-//! - start(): reinicia el motor, arranca la fuente (real, o simulada si se eligió la
+//! - start(): reinicia el motor y el puntaje de alerta (88), arranca la fuente (real, o simulada si se eligió la
 //!   fuente demo) y, si el ajuste recordActivity está activo, la grabación.
-//! - pause(): detiene la fuente y guarda la actividad.
+//! - pause(): detiene la fuente, guarda la actividad y congela el puntaje.
 //! - shutdown(): lo mismo, al cerrar la app con la guardia activa.
 //!
-//! Las vistas leen el estado y el snapshot; los delegados llaman a toggle().
+//! El puntaje de alerta (AlertnessScore) se actualiza con cada lote de telemetría, no
+//! con el redibujo de la vista. Las vistas leen el estado, el puntaje y el snapshot; los
+//! delegados llaman a toggle().
 class GuardController {
 
     private var _state as MonitorState;
     private var _engine as TelemetryEngine;
+    private var _score as AlertnessScore;
+
+    //! Marca de tiempo del último lote, para calcular el dt del puntaje. null tras
+    //! iniciar la guardia o cambiar de fuente.
+    private var _lastBatchMs as Number? = null;
     private var _recorder as SessionRecorder;
 
     private var _realSource as RealAccelSource;
@@ -29,6 +36,7 @@ class GuardController {
     function initialize(state as MonitorState, sessionName as String, demoSeed as Number) {
         _state = state;
         _engine = new TelemetryEngine();
+        _score = new AlertnessScore();
         _recorder = new SessionRecorder(sessionName);
         _realSource = new RealAccelSource();
         _demoSource = new SimulatedAccelSource(AccelScenario.NORMAL, demoSeed);
@@ -65,6 +73,8 @@ class GuardController {
             return false;
         }
         _sensorUnavailable = false;
+        _score.reset();
+        _lastBatchMs = null;
         if (AppSettings.recordActivity()) {
             _recorder.start();
         }
@@ -93,6 +103,7 @@ class GuardController {
     }
 
     private function stopAll() as Void {
+        _score.setActive(false);
         _realSource.stop();
         _demoSource.stop();
         _recorder.stop(true);
@@ -107,7 +118,23 @@ class GuardController {
             return;
         }
         _engine.addBatch(xs, ys, zs, timestampMs);
+
+        // dt del puntaje: tiempo desde el lote anterior; en el primero, la duración
+        // nominal del lote.
+        var last = _lastBatchMs;
+        var dt = xs.size().toFloat() / currentSource().sampleRateHz();
+        if (last != null && timestampMs > last) {
+            dt = (timestampMs - last) / 1000.0f;
+        }
+        _lastBatchMs = timestampMs;
+        _score.update(_engine.snapshot(), dt);
+
         WatchUi.requestUpdate();
+    }
+
+    //! Puntaje de alerta (0–100). Congelado en pausa; 88 antes de la primera guardia.
+    function alertness() as Number {
+        return _score.value();
     }
 
     function snapshot() as TelemetrySnapshot {
@@ -155,6 +182,7 @@ class GuardController {
         _useDemoSource = demo;
         if (wasActive) {
             _engine.reset();
+            _lastBatchMs = null;
             if (!currentSource().start()) {
                 _sensorUnavailable = true;
                 pause();
