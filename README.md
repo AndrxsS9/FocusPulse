@@ -7,9 +7,12 @@ FocusPulse AI detecta **micro-sueños y cabeceos** a partir del acelerómetro de
 despierta al usuario con **vibraciones progresivas**. Incluye un **modo demo** interno para
 simular eventos sin necesidad de dormirse frente al reloj.
 
-> Estado: **Fase 1 — scaffolding**. La app muestra la pantalla inicial y alterna entre
-> "Monitoreo en pausa" y "Monitoreo activo" con START/STOP o un toque. La detección todavía
-> no está implementada. Ver [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
+> Estado: **Fase 2 — sistema de diseño**. La app muestra la pantalla inicial y alterna entre
+> "Monitoreo en pausa" y "Guardia activa" con START/STOP o un toque. Ya existen la paleta,
+> la tipografía, el layout redondo, las utilidades de dibujo, los textos es/en de las
+> próximas pantallas y una guía de estilo oculta (pulsación larga de menú, solo en
+> depuración). La detección todavía no está implementada. Ver
+> [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) y [docs/DISENO.md](docs/DISENO.md).
 
 ## Requisitos
 
@@ -43,6 +46,7 @@ powershell -ExecutionPolicy Bypass -File scripts\build.ps1
 | `run.ps1` | Compila, abre el simulador y ejecuta la app en `fr165`. `-NoBuild` omite la compilación. | — |
 | `test.ps1` | Compila con pruebas (`-t`) y las ejecuta en el simulador. | `bin\FocusPulse-test.prg` |
 | `export.ps1` | Genera el paquete firmado en modo release para la tienda. | `bin\FocusPulse.iq` |
+| `icon.ps1` | Genera el ícono del launcher con los colores de `Palette.mc`. `-Size` cambia el tamaño. No necesita el SDK. | `resources\drawables\launcher_icon.png` |
 
 Primer uso:
 
@@ -59,7 +63,7 @@ monkey.jungle       Configuración de compilación
 source/app/         Punto de entrada (FocusPulseApp)
 source/views/       Vistas y delegados de entrada
 source/core/        Lógica pura (estado, telemetría, detector) sin dependencias de UI
-source/util/        Utilidades compartidas (paleta de colores…)
+source/util/        Sistema de diseño: paleta, tipografía, layout redondo, dibujo
 resources/          Recursos por defecto (inglés): textos, ícono, layouts, settings
 resources-spa/      Textos en español
 tests/              Pruebas unitarias con Toybox.Test
@@ -71,5 +75,6 @@ ml/                 Entrenamiento del modelo de detección (no se empaqueta en e
 ## Documentación
 
 - [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) — módulos y plan por fases.
+- [docs/DISENO.md](docs/DISENO.md) — sistema de diseño: paleta, tipografía, layout, accesibilidad.
 - [docs/PENDIENTES.md](docs/PENDIENTES.md) — lo que hay que verificar al instalar el SDK.
 - [ml/README.md](ml/README.md) — entrenamiento del modelo.
