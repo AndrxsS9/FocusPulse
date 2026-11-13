@@ -22,8 +22,9 @@ class RoundLayout {
     const CONTENT_PADDING = 20;  // borde interior del anillo → contenido
     const ORB_RADIUS = 250;      // orbe IA detrás de la hora
     const TOP_Y = 130;           // batería / título de la pantalla
-    const TIME_Y = 420;          // hora grande
-    const SCORE_Y = 575;         // porcentaje de alerta
+    const TIME_Y = 335;          // hora grande (centro del orbe IA)
+    const DATE_Y = 470;          // fecha corta bajo la hora
+    const SCORE_Y = 565;         // "ALERTA" + porcentaje de alerta
     const PILL_Y = 660;          // píldora de estado
     const BUTTON_TOP = 720;      // borde superior del botón grande
     const BUTTON_HEIGHT = 140;
@@ -57,6 +58,7 @@ class RoundLayout {
     //! Centros verticales de cada zona de la pantalla principal.
     var topY as Number;
     var timeY as Number;
+    var dateY as Number;
     var scoreY as Number;
     var pillY as Number;
     var footerY as Number;
@@ -82,6 +84,7 @@ class RoundLayout {
 
         topY = toScreenY(TOP_Y);
         timeY = toScreenY(TIME_Y);
+        dateY = toScreenY(DATE_Y);
         scoreY = toScreenY(SCORE_Y);
         pillY = toScreenY(PILL_Y);
         footerY = toScreenY(FOOTER_Y);

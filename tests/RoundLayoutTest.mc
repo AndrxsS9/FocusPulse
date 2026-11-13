@@ -55,7 +55,8 @@ function roundLayoutSafeWidthNarrowsAwayFromCenter(logger as Logger) as Boolean 
 function roundLayoutZonesAreOrderedTopToBottom(logger as Logger) as Boolean {
     var layout = new RoundLayout(390, 390);
     Test.assert(layout.topY < layout.timeY);
-    Test.assert(layout.timeY < layout.scoreY);
+    Test.assert(layout.timeY < layout.dateY);
+    Test.assert(layout.dateY < layout.scoreY);
     Test.assert(layout.scoreY < layout.pillY);
     Test.assert(layout.pillY < layout.buttonRect.y);
     Test.assert(layout.buttonRect.bottom() < layout.footerY);

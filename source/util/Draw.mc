@@ -110,6 +110,28 @@ module Draw {
         centeredText(dc, rect.centerX(), rect.centerY(), fitted, text, textColor);
     }
 
+    //! Ícono de batería dentro de rect (cuerpo + borne a la derecha), con el relleno
+    //! proporcional a percent (0–100). El borne ocupa la última octava parte del ancho.
+    function battery(dc as Dc, rect as Rect, percent as Number, color as Number) as Void {
+        var nubWidth = rect.width / 8;
+        var bodyWidth = rect.width - nubWidth;
+        var pen = rect.height / 7 + 1;
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(pen);
+        dc.drawRoundedRectangle(rect.x, rect.y, bodyWidth, rect.height, pen);
+        dc.setPenWidth(1);
+        var nubHeight = rect.height / 2;
+        dc.fillRectangle(rect.x + bodyWidth, rect.y + (rect.height - nubHeight) / 2, nubWidth, nubHeight);
+
+        var clamped = percent < 0 ? 0 : (percent > 100 ? 100 : percent);
+        var inset = pen + 1;
+        var fillMax = bodyWidth - 2 * inset;
+        var fill = fillMax * clamped / 100;
+        if (fill > 0) {
+            dc.fillRectangle(rect.x + inset, rect.y + inset, fill, rect.height - 2 * inset);
+        }
+    }
+
     //! Indicador de página: count puntos centrados en (cx, cy); el actual en color.
     function pageDots(dc as Dc, cx as Number, cy as Number, count as Number, current as Number,
             dotRadius as Number, color as Number, inactiveColor as Number) as Void {

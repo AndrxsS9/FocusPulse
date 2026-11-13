@@ -20,6 +20,14 @@
     <!-- Pantalla principal -->
     <string id="LabelAlertness">Nivel de alerta</string>
 
+    <!-- Esfera principal. Formatos: $1$, $2$… son valores. -->
+    <string id="PercentFormat">$1$ %</string>
+    <!-- Fecha corta: $1$ día de la semana, $2$ día del mes, $3$ mes (abreviados por el sistema). -->
+    <string id="DateFormat">$1$ $2$ $3$</string>
+    <!-- No es un texto visible: "lower" pasa a minúsculas el día y el mes del sistema
+         (en español "vie 13 nov"); "keep" los deja como vienen ("Fri Nov 13"). -->
+    <string id="DateCase">lower</string>
+
     <!-- Alerta a pantalla completa -->
     <string id="AlertWakeUp">¡DESPIERTA!</string>
     <string id="AlertLevel1">Nivel 1 de 3</string>

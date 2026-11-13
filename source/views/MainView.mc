@@ -1,5 +1,8 @@
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.System;
+import Toybox.Time;
+import Toybox.Time.Gregorian;
 import Toybox.WatchUi;
 
 //! Esfera principal (vista de guardia).
@@ -13,16 +16,22 @@ import Toybox.WatchUi;
 //! Medidas: RoundLayout (source/util/Layout.mc) y docs/DISENO.md.
 class MainView extends WatchUi.View {
 
-    //! Separación vertical (px) entre el título, el acento y el estado.
-    const GAP = 10;
+    //! Batería en o por debajo de este porcentaje: ícono y número en rojo.
+    const BATTERY_LOW = 15;
 
-    //! Ancho (px) de la línea de acento cian.
-    const ACCENT_WIDTH = 48;
+    //! Ícono de batería, en milésimas del lado de la pantalla (fr165: 27×14 px).
+    const BATTERY_WIDTH = 70;
+    const BATTERY_HEIGHT = 36;
+
+    //! Separación (px, en milésimas) entre el ícono de batería y su porcentaje.
+    const BATTERY_GAP = 15;
 
     private var _guard as GuardController;
     private var _layout as RoundLayout?;
 
-    private var _title as String = "";
+    private var _percentFormat as String = "";
+    private var _dateFormat as String = "";
+    private var _dateLowercase as Boolean = false;
     private var _statusPaused as String = "";
     private var _statusActive as String = "";
     private var _statusSensorUnavailable as String = "";
@@ -35,7 +44,9 @@ class MainView extends WatchUi.View {
 
     function onLayout(dc as Dc) as Void {
         _layout = new RoundLayout(dc.getWidth(), dc.getHeight());
-        _title = WatchUi.loadResource(Rez.Strings.AppName) as String;
+        _percentFormat = WatchUi.loadResource(Rez.Strings.PercentFormat) as String;
+        _dateFormat = WatchUi.loadResource(Rez.Strings.DateFormat) as String;
+        _dateLowercase = (WatchUi.loadResource(Rez.Strings.DateCase) as String).equals("lower");
         _statusPaused = WatchUi.loadResource(Rez.Strings.StatusPaused) as String;
         _statusActive = WatchUi.loadResource(Rez.Strings.StatusActive) as String;
         _statusSensorUnavailable = WatchUi.loadResource(Rez.Strings.StatusSensorUnavailable) as String;
@@ -69,37 +80,62 @@ class MainView extends WatchUi.View {
     }
 
     private function drawContent(dc as Dc, layout as RoundLayout) as Void {
-        var centerX = layout.centerX;
-        var centerY = layout.centerY;
-        var justify = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
+        drawBattery(dc, layout);
+        drawClock(dc, layout);
+        drawStatus(dc, layout);
+    }
 
-        var titleFont = Graphics.FONT_MEDIUM;
-        var statusFont = Graphics.FONT_SMALL;
-        var titleY = centerY - GAP - dc.getFontHeight(titleFont) / 2;
-        var statusY = centerY + GAP + dc.getFontHeight(statusFont) / 2;
+    //! Ícono de batería y porcentaje real, centrados en topY.
+    private function drawBattery(dc as Dc, layout as RoundLayout) as Void {
+        var percent = ClockFormat.batteryPercent(System.getSystemStats().battery);
+        var color = percent <= BATTERY_LOW ? Palette.RED : Palette.TEXT_SECONDARY;
+        var text = Lang.format(_percentFormat, [percent]);
 
-        dc.setColor(Palette.TEXT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(centerX, titleY, titleFont, _title, justify);
+        var iconWidth = layout.scaled(BATTERY_WIDTH);
+        var iconHeight = layout.scaled(BATTERY_HEIGHT);
+        var gap = layout.scaled(BATTERY_GAP);
+        var textWidth = dc.getTextWidthInPixels(text, Typography.LABEL);
+        var left = layout.centerX - (iconWidth + gap + textWidth) / 2;
 
-        dc.setColor(Palette.ACCENT, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(centerX - ACCENT_WIDTH / 2, centerY - 1, ACCENT_WIDTH, 2);
+        Draw.battery(dc, new Rect(left, layout.topY - iconHeight / 2, iconWidth, iconHeight),
+            percent, color);
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left + iconWidth + gap, layout.topY, Typography.LABEL, text,
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
 
-        if (_guard.isActive()) {
-            dc.setColor(Palette.ACCENT, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, statusY, statusFont, _statusActive, justify);
-        } else if (_guard.isSensorUnavailable()) {
-            dc.setColor(Palette.AMBER, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, statusY, statusFont, _statusSensorUnavailable, justify);
-        } else {
-            dc.setColor(Palette.TEXT_SECONDARY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, statusY, statusFont, _statusPaused, justify);
+    //! Hora grande (24 h o 12 h según el sistema) y fecha corta en el idioma del reloj.
+    private function drawClock(dc as Dc, layout as RoundLayout) as Void {
+        var now = Gregorian.info(Time.now(), Time.FORMAT_MEDIUM);
+        var time = ClockFormat.hoursMinutes(now.hour, now.min, System.getDeviceSettings().is24Hour);
+        Draw.centeredText(dc, layout.centerX, layout.timeY, Typography.TIME, time, Palette.TEXT);
+
+        var weekday = now.day_of_week as String;
+        var month = now.month as String;
+        if (_dateLowercase) {
+            weekday = weekday.toLower();
+            month = month.toLower();
         }
+        var date = Lang.format(_dateFormat, [weekday, now.day, month]);
+        Draw.centeredText(dc, layout.centerX, layout.dateY, Typography.LABEL, date,
+            Palette.TEXT_SECONDARY);
+    }
 
+    //! Estado provisional en texto (la píldora llega en el siguiente paso).
+    private function drawStatus(dc as Dc, layout as RoundLayout) as Void {
+        var text = _statusPaused;
+        var color = Palette.TEXT_SECONDARY;
+        if (_guard.isActive()) {
+            text = _statusActive;
+            color = Palette.ACCENT;
+        } else if (_guard.isSensorUnavailable()) {
+            text = _statusSensorUnavailable;
+            color = Palette.AMBER;
+        }
+        Draw.centeredText(dc, layout.centerX, layout.pillY, Typography.LABEL, text, color);
         if (_guard.isDemoSource()) {
-            var labelY = statusY + dc.getFontHeight(statusFont) / 2 + GAP
-                + dc.getFontHeight(Typography.LABEL) / 2;
-            dc.setColor(Palette.TEXT_SECONDARY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, labelY, Typography.LABEL, _statusDemo, justify);
+            Draw.centeredText(dc, layout.centerX, layout.footerY, Typography.LABEL, _statusDemo,
+                Palette.TEXT_SECONDARY);
         }
     }
 }
