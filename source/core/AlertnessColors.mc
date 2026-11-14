@@ -100,6 +100,24 @@ module AlertnessColors {
         return Palette.RED_INTENSE;
     }
 
+    //! Oscurecimiento máximo (milésimas) del fondo de los niveles 1 y 2 en el pulso
+    //! de brillo. Con 120 el texto oscuro sigue por encima de 4,5:1 (6,6:1 sobre
+    //! ORANGE y 4,9:1 sobre ORANGE_DEEP en el punto más oscuro).
+    const ALERT_PULSE_DIM = 120;
+
+    //! En el nivel 3 el fondo alterna entre RED_INTENSE y un rojo oscuro (RED_INTENSE
+    //! al 60 % sobre BACKGROUND). El texto blanco gana contraste al oscurecerse.
+    const ALERT_PULSE_DIM_MAX = 400;
+
+    //! Fondo de la alerta en un momento del pulso de brillo (pulse 0–1, ver
+    //! AlertVisuals.pulse): el color del nivel en 0 y el más oscuro en 1.
+    function alertPulseColor(level as Number, pulse as Float) as Number {
+        var p = pulse < 0.0f ? 0.0f : (pulse > 1.0f ? 1.0f : pulse);
+        var dim = clampAlertLevel(level) == MAX_ALERT_LEVEL ? ALERT_PULSE_DIM_MAX : ALERT_PULSE_DIM;
+        return ColorMath.blend(alertBackgroundColor(level), Palette.BACKGROUND,
+            1000 - (dim * p + 0.5f).toNumber());
+    }
+
     //! Color del texto sobre alertBackgroundColor(level), elegido por contraste
     //! (mínimo 4,5:1): texto oscuro sobre los naranjas y blanco puro sobre el rojo
     //! intenso.
