@@ -53,3 +53,20 @@ function alertnessScoreRaisesToFloorOnly(logger as Logger) as Boolean {
     Test.assertEqual(high.raiseTo(150.0f), 100);
     return true;
 }
+
+//! Cada alerta guarda el nivel más alto que alcanzó; el registro da el máximo.
+(:test)
+function alertLogKeepsMaxLevelReached(logger as Logger) as Boolean {
+    var log = new AlertLog();
+    Test.assertEqual(log.maxLevel(), 0);
+    var alerts = new AlertController();
+    alerts.onEvent(DrowsinessEvent.NOD, 0);
+    alerts.update(10000);
+    var response = alerts.dismiss(12500) as Number;
+    log.add(new AlertRecord(alerts.reason(), alerts.level(), alerts.startMs(), response));
+    log.add(new AlertRecord(DrowsinessEvent.INACTIVITY, 1, 30000, 900));
+    Test.assertEqualMessage(log.get(0).maxLevel, 2, "respondida en el nivel 2");
+    Test.assertEqual(log.get(0).responseMs, 12500);
+    Test.assertEqual(log.maxLevel(), 2);
+    return true;
+}
