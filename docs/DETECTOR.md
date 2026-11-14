@@ -5,7 +5,8 @@ vive en `source/core` (lógica pura, sin `WatchUi`, `Graphics` ni `Sensor`): el 
 como parámetro y las pruebas recorren secuencias completas de la fuente simulada con el
 reloj controlado. El detector emite eventos (se ven en la depuración, *Detector en vivo*) y,
 desde la fase 7, cada uno abre la alerta a pantalla completa con vibración
-([DISENO.md](DISENO.md) §5.3).
+([DISENO.md](DISENO.md) §5.3). Desde la fase 9, los episodios alimentan el predictor de
+fatiga (§8).
 
 ## 1. Flujo por lote
 
@@ -100,10 +101,10 @@ iniciar la guardia, y nunca antes.
 ### 3.4 Refractario y pausa
 
 - Tras cada evento, **10 s** sin emitir otro, y la cuenta de quietud vuelve a cero. Si el
-  usuario sigue inmóvil, en demo llega otra inactividad a los 10 s (8, 18, 28 s…): es la
-  señal que usará el escalamiento automático de alertas (fase siguiente). Mientras la
-  alerta está abierta el detector sigue corriendo y sus eventos se ignoran; al descartarla,
-  el siguiente llega cuando termina el refractario.
+  usuario sigue inmóvil, en demo llega otra inactividad a los 10 s (8, 18, 28 s…).
+  Mientras la alerta está abierta el detector sigue corriendo y sus eventos se ignoran (la
+  alerta ya escala sola por tiempo, [DISENO.md](DISENO.md) §5.3); al descartarla, el
+  siguiente llega cuando termina el refractario.
 - Una caída candidata que se confirma durante el refractario espera a que termine (si no
   caducó): dos cabeceos seguidos dan eventos a los 6 y 16 s.
 - Al **pausar** la guardia se borra todo (estado, candidata, quietud, línea base); al
@@ -284,3 +285,87 @@ Recorrido en *Detector en vivo* con la fuente simulada:
   fuente el detector daría cabeceos sin parar; para probar se usa la fuente simulada.
 - El clasificador usa características absolutas (no relativas a la línea base): la línea
   base solo ajusta el umbral de quietud.
+
+## 8. Predictor de fatiga (`FatiguePredictor`, fase 9)
+
+El detector dice **cuándo** hubo un micro-sueño; el predictor resume **cómo va la guardia**
+en tres niveles, Bajo / Moderado / Alto, para recomendar un descanso. Es un predictor
+**por reglas**: no aprende ni tiene pesos, y cada resultado se explica con una frase.
+
+### 8.1 Entradas
+
+Los **episodios** de la guardia actual: cada alerta que abrió el detector (cabeceo o
+inactividad) es un `AlertRecord` con
+
+- su **hora** (ms desde el inicio de la guardia),
+- su **tiempo de respuesta** ("Estoy despierto"), o ninguno si la guardia se pausó con la
+  alerta abierta,
+- su **nivel máximo** (1–3) con el escalamiento.
+
+Además: la **duración** de la guardia hasta ahora (el "ahora" del predictor), la ventana
+del modo y desde cuándo contar (`sinceMs`: 0, o el final del último descanso completo). Las
+alertas de "Probar alerta" no son episodios.
+
+### 8.2 Reglas
+
+| # | Regla | Efecto |
+|---|---|---|
+| 1 | **Episodios recientes**: los que empezaron en los últimos **30 min** (**5 min** en modo demo). Un episodio justo en el borde cuenta. | 0 → **Bajo** · 1–2 → **Moderado** · 3 o más → **Alto** |
+| 2 | **Respuestas cada vez más lentas**: las 3 últimas respuestas de la guardia van en aumento estricto (cada una más lenta que la anterior) y la última tarda **al menos 1 s más** que la primera. Las alertas sin respuesta no cuentan. | sube **un nivel** (Bajo → Moderado, Moderado → Alto) |
+| 3 | **Nivel 3 de alerta**: alguna alerta de la guardia llegó al nivel 3 (20 s sin respuesta; 12 s en demo). | **al menos Moderado** |
+
+Se aplican en ese orden y el resultado nunca pasa de Alto. Ejemplos:
+
+- 3 cabeceos respondidos en 10 minutos → regla 1 → **Alto**: la esfera muestra "Micro-sueños
+  repetidos · descansa 15 min".
+- 1 episodio hace 5 min → regla 1 → **Moderado**.
+- Respuestas de 1,0, 1,5 y 2,3 s y solo la última en la ventana → regla 1 da Moderado, la 2
+  lo sube a **Alto**.
+- Una alerta que llegó al nivel 3 hace una hora y nada desde entonces → la regla 1 da Bajo,
+  la 3 lo deja en **Moderado**.
+
+**Por qué las reglas 2 y 3 miran toda la guardia y no solo la ventana.** Si miraran solo la
+ventana nunca cambiarían nada: un episodio en la ventana ya da Moderado y tres dan Alto.
+Mirando toda la guardia aportan lo que la regla 1 no ve: una tendencia que empezó antes de
+la ventana, o que el usuario ya necesitó la vibración máxima una vez.
+
+**Descanso.** Un descanso guiado **completo** (los 15 min, o 30 s en demo) reinicia las tres
+reglas: los episodios anteriores a su final no cuentan, y la fatiga vuelve a Bajo. Uno
+cancelado con BACK no reinicia nada.
+
+### 8.3 Cuándo se calcula
+
+`GuardController` lo recalcula con cada lote (una vez por segundo, así la ventana avanza y
+un Alto puede bajar solo) y con cada episodio nuevo. El costo es mínimo: como mucho 32
+episodios (`AlertLog.CAPACITY`). La fatiga final de la guardia queda en su resumen y en el
+historial.
+
+### 8.4 Umbrales
+
+| Constante | Valor | Dónde |
+|---|---|---|
+| Ventana | 30 min · 5 min demo | `FatiguePredictor.WINDOW_MS`, `WINDOW_DEMO_MS` |
+| Episodios para Moderado / Alto | 1 / 3 | `MODERATE_EPISODES`, `HIGH_EPISODES` |
+| Respuestas de la tendencia | 3 | `TREND_RESPONSES` |
+| Aumento mínimo de la tendencia | 1 000 ms | `TREND_MIN_INCREASE_MS` |
+| Nivel de alerta de la regla 3 | 3 | `MAX_ALERT_LEVEL` |
+| Escalamiento de la alerta | 10 s · 6 s demo | `AlertController.ESCALATION_MS`, `ESCALATION_DEMO_MS` |
+
+### 8.5 Pruebas y simulador
+
+- `tests/FatiguePredictorTest.mc` (7 pruebas): cada regla por separado con sus límites
+  (30 min justos frente a 30 min + 1 ms, 999 ms frente a 1 000 ms de aumento, respuestas
+  iguales, alertas sin respuesta fuera de la tendencia, nivel 2 frente a 3), la ventana de
+  5 min del modo demo y el reinicio tras el descanso.
+- Simulador, modo demo, escenario de inactividad: con 3 alertas respondidas en ≈ 40 s la
+  consola pasa de "fatiga 1" a "fatiga 2" en la tercera y la esfera muestra el aviso; tras
+  un descanso completo el resumen de esa guardia dice "Fatiga: Bajo".
+
+### 8.6 Limitaciones
+
+- Los números (30 min, 3 episodios, 1 s) son razonables pero **no están validados** con
+  personas: salen de criterio, no de datos. Igual que los umbrales del detector, se
+  revisarán con datos reales (fase de IA).
+- La ventana cuenta episodios, no su gravedad: tres cabeceos cortos pesan lo mismo que tres
+  inactividades largas.
+- La tendencia necesita 3 respuestas; en una guardia corta casi nunca interviene.

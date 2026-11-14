@@ -54,6 +54,10 @@ detector está explicado en [DETECTOR.md](DETECTOR.md) y la alerta en [DISENO.md
                                                    ▼
                          AlertnessScore → anillo y porcentaje · OrbModel → orbe
                          AlertController (fase 7) → AlertView + Haptics → AlertLog
+                           escala 1 → 2 → 3 sin respuesta (fase 9)        │ episodios
+                                                   ▼                         ▼
+                         FatiguePredictor (fase 9) → aviso de fatiga → BreakView
+                         al pausar: GuardSummary → SummaryView · SessionHistory → Storage
 ```
 
 - **Las dos fuentes entregan el mismo lote**: arreglos `x`, `y`, `z` en mili‑g y la marca
@@ -133,7 +137,12 @@ pruebas son reproducibles.
 | `source/views` | `DetectorDebugView` | Detector en vivo (`(:debug)`): estado, barras de probabilidad, línea base, umbral, último evento y su hora. | 6 ✅ |
 | `source/core` | `AlertController` | Estado de la alerta: inactiva → activa (nivel 1–3, motivo, inicio) → descartada (tiempo de respuesta) o cancelada (pausa). Ignora eventos con una alerta abierta. | 7 ✅ |
 | `source/core` | `VibePatterns`, `AlertVisuals` | Patrón de vibración por nivel (≤ 8 tramos, periodo de repetición) y curvas de la alerta: pulso de brillo (< 1 ciclo/s), entrada con rebote y sacudida sincronizada con el motor. | 7 ✅ |
-| `source/core` | `AlertLog`, `AlertRecord` | Alertas respondidas con su tiempo de respuesta, en memoria (32 como mucho). | 7 ✅ |
+| `source/core` | `AlertLog`, `AlertRecord` | Episodios de la guardia: alertas del detector con su hora, tiempo de respuesta (o ninguno) y nivel máximo; en memoria, 32 como mucho. | 7 ✅, 9 ✅ |
+| `source/core` | `FatiguePredictor` | Fatiga Bajo / Moderado / Alto por reglas explicables ([DETECTOR.md](DETECTOR.md) §8). | 9 ✅ |
+| `source/core` | `BreakTimer` | Cuenta regresiva del descanso guiado (15 min, 30 s en demo). | 9 ✅ |
+| `source/core` | `GuardSummary`, `SessionHistory` | Resumen de una guardia y las 10 últimas, con su formato de Storage versionado. | 9 ✅ |
+| `source/app` | `HistoryStore` | Historial en `Application.Storage` (como `DemoStore`). | 9 ✅ |
+| `source/views` | `BreakView`, `SummaryView`, `HistoryMenu`, `SummaryText` | Descanso guiado, resumen y detalle, lista del historial y formatos. | 9 ✅ |
 | `source/platform` | `Haptics` | `Attention.vibrate` con `VibeProfile` según el patrón, repetido con un `Timer`; respeta `vibrateOn`, enciende la luz y toca un tono por pulso si hay tonos. | 7 ✅ |
 | `source/views` | `AlertView`, `AlertDelegate` | Alerta a pantalla completa: "¡DESPIERTA!", nivel, motivo y "Estoy despierto" (botón o START; BACK no la cierra). Ver [DISENO.md](DISENO.md) §5.3. | 7 ✅ |
 | `source/core` | `AlertEscalator` | Escalamiento automático entre niveles (1 suave → 3 máxima) si el usuario no responde. En la fase 7 los niveles 2 y 3 solo se abren desde depuración. | siguiente |
@@ -165,7 +174,7 @@ los módulos de las fases siguientes:
 | Restricción | Consecuencia |
 |---|---|
 | Acelerómetro hasta 100 Hz, lotes de hasta 4 s, valores en mili‑g. **Sin giroscopio.** | `RealAccelSource` pide 25 Hz (menos batería que 100 Hz) y solo baja si `getMaxSampleRateForSensorType(:accelerometer)` da menos; si da 0, la fuente no está disponible. `FeatureExtractor` solo usa el acelerómetro: la inclinación sale de la gravedad, no de la velocidad angular. |
-| Los Forerunner **ignoran el `dutyCycle`** de `VibeProfile`: la vibración siempre tiene la misma fuerza. Hay de 1 a 8 perfiles por llamada. | `Haptics` distingue los niveles 1–3 por duración, número de pulsos y pausas, no por intensidad. El ajuste "intensidad de vibración" de la fase 9 cambia el patrón, no la fuerza. |
+| Los Forerunner **ignoran el `dutyCycle`** de `VibeProfile`: la vibración siempre tiene la misma fuerza. Hay de 1 a 8 perfiles por llamada. | `Haptics` distingue los niveles 1–3 por duración, número de pulsos y pausas, no por intensidad. El ajuste "intensidad de vibración" (fase 10) cambiaría el patrón, no la fuerza. |
 | Si la app pasa a **inactiva** sin grabar una actividad, los sensores bajan a 10 Hz o fallan y la vibración queda denegada. | **Decidido en la fase 3:** la guardia graba una actividad (`SessionRecorder`, permiso `Fit`) por defecto, y el ajuste `recordActivity` lo desactiva. `TelemetryEngine` mide los Hz efectivos para detectar la bajada a 10 Hz. |
 | El simulador 9.3.0 **se cierra con un error** si la app termina con una sesión de `ActivityRecording` todavía grabando, aunque `onStop` la guarde. | `MainDelegate.onBack` detiene y guarda la guardia antes de que la app empiece a cerrarse; `onStop` lo repite como respaldo. |
 | fr165 y fr165m comparten pantalla, teclas, sensores y API 5.2.0. | Un solo código para ambos productos; `scripts\build.ps1` compila para `fr165` y `export.ps1` para los dos. |
@@ -182,8 +191,8 @@ los módulos de las fases siguientes:
 | 6 | Inclinación, detector de cabeceos e inactividad, línea base adaptativa y clasificador v1. ✅ |
 | 7 | Alerta a pantalla completa con vibración por niveles, luz y tono; "Estoy despierto" con tiempo de respuesta. ✅ |
 | 8 | Modo demo oficial (también en release): menú principal, escenarios con DOWN, guion automático, probar alerta y acerca de; guía de la sustentación. ✅ |
-| 9 | Ajustes de usuario (sensibilidad, intensidad). |
-| 10 | Resumen de sesión e historial. |
+| 9 | Escalamiento de la alerta, predictor de fatiga por reglas, descanso guiado, resumen de la guardia e historial persistente; guion con escalamiento. ✅ |
+| 10 | Ajustes de usuario (sensibilidad, intensidad). |
 | 11 | Captura de datos, entrenamiento del modelo en `/ml` y detector basado en modelo. |
 | 12 | Rendimiento, memoria, batería y pruebas en dispositivo real. |
 | 13 | Preparación para la Connect IQ Store: íconos finales, capturas, textos de tienda es/en, export. |
@@ -192,7 +201,8 @@ En la fase 4 se adelantó la esfera principal (antes en la 7) para la sustentaci
 simulador; las características de inclinación pasan a la fase 6 junto al detector.
 
 La fase 2 se insertó como sistema de diseño, así que las fases siguientes se corrieron un
-número respecto al plan inicial.
+número respecto al plan inicial. En la fase 9 se adelantaron el resumen y el historial
+(antes en la 10) junto al escalamiento y la fatiga; los ajustes de usuario pasan a la 10.
 
 ## Pruebas
 

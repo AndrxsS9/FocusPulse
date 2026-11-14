@@ -196,7 +196,7 @@ en español e inglés. Medidas reales en el fr165 (390×390):
 | Píldora (`pillY` 252) | "Monitoreo en pausa" / "Guardia activa" (con punto delante; "Calibrando…" mientras el detector aprende la línea base, 30 s o 5 s en demo) / "Sensor no disponible". 40 px de alto. | `LABEL` | `TEXT_SECONDARY` / `ACCENT` / `AMBER`; relleno `SURFACE`, borde `BORDER_STRONG` |
 | Botón (`buttonRect`) | "Iniciar guardia" o "Pausar guardia"; `fittingFont` baja de `BODY` si no cabe ("Iniciar guardia" va en `FONT_TINY`). | `BODY` → `TINY` | inicio: `ACCENT` con texto `BACKGROUND`; pausa: `SURFACE` + borde `BORDER_STRONG`, texto `TEXT` |
 | Línea del modo demo (`dateY` 183, fase 8) | Con el modo demo activo reemplaza a la fecha: "DEMO · Tecleo activo" o, con el guion, "Guion 2/5 · Tecleo activo". Nombres cortos (`DemoShort*`) para que quepa en los ≈ 335 px de esa altura en ambos idiomas; en `footerY` solo había ≈ 130 px. | `LABEL` | `ACCENT` |
-| Aviso breve (centro, fase 8) | 1,5 s al cambiar de escenario con DOWN ("Escenario / Tecleo activo") o al terminar el guion ("Guion automático / Completado"). Caja de esquinas redondas centrada en la pantalla; el valor baja de `BODY` hasta que cabe ("Inactividad prolongada"). Tapa la fecha y el puntaje mientras dura. | `LABEL` + `BODY` → `XTINY` | relleno `SURFACE`, borde `ACCENT`, título `TEXT_SECONDARY`, valor `TEXT` |
+| Aviso breve (centro, fase 8) | 1,5 s al cambiar de escenario con DOWN ("Escenario / Tecleo activo"). (Hasta la fase 8 también salía "Guion automático / Completado" al terminar el guion; desde la fase 9 el guion termina en el resumen de la guardia.) Caja de esquinas redondas centrada en la pantalla; el valor baja de `BODY` hasta que cabe ("Inactividad prolongada"). Tapa la fecha y el puntaje mientras dura. | `LABEL` + `BODY` → `XTINY` | relleno `SURFACE`, borde `ACCENT`, título `TEXT_SECONDARY`, valor `TEXT` |
 
 **Orden de dibujo:** fondo → orbe IA y partículas → anillo de alerta y arco de escaneo →
 contenido. Ver la sección 5.2.
@@ -307,9 +307,36 @@ niveles se distinguen por pulsos, duración y repetición. Cada ráfaga es una s
 | 2 media | `ORANGE_DEEP` | 300 · 200 · 300 · 200 · 300 (3 pulsos) | 2 s | 45 % | 4 px |
 | 3 máxima | `RED_INTENSE` | 800 · 200 · 800 · 200 · 800 · 200 · 800 (4 tramos) | 4 s | 80 %, casi continuo | 6 px |
 
-En esta fase un evento del detector siempre abre el **nivel 1**; los niveles 2 y 3 se abren
-desde el menú de depuración ("Probar alerta nivel 1 / 2 / 3"). El escalamiento automático es
-de la fase siguiente.
+Un evento del detector siempre abre el **nivel 1**; "Probar alerta" (menú principal con el
+modo demo, o depuración) abre cualquier nivel. Si nadie responde, la alerta **escala** sola
+(fase 9, abajo).
+
+#### Escalamiento automático (fase 9)
+
+`AlertController.update` sube la alerta un nivel por cada intervalo sin respuesta en el
+nivel actual:
+
+| | Sensor real | Modo demo |
+|---|---|---|
+| 1 → 2 | a los 10 s | a los 6 s |
+| 2 → 3 | 10 s después (20 s) | 6 s después (12 s) |
+| Nivel 3 | se mantiene hasta la respuesta | igual |
+
+- Lo avanzan los lotes del acelerómetro (`GuardController.onBatch`) y cada cuadro de la
+  propia alerta (`AlertView` llama a `GuardController.onAlertTick`), así que también
+  escalan las alertas de prueba con la guardia en pausa. Si una llamada llega tarde, sube
+  todos los niveles pendientes de una vez.
+- Al subir, **sin cerrar ni volver a abrir la vista**: `Haptics.start(nivel)` cambia al
+  patrón del nivel nuevo; el color nuevo crece desde el centro sobre el anterior en 300 ms
+  (los textos cambian de color a mitad de camino, para no perder contraste ni un cuadro);
+  cambian la línea "Nivel N de 3 · vibración …", el ritmo del pulso y la amplitud de la
+  sacudida. Pulso, sacudida y ondas cuentan desde el **inicio del nivel**, igual que el
+  patrón de vibración, para que la sacudida siga a los pulsos del motor.
+- El tiempo de respuesta se cuenta desde que se abrió la alerta (no desde el último
+  nivel) y se guarda con el **nivel máximo alcanzado** (`AlertRecord.maxLevel`).
+- Medido en el simulador (consola de depuración): "sube al nivel 2 a los 6031 ms" y "al
+  nivel 3 a los 12109 ms" en modo demo; la diferencia con 6 000 / 12 000 es el periodo de
+  50 ms del redibujo.
 
 **Animaciones** (`AlertVisuals`, redibujo cada 50 ms mientras la alerta se ve):
 
@@ -328,8 +355,9 @@ si no hay tonos. Sin vibración en el reloj (`vibrateOn` falso o sin motor) la a
 visual, con la misma pantalla, luz y tono.
 
 **Al descartar** (botón o START): para la vibración, `popView` a la vista anterior (la
-esfera), el puntaje sube a un mínimo de 70 y la alerta se guarda con su tiempo de respuesta
-en `AlertLog` (en memoria, las 32 últimas). El detector no se reinicia, así que respeta su
+esfera), el puntaje sube a un mínimo de 70 y, si la abrió el detector, se guarda como
+episodio de la guardia con su tiempo de respuesta y su nivel máximo (`AlertLog`, en memoria,
+32 como mucho; se vacía al iniciar otra guardia). El detector no se reinicia, así que respeta su
 refractario: en el escenario de inactividad, tras descartar, la siguiente alerta llegó a
 los 10–11 s del evento anterior. Mientras la alerta está abierta los eventos nuevos se
 ignoran y la esfera no se redibuja (`MainView` para su timer en `onHide` y
@@ -358,7 +386,91 @@ abierta la cierra sin guardar respuesta.
   deliberado (el botón grande o START). BACK, deslizar, mantener UP y las teclas de página
   se consumen sin hacer nada; en la esfera BACK sigue saliendo de la app como siempre.
 
-### 5.4 Funciones de dibujo
+### 5.4 Aviso de fatiga (fase 9)
+
+Con la fatiga en **Alto** ([DETECTOR.md](DETECTOR.md) §8) y la guardia activa, la esfera
+reemplaza el puntaje y la píldora de estado por un aviso ámbar:
+
+```
+             12:06               hora
+        DEMO · Inactividad       fecha / línea demo
+  ╭──────────────────────────╮
+  │  Micro-sueños repetidos  │   y ≈ 220  LABEL, AMBER
+  │     descansa 15 min      │   y ≈ 250  LABEL, TEXT
+  ╰──────────────────────────╯   caja 300×72 px (RoundLayout.fatigueBannerRect)
+      [  Pausar guardia  ]       botón
+```
+
+- Caja `SURFACE` con borde `AMBER` de 2 px y esquinas de un tercio del alto. Va de 520 ‰ a
+  705 ‰ del lado (y 203–275 en el fr165), tan ancha como permite el círculo seguro en su
+  borde inferior.
+- Texto en dos ids (`FatigueBannerTitle`, `FatigueBannerAction`). La frase completa
+  "toma un descanso de 15 min" **no cabía**: en `FONT_XTINY` mide más que los ≈ 290 px útiles
+  a esa altura y se cortaba contra el borde (captura en el simulador). Quedó "descansa
+  15 min" en español; en inglés "take a 15 min break" sí cabe. El texto original sigue en
+  `FatigueRepeatedMicrosleeps` (guía de estilo).
+- El anillo sigue mostrando el nivel de alerta: el porcentaje desaparece mientras dura el
+  aviso, pero no la información.
+- **Tocar el aviso** (`RoundLayout.hitsFatigueBanner`) abre el descanso guiado. El área
+  táctil del botón grande se solapa 6 px con el borde inferior de la caja y tiene
+  prioridad. Sin pantalla táctil, el menú tiene "Tomar descanso".
+- Estático, sin animación (AMOLED: solo se encienden el borde y el texto).
+
+### 5.5 Descanso guiado (fase 9)
+
+`BreakView` (`source/views/BreakView.mc`), con la cuenta en `core/BreakTimer`:
+
+| | En marcha | Terminado |
+|---|---|---|
+| Anillo | `ACCENT` desde las 12 en sentido horario, tan largo como lo que queda; pista `RING_TRACK`. Mismas medidas que el de la esfera. | vacío (solo la pista) |
+| Centro | "Descanso" (`LABEL`, secundario) · "14:59" (`NUMBER`, 88 px) · "BACK · cancelar" | "Descanso terminado" (`BODY`) |
+| Botón | — | "Reanudar guardia" (`ACCENT`, como "Iniciar guardia") |
+
+- Dura **15 min** (30 s en modo demo). El reloj redondea hacia arriba: marca 15:00 al
+  empezar y 0:01 en el último segundo. Redibujo cada 1 s.
+- Mientras dura, la guardia está **suspendida**: sin fuente, detector, alertas ni guion,
+  pero sin terminar (la actividad se sigue grabando y los episodios se conservan).
+- Al llegar a cero: una vibración suave (`Haptics.notify`, el patrón del nivel 1 una sola
+  vez) y la luz. El predictor de fatiga empieza a contar desde ese instante.
+- START o un toque en el botón reanudan la guardia (que vuelve a calibrar). **BACK**
+  cancela en cualquier momento y también reanuda; si se cancela antes de tiempo, la fatiga
+  no se reinicia.
+
+### 5.6 Resumen de la guardia e historial (fase 9)
+
+`SummaryView` se abre sobre la esfera al **pausar** una guardia que duró **1 min o más o
+tuvo algún episodio** (`GuardSummary.shouldShow`; una guardia de segundos sin episodios es
+casi siempre un toque de prueba). START o BACK vuelven a la esfera.
+
+```
+         Resumen de la guardia        y 99   LABEL, ACCENT  (o la fecha, en el detalle)
+                ───                   raya de acento
+   Duración             1 min 11 s    y 148
+   Episodios                     3    y 181
+   Respuesta media           1,9 s    y 214
+   Nivel máximo             3 de 3    y 248
+   Fatiga                     Alto    y 281  valor en cian / ámbar / rojo
+                DEMO                  y 318  solo si la guardia fue en modo demo
+```
+
+- Las cinco filas comparten el ancho seguro de la más estrecha (la de "Fatiga"), así las
+  dos columnas quedan alineadas; etiqueta en `TEXT_SECONDARY`, valor en `TEXT`.
+- Formatos (`SummaryText`): duración "45 s", "1 min 32 s" (< 10 min), "47 min",
+  "2 h 05 min"; respuesta con una décima y el separador del idioma ("1,9 s" / "1.9 s");
+  "—" sin dato (sin respuestas o sin episodios).
+- Episodios = alertas del detector, también las que se cerraron sin respuesta al pausar.
+  Las de "Probar alerta" no cuentan.
+- El mismo resumen se guarda en el **historial** (`SessionHistory`, las 10 últimas
+  guardias, en `Application.Storage` con `HistoryStore`) también al salir de la app con la
+  guardia activa, aunque entonces no se muestre.
+
+**Historial** (menú principal → "Historial", subtítulo "3 guardias"): lista `Menu2` de la
+más reciente a la más antigua, "14 nov · 10:32" con "1 min 11 s · 3 episodios" debajo.
+Elegir una abre su detalle: la misma vista con la fecha como título. Al final, "Borrar
+historial" pide confirmación (`WatchUi.Confirmation`, "¿Borrar el historial?"); con
+"Confirmar" la lista queda en "Aún no hay guardias" y el subtítulo del menú se actualiza.
+
+### 5.7 Funciones de dibujo
 
 Funciones en `source/util/Draw.mc`:
 
@@ -419,7 +531,8 @@ Funciones en `source/util/Draw.mc`:
 - Todos los textos visibles viven en `resources/strings/strings.xml` (inglés, por defecto)
   y `resources-spa/strings/strings.xml` (español), con el mismo `id`.
 - Ids en inglés, con prefijo por grupo: `Status*`, `Button*`, `Label*`, `Alert*`,
-  `Fatigue*`, `Demo*`, `Setting*`, `AiClass*`, `StyleGuide*`, `TypeRole*`.
+  `Fatigue*`, `Break*`, `Summary*`, `History*`, `Duration*`, `Demo*`, `Menu*`, `Setting*`,
+  `AiClass*`, `StyleGuide*`, `TypeRole*`.
 - Mayúsculas solo en "¡DESPIERTA!" / "WAKE UP!" y en las etiquetas cortas de la esfera
   ("ALERTA" / "ALERT" y "DEMO"), que son rótulos pequeños, no frases.
 - Formatos con valores (`PercentFormat`, `DateFormat`) viven también en los recursos: el

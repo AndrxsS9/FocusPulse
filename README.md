@@ -79,8 +79,13 @@ compilación:
    Tecleo activo → Simular cabeceo → Inactividad prolongada* con un aviso de 1,5 s; el
    cabeceo abre la alerta a los ~6 s y la inactividad a los ~8 s.
 4. *Guion automático* recorre todo solo (normal 10 s → tecleo 10 s → cabeceo → normal 8 s →
-   inactividad) y espera a que se responda cada alerta; la esfera muestra "Guion 2/5 ·
-   Tecleo activo". *Probar alerta* abre los niveles 1, 2 y 3.
+   inactividad → inactividad sin respuesta) y espera a que se responda cada alerta salvo la
+   última, que escala hasta el nivel 3; luego pausa la guardia y muestra su resumen. La
+   esfera muestra "Guion 2/6 · Tecleo activo". *Probar alerta* abre los niveles 1, 2 y 3.
+5. Sin respuesta, la alerta sube un nivel cada 6 s (10 s con el sensor real). Tras 3
+   episodios en 5 min (30 min con el sensor real) la esfera avisa "Micro-sueños repetidos";
+   tocar el aviso abre un descanso guiado de 30 s (15 min). *Historial* guarda las 10
+   últimas guardias.
 
 Paso a paso, qué decir y qué hacer si algo falla: [docs/GUIA_DEMO.md](docs/GUIA_DEMO.md).
 
