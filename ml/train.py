@@ -19,6 +19,8 @@ Pasos:
 
    así el reloj calcula z = COEF · x + INTERCEPT directamente, sin estandarizar.
 5. Guarda el modelo en models/model_v2.json (lo lee export_weights.py).
+6. Evalúa v1 y v2 sobre el mismo conjunto de prueba (evaluate.py) y escribe
+   ml/reports/: metrics.json, report.md y las gráficas.
 
 Uso:  python train.py --seed 20261114
 """
@@ -38,6 +40,7 @@ from sklearn.model_selection import GridSearchCV, GroupKFold, GroupShuffleSplit
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
+import evaluate
 import features
 
 ML_DIR = Path(__file__).resolve().parent
@@ -222,6 +225,14 @@ def main() -> None:
     MODEL_FILE.write_text(json.dumps(model, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"Modelo guardado en {MODEL_FILE.relative_to(ML_DIR.parent)}")
 
+    metrics = evaluate.evaluate(windows, train, test, model, pipeline, args.seed)
+    for name in ("v1", "v2"):
+        r = metrics[name]
+        print(f"{name}: exactitud {r['smooth']['exactitud']:.4f}, F1 macro {r['smooth']['f1_macro']:.4f}, "
+              f"falsos cabeceos {r['falsos_cabeceos']['episodios_con_cabeceo']} de "
+              f"{r['falsos_cabeceos']['episodios']} episodios ({r['falsos_cabeceos']['tasa_ventanas']:.4f} "
+              f"de las ventanas)")
+    print(f"Informe en {(evaluate.REPORTS_DIR / 'report.md').relative_to(ML_DIR.parent)} (datos sintéticos)")
 
 
 if __name__ == "__main__":

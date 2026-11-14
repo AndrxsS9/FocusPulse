@@ -1,0 +1,397 @@
+{
+  "aviso": "Datos SINTÉTICOS: no es precisión en el mundo real.",
+  "fecha": "2026-11-14",
+  "semilla": 20261114,
+  "dataset": {
+    "ventanas": 17376,
+    "usuarios": 48,
+    "secuencias": 528,
+    "ventanas_entrenamiento": 13066,
+    "ventanas_prueba": 4310,
+    "usuarios_prueba": [
+      4,
+      8,
+      12,
+      17,
+      18,
+      23,
+      25,
+      31,
+      32,
+      34,
+      46,
+      47
+    ]
+  },
+  "hiperparametros": {
+    "C": 1.0,
+    "class_weight": "{2: 2.0}"
+  },
+  "validacion_cruzada": {
+    "esquema": "GroupKFold(5) por usuario; peso de clase por el criterio (media de F1 de Activo, Normal e Inerte y F0,5 de Cabeceo); C, el menor con el mejor log-loss de ese peso (tolerancia 0.001)",
+    "criterio_elegido": 0.831345680073053,
+    "log_loss_elegido": 0.21564914604027813,
+    "mejor_criterio": 0.8412177140274363
+  },
+  "conjunto_prueba": "usuarios separados; salida suavizada con la EMA del reloj",
+  "v1": {
+    "raw": {
+      "exactitud": 0.9051044083526683,
+      "f1_macro": 0.819611613968315,
+      "por_clase": {
+        "Activo": {
+          "precision": 0.9334049409237379,
+          "recall": 0.9852607709750567,
+          "f1": 0.9586321014892444,
+          "ventanas": 882
+        },
+        "Normal": {
+          "precision": 0.9594530881659594,
+          "recall": 0.8689154568744663,
+          "f1": 0.9119426394801703,
+          "ventanas": 2342
+        },
+        "Cabeceo": {
+          "precision": 0.4897959183673469,
+          "recall": 0.5783132530120482,
+          "f1": 0.5303867403314917,
+          "ventanas": 83
+        },
+        "Inerte": {
+          "precision": 0.8181034482758621,
+          "recall": 0.9461615154536391,
+          "f1": 0.8774849745723532,
+          "ventanas": 1003
+        }
+      },
+      "matriz_confusion": [
+        [
+          869,
+          13,
+          0,
+          0
+        ],
+        [
+          58,
+          2035,
+          41,
+          208
+        ],
+        [
+          1,
+          31,
+          48,
+          3
+        ],
+        [
+          3,
+          42,
+          9,
+          949
+        ]
+      ]
+    },
+    "smooth": {
+      "exactitud": 0.8972157772621809,
+      "f1_macro": 0.8113630486610302,
+      "por_clase": {
+        "Activo": {
+          "precision": 0.9183673469387755,
+          "recall": 0.9693877551020408,
+          "f1": 0.9431880860452289,
+          "ventanas": 882
+        },
+        "Normal": {
+          "precision": 0.9514150943396227,
+          "recall": 0.8612297181895816,
+          "f1": 0.9040788883908562,
+          "ventanas": 2342
+        },
+        "Cabeceo": {
+          "precision": 0.4752475247524752,
+          "recall": 0.5783132530120482,
+          "f1": 0.5217391304347826,
+          "ventanas": 83
+        },
+        "Inerte": {
+          "precision": 0.8177892918825561,
+          "recall": 0.9441674975074775,
+          "f1": 0.8764460897732531,
+          "ventanas": 1003
+        }
+      },
+      "matriz_confusion": [
+        [
+          855,
+          27,
+          0,
+          0
+        ],
+        [
+          72,
+          2017,
+          45,
+          208
+        ],
+        [
+          0,
+          32,
+          48,
+          3
+        ],
+        [
+          4,
+          44,
+          8,
+          947
+        ]
+      ]
+    },
+    "falsos_cabeceos": {
+      "ventanas": 1149,
+      "ventanas_cabeceo": 45,
+      "tasa_ventanas": 0.0391644908616188,
+      "episodios": 48,
+      "episodios_con_cabeceo": 16,
+      "tasa_episodios": 0.3333333333333333,
+      "por_tipo": {
+        "apoyar_brazo": {
+          "tasa_ventanas": 0.0,
+          "episodios": 24,
+          "episodios_con_cabeceo": 0,
+          "tasa_episodios": 0.0
+        },
+        "mirar_hora": {
+          "tasa_ventanas": 0.07086614173228346,
+          "episodios": 24,
+          "episodios_con_cabeceo": 16,
+          "tasa_episodios": 0.6666666666666666
+        }
+      }
+    },
+    "falsos_cabeceos_sin_suavizar": {
+      "ventanas": 1149,
+      "ventanas_cabeceo": 40,
+      "tasa_ventanas": 0.034812880765883375,
+      "episodios": 48,
+      "episodios_con_cabeceo": 16,
+      "tasa_episodios": 0.3333333333333333,
+      "por_tipo": {
+        "apoyar_brazo": {
+          "tasa_ventanas": 0.0,
+          "episodios": 24,
+          "episodios_con_cabeceo": 0,
+          "tasa_episodios": 0.0
+        },
+        "mirar_hora": {
+          "tasa_ventanas": 0.06299212598425197,
+          "episodios": 24,
+          "episodios_con_cabeceo": 16,
+          "tasa_episodios": 0.6666666666666666
+        }
+      }
+    },
+    "tecleo_a_normal": {
+      "ventanas": 365,
+      "ventanas_cabeceo": 0
+    }
+  },
+  "v2": {
+    "raw": {
+      "exactitud": 0.9364269141531323,
+      "f1_macro": 0.8375840863986806,
+      "por_clase": {
+        "Activo": {
+          "precision": 0.9326923076923077,
+          "recall": 0.9897959183673469,
+          "f1": 0.9603960396039604,
+          "ventanas": 882
+        },
+        "Normal": {
+          "precision": 0.9602297834732656,
+          "recall": 0.9278394534585824,
+          "f1": 0.9437567861020629,
+          "ventanas": 2342
+        },
+        "Cabeceo": {
+          "precision": 0.4528301886792453,
+          "recall": 0.5783132530120482,
+          "f1": 0.5079365079365079,
+          "ventanas": 83
+        },
+        "Inerte": {
+          "precision": 0.9373134328358209,
+          "recall": 0.9391824526420738,
+          "f1": 0.9382470119521913,
+          "ventanas": 1003
+        }
+      },
+      "matriz_confusion": [
+        [
+          873,
+          9,
+          0,
+          0
+        ],
+        [
+          59,
+          2173,
+          50,
+          60
+        ],
+        [
+          1,
+          31,
+          48,
+          3
+        ],
+        [
+          3,
+          50,
+          8,
+          942
+        ]
+      ]
+    },
+    "smooth": {
+      "exactitud": 0.9331786542923434,
+      "f1_macro": 0.820411047475652,
+      "por_clase": {
+        "Activo": {
+          "precision": 0.9251336898395722,
+          "recall": 0.9807256235827665,
+          "f1": 0.9521188772702256,
+          "ventanas": 882
+        },
+        "Normal": {
+          "precision": 0.9493067590987868,
+          "recall": 0.9355251921434671,
+          "f1": 0.9423655913978495,
+          "ventanas": 2342
+        },
+        "Cabeceo": {
+          "precision": 0.42105263157894735,
+          "recall": 0.4819277108433735,
+          "f1": 0.449438202247191,
+          "ventanas": 83
+        },
+        "Inerte": {
+          "precision": 0.9526748971193416,
+          "recall": 0.9232303090727817,
+          "f1": 0.9377215189873418,
+          "ventanas": 1003
+        }
+      },
+      "matriz_confusion": [
+        [
+          865,
+          17,
+          0,
+          0
+        ],
+        [
+          66,
+          2191,
+          41,
+          44
+        ],
+        [
+          0,
+          41,
+          40,
+          2
+        ],
+        [
+          4,
+          59,
+          14,
+          926
+        ]
+      ]
+    },
+    "falsos_cabeceos": {
+      "ventanas": 1149,
+      "ventanas_cabeceo": 41,
+      "tasa_ventanas": 0.03568320278503046,
+      "episodios": 48,
+      "episodios_con_cabeceo": 12,
+      "tasa_episodios": 0.25,
+      "por_tipo": {
+        "apoyar_brazo": {
+          "tasa_ventanas": 0.0,
+          "episodios": 24,
+          "episodios_con_cabeceo": 0,
+          "tasa_episodios": 0.0
+        },
+        "mirar_hora": {
+          "tasa_ventanas": 0.06456692913385827,
+          "episodios": 24,
+          "episodios_con_cabeceo": 12,
+          "tasa_episodios": 0.5
+        }
+      }
+    },
+    "falsos_cabeceos_sin_suavizar": {
+      "ventanas": 1149,
+      "ventanas_cabeceo": 50,
+      "tasa_ventanas": 0.04351610095735422,
+      "episodios": 48,
+      "episodios_con_cabeceo": 16,
+      "tasa_episodios": 0.3333333333333333,
+      "por_tipo": {
+        "apoyar_brazo": {
+          "tasa_ventanas": 0.0,
+          "episodios": 24,
+          "episodios_con_cabeceo": 0,
+          "tasa_episodios": 0.0
+        },
+        "mirar_hora": {
+          "tasa_ventanas": 0.07874015748031496,
+          "episodios": 24,
+          "episodios_con_cabeceo": 16,
+          "tasa_episodios": 0.6666666666666666
+        }
+      }
+    },
+    "tecleo_a_normal": {
+      "ventanas": 365,
+      "ventanas_cabeceo": 0
+    }
+  },
+  "detector_por_reglas": {
+    "apoyar_brazo": {
+      "secuencias": 24,
+      "con_evento_cabeceo": 0,
+      "tasa": 0.0
+    },
+    "cabeceo": {
+      "secuencias": 36,
+      "con_evento_cabeceo": 22,
+      "tasa": 0.6111111111111112
+    },
+    "inactividad": {
+      "secuencias": 12,
+      "con_evento_cabeceo": 0,
+      "tasa": 0.0
+    },
+    "mirar_hora": {
+      "secuencias": 24,
+      "con_evento_cabeceo": 15,
+      "tasa": 0.625
+    },
+    "mixta": {
+      "secuencias": 24,
+      "con_evento_cabeceo": 0,
+      "tasa": 0.0
+    },
+    "tecleo_normal": {
+      "secuencias": 12,
+      "con_evento_cabeceo": 0,
+      "tasa": 0.0
+    }
+  },
+  "fuga_de_datos": {
+    "ventanas_sueltas": 0.9376243671291006,
+    "agrupada_por_usuario": 0.9366468159908047
+  }
+}
