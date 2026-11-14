@@ -8,6 +8,7 @@ import Toybox.Lang;
 //! | Calibración de la línea base | 5 s | 30 s |
 //! | Inactividad prolongada | 8 s de quietud | 60 s de quietud |
 //! | Escalamiento de una alerta sin respuesta | cada 6 s | cada 10 s |
+//! | Ventana del predictor de fatiga | 5 min | 30 min |
 //!
 //! Los tiempos son los mismos que usan Baseline, DrowsinessDetector y AlertController
 //! en cada modo; esta clase es el único sitio donde se decide en qué modo está la
@@ -70,6 +71,11 @@ class DemoConfig {
     //! Tiempo sin respuesta antes de que la alerta suba de nivel (ms).
     function alertEscalationMs() as Number {
         return AlertController.escalationMsFor(_enabled);
+    }
+
+    //! Ventana de episodios recientes del predictor de fatiga (ms).
+    function fatigueWindowMs() as Number {
+        return FatiguePredictor.windowMsFor(_enabled);
     }
 
     // --- Escenario --------------------------------------------------------------

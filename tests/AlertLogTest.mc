@@ -14,7 +14,7 @@ function alertLogKeepsRecordsInOrder(logger as Logger) as Boolean {
     log.add(new AlertRecord(DrowsinessEvent.INACTIVITY, 1, 20000, 2800));
     Test.assertEqual(log.size(), 2);
     Test.assertEqual(log.get(0).reason, DrowsinessEvent.NOD);
-    Test.assertEqual((log.last() as AlertRecord).responseMs, 2800);
+    Test.assertEqual((log.last() as AlertRecord).responseMs as Number, 2800);
     Test.assertEqual(log.averageResponseMs(), 2000);
 
     log.clear();
@@ -29,8 +29,8 @@ function alertLogDropsOldestWhenFull(logger as Logger) as Boolean {
         log.add(new AlertRecord(DrowsinessEvent.INACTIVITY, 1, i * 1000, i));
     }
     Test.assertEqual(log.size(), AlertLog.CAPACITY);
-    Test.assertEqualMessage(log.get(0).responseMs, 5, "se descartaron las 5 más antiguas");
-    Test.assertEqual((log.last() as AlertRecord).responseMs, AlertLog.CAPACITY + 4);
+    Test.assertEqualMessage(log.get(0).responseMs as Number, 5, "se descartaron las 5 más antiguas");
+    Test.assertEqual((log.last() as AlertRecord).responseMs as Number, AlertLog.CAPACITY + 4);
     return true;
 }
 
@@ -66,7 +66,7 @@ function alertLogKeepsMaxLevelReached(logger as Logger) as Boolean {
     log.add(new AlertRecord(alerts.reason(), alerts.level(), alerts.startMs(), response));
     log.add(new AlertRecord(DrowsinessEvent.INACTIVITY, 1, 30000, 900));
     Test.assertEqualMessage(log.get(0).maxLevel, 2, "respondida en el nivel 2");
-    Test.assertEqual(log.get(0).responseMs, 12500);
+    Test.assertEqual(log.get(0).responseMs as Number, 12500);
     Test.assertEqual(log.maxLevel(), 2);
     return true;
 }
