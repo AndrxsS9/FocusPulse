@@ -65,6 +65,22 @@
     <string id="ButtonResumeGuard">Resume guard</string>
     <string id="MenuTakeBreak">Take a break</string>
 
+    <!-- Resumen de la guardia (al pausar y en el historial). Fatiga: FatigueLabel y
+         Fatigue*. Formatos: $1$, $2$ son números; ResponseFormat lleva segundos y
+         décimas con el separador decimal del idioma. ValueNone: sin dato. -->
+    <string id="SummaryTitle">Guard summary</string>
+    <string id="SummaryDuration">Duration</string>
+    <string id="SummaryEpisodes">Episodes</string>
+    <string id="SummaryResponse">Avg. response</string>
+    <string id="SummaryMaxLevel">Max. level</string>
+    <string id="ValueNone">—</string>
+    <string id="MaxLevelFormat">$1$ of 3</string>
+    <string id="ResponseFormat">$1$.$2$ s</string>
+    <string id="DurationSecFormat">$1$ s</string>
+    <string id="DurationMinSecFormat">$1$ min $2$ s</string>
+    <string id="DurationMinFormat">$1$ min</string>
+    <string id="DurationHourFormat">$1$ h $2$ min</string>
+
     <!-- Modo demo -->
     <string id="DemoTitle">Demo mode</string>
     <string id="DemoSimulateNod">Simulate nod</string>

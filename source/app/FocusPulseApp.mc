@@ -24,6 +24,8 @@ class FocusPulseApp extends Application.AppBase {
     function onStart(state as Dictionary?) as Void {
         // El modo demo y su escenario se recuerdan entre arranques (DemoStore).
         _guard.loadDemoConfig(DemoStore.load());
+        // Las últimas 10 guardias (HistoryStore).
+        _guard.loadHistory(HistoryStore.load());
     }
 
     //! Se llama al cerrar la app (BACK, cierre del sistema): si la guardia sigue

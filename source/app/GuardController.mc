@@ -43,6 +43,12 @@ import Toybox.WatchUi;
 //! fatiga vuelve a contar desde ese instante; endBreak ("Reanudar guardia" o BACK)
 //! reanuda la detección, que vuelve a calibrar.
 //!
+//! Resumen e historial: al terminar una guardia (pausa, cierre de la app o fallo del
+//! sensor al reanudar) se arma su GuardSummary con la fatiga final. Si merece la pena
+//! (1 min o algún episodio) se guarda en el historial (SessionHistory, las 10 últimas,
+//! en Storage con HistoryStore) y, al pausar desde la esfera, se abre "Resumen de la
+//! guardia" (SummaryView).
+//!
 //! Modo demo (fase 8): DemoConfig decide la fuente y los tiempos; se guarda en Storage
 //! (DemoStore) con cada cambio. Cambiar de modo con la guardia activa la reinicia sin
 //! pausarla (restartGuard): otra fuente, motor, puntaje y detector desde cero, y la
@@ -114,6 +120,13 @@ class GuardController {
     //! Descanso guiado en curso (la guardia está suspendida mientras corre).
     private var _break as BreakTimer;
 
+    //! Inicio de la guardia (segundos Unix) y si corrió en modo demo, para su resumen.
+    private var _guardDateSec as Number = 0;
+    private var _guardDemo as Boolean = false;
+
+    //! Últimas guardias (se carga al abrir la app: loadHistory).
+    private var _history as SessionHistory;
+
     //! sessionName: nombre de la actividad grabada (texto localizado).
     function initialize(state as MonitorState, sessionName as String, demoSeed as Number) {
         _state = state;
@@ -135,6 +148,7 @@ class GuardController {
         _haptics = new Haptics();
         _episodes = new AlertLog();
         _break = new BreakTimer();
+        _history = new SessionHistory();
     }
 
     // --- Guardia ----------------------------------------------------------------
@@ -175,6 +189,8 @@ class GuardController {
         }
         // Guardia nueva: sin episodios y con la fatiga en Bajo.
         _guardStartMs = System.getTimer();
+        _guardDateSec = Time.now().value();
+        _guardDemo = _demo.isEnabled();
         _episodes.clear();
         _fatigueSinceMs = 0;
         _fatigue = FatigueLevel.LOW;
@@ -183,14 +199,24 @@ class GuardController {
         return true;
     }
 
-    //! Pausa la guardia: detiene la fuente y guarda la actividad, si se grababa.
+    //! Pausa la guardia: detiene la fuente, guarda la actividad, si se grababa, y guarda
+    //! y muestra el resumen de la guardia si merece la pena.
     function pause() as Void {
-        // Con una alerta abierta, la cierra sin guardar respuesta y vuelve a la esfera.
+        if (!_state.isActive()) {
+            return;
+        }
+        // Con una alerta abierta, la cierra sin respuesta (el episodio cuenta) y vuelve
+        // a la esfera.
         if (cancelAlert()) {
             WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
         }
+        var summary = finishGuard();
         stopAll();
         _state.pause();
+        if (summary != null) {
+            WatchUi.pushView(new SummaryView(summary, null), new SummaryDelegate(),
+                WatchUi.SLIDE_UP);
+        }
         WatchUi.requestUpdate();
     }
 
@@ -202,10 +228,50 @@ class GuardController {
     //! sesión aún grabando, aunque onStop la guarde), y desde onStop como respaldo para
     //! los cierres del sistema. La segunda llamada no hace nada.
     function shutdown() as Void {
-        cancelAlert();
+        if (_state.isActive() || _break.isRunning()) {
+            cancelAlert();
+            finishGuard();
+        }
         _break.cancel();
         stopAll();
         _state.pause();
+    }
+
+    //! Resumen de la guardia que termina, con la fatiga final. Si merece la pena
+    //! (GuardSummary.shouldShow) lo guarda en el historial y lo devuelve; si no, null.
+    private function finishGuard() as GuardSummary? {
+        updateFatigue();
+        var summary = GuardSummary.fromEpisodes(_guardDateSec, guardElapsedMs(), _episodes,
+            _fatigue, _guardDemo);
+        logSummary(summary);
+        if (!summary.isWorthShowing()) {
+            return null;
+        }
+        _history.add(summary);
+        HistoryStore.save(_history);
+        return summary;
+    }
+
+    (:debug)
+    private function logSummary(summary as GuardSummary) as Void {
+        System.println("GUARDIA terminada: " + summary.durationMs + " ms, " + summary.episodes
+            + " episodios, respuesta media " + summary.avgResponseMs + " ms, nivel máximo "
+            + summary.maxLevel + ", fatiga " + (summary.fatigue as Number) + ", demo "
+            + summary.demo + (summary.isWorthShowing() ? "" : " (sin resumen: < 1 min y sin episodios)"));
+    }
+
+    (:release)
+    private function logSummary(summary as GuardSummary) as Void {
+    }
+
+    //! Historial de guardias (solo lectura para los menús).
+    function history() as SessionHistory {
+        return _history;
+    }
+
+    //! Aplica el historial guardado al arrancar la app.
+    function loadHistory(history as SessionHistory) as Void {
+        _history = history;
     }
 
     //! Detiene la detección y guarda la actividad: fin de la guardia.
@@ -286,6 +352,7 @@ class GuardController {
         _lastBatchMs = null;
         if (!currentSource().start()) {
             _sensorUnavailable = true;
+            finishGuard();
             stopAll();
             WatchUi.requestUpdate();
             return;
@@ -442,7 +509,7 @@ class GuardController {
 
     //! Recalcula la fatiga con los episodios de la guardia y la ventana del modo.
     private function updateFatigue() as Void {
-        if (!_state.isActive()) {
+        if (!_state.isActive() && !_break.isRunning()) {
             return;
         }
         _fatigue = FatiguePredictor.assess(_episodes, guardElapsedMs(),
@@ -603,6 +670,9 @@ class GuardController {
         }
         _demo.setEnabled(enabled);
         DemoStore.save(_demo);
+        if (enabled && _state.isActive()) {
+            _guardDemo = true;
+        }
         _alerts.setEscalationMs(_demo.alertEscalationMs());
         restartGuard();
     }
