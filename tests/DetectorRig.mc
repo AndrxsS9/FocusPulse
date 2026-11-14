@@ -103,6 +103,18 @@ class DetectorRig {
         return s;
     }
 
+    //! Mirar la hora justo después de teclear: 8 s de tecleo y, a continuación, el
+    //! escenario GLANCE desde el giro (sin su movimiento normal previo), con el tiempo en
+    //! 8 s. El detector por reglas lo toma por cabeceo (NodConfirmationTest).
+    static function glanceAfterTyping(seed as Number) as DetectorRig {
+        var rig = new DetectorRig(AccelScenario.TYPING, seed, true);
+        rig.run(8);
+        var glance = new SimulatedAccelSource(AccelScenario.GLANCE, seed + 100);
+        glance.nextBatch(SimulatedAccelSource.GLANCE_RAISE_START);
+        rig.source = glance;
+        return rig;
+    }
+
     //! Entrega seconds lotes.
     function run(seconds as Number) as Void {
         for (var i = 0; i < seconds; i++) {
