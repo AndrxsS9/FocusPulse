@@ -7,6 +7,7 @@
     powershell -ExecutionPolicy Bypass -File scripts\run.ps1
     powershell -ExecutionPolicy Bypass -File scripts\run.ps1 -NoBuild
     powershell -ExecutionPolicy Bypass -File scripts\run.ps1 -TargetDevice fr165m
+    powershell -ExecutionPolicy Bypass -File scripts\run.ps1 -Release
 #>
 [CmdletBinding()]
 param(
@@ -18,7 +19,11 @@ param(
 
     # Producto del manifest en el que compilar y ejecutar. Por defecto, fr165 (_common.ps1).
     [ValidateSet('fr165', 'fr165m')]
-    [string]$TargetDevice = ''
+    [string]$TargetDevice = '',
+
+    # Compila y ejecuta la versión release (bin\FocusPulse-release.prg): la misma app que
+    # se publica, sin el código (:debug). Es la que se usa en la sustentación.
+    [switch]$Release
 )
 
 . "$PSScriptRoot\_common.ps1"
@@ -27,11 +32,13 @@ if ($TargetDevice) {
     $Device = $TargetDevice
 }
 
+$prg = if ($Release) { $ReleasePrg } else { $AppPrg }
+
 if (-not $NoBuild) {
-    Invoke-Build -OutputFile $AppPrg
-} elseif (-not (Test-Path -LiteralPath $AppPrg)) {
-    throw "No existe $AppPrg. Ejecuta scripts\build.ps1 primero o quita -NoBuild."
+    Invoke-Build -OutputFile $prg -Release:$Release
+} elseif (-not (Test-Path -LiteralPath $prg)) {
+    throw "No existe $prg. Ejecuta scripts\build.ps1 primero o quita -NoBuild."
 }
 
 Start-Simulator -WaitSeconds $SimulatorWaitSeconds
-Invoke-Native (Get-SdkTool 'monkeydo') @($AppPrg, $Device)
+Invoke-Native (Get-SdkTool 'monkeydo') @($prg, $Device)

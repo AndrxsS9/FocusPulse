@@ -11,6 +11,7 @@ $JungleFile  = Join-Path $ProjectRoot 'monkey.jungle'
 $BinDir      = Join-Path $ProjectRoot 'bin'
 $AppPrg      = Join-Path $BinDir 'FocusPulse.prg'
 $TestPrg     = Join-Path $BinDir 'FocusPulse-test.prg'
+$ReleasePrg  = Join-Path $BinDir 'FocusPulse-release.prg'
 $StorePackage = Join-Path $BinDir 'FocusPulse.iq'
 
 # Nivel de verificación de tipos de monkeyc: 0 ninguno, 1 gradual, 2 informativo, 3 estricto.
@@ -64,11 +65,13 @@ function Assert-DeveloperKey {
     }
 }
 
-# Compila la app para $Device. Con -UnitTest incluye las funciones (:test).
+# Compila la app para $Device. Con -UnitTest incluye las funciones (:test); con -Release
+# compila en modo release (-r): sin el código (:debug), igual que el .iq de la tienda.
 function Invoke-Build {
     param(
         [Parameter(Mandatory)][string]$OutputFile,
-        [switch]$UnitTest
+        [switch]$UnitTest,
+        [switch]$Release
     )
     Assert-DeveloperKey
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $OutputFile) | Out-Null
@@ -76,6 +79,7 @@ function Invoke-Build {
     $monkeycArgs = @('-f', $JungleFile, '-d', $Device, '-o', $OutputFile, '-y', $DeveloperKey, '-w',
                      '-l', $TypeCheckLevel)
     if ($UnitTest) { $monkeycArgs += '-t' }
+    if ($Release) { $monkeycArgs += '-r' }
 
     Invoke-Native (Get-SdkTool 'monkeyc') $monkeycArgs
     Write-Host "Compilado: $OutputFile" -ForegroundColor Green
