@@ -212,69 +212,135 @@ function classifierTopClassMatchesScenario(logger as Logger) as Boolean {
     return true;
 }
 
+//! Recorre los escenarios del simulador con unos pesos y cuenta cada lote en una matriz
+//! de confusión matrix[real][predicha], igual que GuardController (motor → detector →
+//! clasificador con la EMA). Es una clase (:test) porque usa DetectorRig.
+//!
+//! - Con 5 semillas: tecleo 40 s, normal 40 s, cabeceo 15 s, inactividad 40 s y mirar
+//!   la hora 36 s (tres ciclos; clase real Normal).
+//! - Una guardia mixta por semilla: normal → tecleo → normal → inactividad, 10 s cada
+//!   uno y 15 la inactividad. La clase real es la del escenario en curso, así que el
+//!   retraso de la ventana de 2 s y de la EMA cuenta como error.
+(:test)
+class ScenarioConfusion {
+
+    static const SEEDS = 5;
+
+    var matrix as Array<Array<Number>>;
+
+    //! Lotes de "mirar la hora" tomados por Cabeceo (falsos cabeceos) y su total.
+    var glanceNods as Number = 0;
+    var glanceBatches as Number = 0;
+
+    //! Lotes tomados por Cabeceo al pasar de tecleo a normal en la guardia mixta.
+    var typingToNormalNods as Number = 0;
+
+    function initialize(coef as Array<Array<Float>>, intercept as Array<Float>) {
+        matrix = new Array<Array<Number>>[DrowsinessClass.COUNT];
+        for (var k = 0; k < DrowsinessClass.COUNT; k++) {
+            matrix[k] = [0, 0, 0, 0];
+        }
+        var scenarios = [AccelScenario.TYPING, AccelScenario.NORMAL, AccelScenario.NOD,
+            AccelScenario.INACTIVITY, AccelScenario.GLANCE] as Array<AccelScenario.Id>;
+        var seconds = [40, 40, 15, 40, 36];
+        for (var s = 0; s < SEEDS; s++) {
+            var seed = SIM_TEST_SEED + s * 7919;
+            for (var i = 0; i < scenarios.size(); i++) {
+                var rig = new DetectorRig(scenarios[i], seed, true);
+                rig.classifier.setWeights(coef, intercept);
+                for (var n = 0; n < seconds[i]; n++) {
+                    rig.step();
+                    rig.countInto(matrix, trueClass(scenarios[i], rig.timeMs));
+                    if (scenarios[i] == AccelScenario.GLANCE && rig.classifier.isReady()) {
+                        glanceBatches += 1;
+                        if (rig.classifier.topClass() == DrowsinessClass.NOD) {
+                            glanceNods += 1;
+                        }
+                    }
+                }
+            }
+
+            var mixed = new DetectorRig(AccelScenario.NORMAL, seed + 1, true);
+            mixed.classifier.setWeights(coef, intercept);
+            var plan = [AccelScenario.NORMAL, AccelScenario.TYPING, AccelScenario.NORMAL,
+                AccelScenario.INACTIVITY] as Array<AccelScenario.Id>;
+            for (var n = 0; n < 45; n++) {
+                var phase = plan[n / 10 < 3 ? n / 10 : 3];
+                if (phase != mixed.source.scenario()) {
+                    mixed.source.setScenario(phase);
+                }
+                mixed.step();
+                mixed.countInto(matrix, trueClass(phase, mixed.timeMs));
+                if (n >= 20 && n < 30 && mixed.classifier.topClass() == DrowsinessClass.NOD) {
+                    typingToNormalNods += 1;
+                }
+            }
+        }
+    }
+
+    function correct() as Number {
+        var sum = 0;
+        for (var k = 0; k < DrowsinessClass.COUNT; k++) {
+            sum += matrix[k][k];
+        }
+        return sum;
+    }
+
+    function total() as Number {
+        var sum = 0;
+        for (var k = 0; k < DrowsinessClass.COUNT; k++) {
+            for (var j = 0; j < DrowsinessClass.COUNT; j++) {
+                sum += matrix[k][j];
+            }
+        }
+        return sum;
+    }
+
+    function accuracy() as Float {
+        return correct().toFloat() / total();
+    }
+
+    //! Escribe la matriz en el registro de pruebas.
+    function log(logger as Logger, version as String) as Void {
+        var names = ["Activo ", "Normal ", "Cabeceo", "Inerte "];
+        logger.debug("Matriz de confusión (" + version + ", " + SEEDS
+            + " semillas, lotes de 1 s). Filas: clase real; columnas: predicha");
+        logger.debug("           Activo  Normal Cabeceo  Inerte | acierto");
+        for (var real = 0; real < DrowsinessClass.COUNT; real++) {
+            var row = matrix[real];
+            var rowTotal = row[0] + row[1] + row[2] + row[3];
+            logger.debug(names[real] + "    " + row[0].format("%6d") + "  " + row[1].format("%6d") + "  "
+                + row[2].format("%6d") + "  " + row[3].format("%6d") + " | "
+                + (100.0f * row[real] / rowTotal).format("%.1f") + " %");
+        }
+        logger.debug("Exactitud global: " + correct() + " de " + total() + " = "
+            + (100.0f * accuracy()).format("%.1f") + " %; mirar la hora tomado por Cabeceo: "
+            + glanceNods + " de " + glanceBatches + " lotes; tecleo → normal: " + typingToNormalNods);
+    }
+}
+
 (:test)
 function classifierConfusionMatrixOnSimulatedScenarios(logger as Logger) as Boolean {
-    var scenarios = [AccelScenario.TYPING, AccelScenario.NORMAL, AccelScenario.NOD,
-        AccelScenario.INACTIVITY] as Array<AccelScenario.Id>;
-    var seconds = [40, 40, 15, 40];
-    var seeds = 5;
+    var v1 = foldV1Weights();
+    var before = new ScenarioConfusion(v1[0] as Array<Array<Float>>, v1[1] as Array<Float>);
+    before.log(logger, ClassifierWeightsV1.VERSION);
+    var after = new ScenarioConfusion(ClassifierWeights.COEF as Array<Array<Float>>,
+        ClassifierWeights.INTERCEPT as Array<Float>);
+    after.log(logger, ClassifierWeights.VERSION);
 
-    // matrix[real][predicha]
-    var matrix = new Array<Array<Number>>[DrowsinessClass.COUNT];
-    for (var k = 0; k < DrowsinessClass.COUNT; k++) {
-        matrix[k] = [0, 0, 0, 0];
-    }
-
-    for (var s = 0; s < seeds; s++) {
-        var seed = SIM_TEST_SEED + s * 7919;
-        for (var i = 0; i < scenarios.size(); i++) {
-            var rig = new DetectorRig(scenarios[i], seed, true);
-            for (var n = 0; n < seconds[i]; n++) {
-                rig.step();
-                rig.countInto(matrix, trueClass(scenarios[i], rig.timeMs));
-            }
-        }
-
-        // Secuencia mixta en una misma guardia: normal → tecleo → normal → inactividad,
-        // 10 s cada uno (15 la inactividad). La clase real es la del escenario en curso,
-        // así que el retraso de la ventana de 2 s y de la EMA cuenta como error.
-        var mixed = new DetectorRig(AccelScenario.NORMAL, seed + 1, true);
-        var plan = [AccelScenario.NORMAL, AccelScenario.TYPING, AccelScenario.NORMAL,
-            AccelScenario.INACTIVITY] as Array<AccelScenario.Id>;
-        for (var n = 0; n < 45; n++) {
-            var phase = plan[n / 10 < 3 ? n / 10 : 3];
-            if (phase != mixed.source.scenario()) {
-                mixed.source.setScenario(phase);
-            }
-            mixed.step();
-            mixed.countInto(matrix, trueClass(phase, mixed.timeMs));
-        }
-    }
-
-    var names = ["Activo ", "Normal ", "Cabeceo", "Inerte "];
-    logger.debug("Matriz de confusión (" + ClassifierWeights.VERSION + ", " + seeds
-        + " semillas, lotes de 1 s). Filas: clase real; columnas: predicha");
-    logger.debug("           Activo  Normal Cabeceo  Inerte | acierto");
-    var correct = 0;
-    var total = 0;
+    // Exigencias de v2, las mismas que tenía v1: en cada fila gana la diagonal, más del
+    // 90 % de acierto y nunca se confunden los extremos (tecleo con inerte).
+    var matrix = after.matrix;
     for (var real = 0; real < DrowsinessClass.COUNT; real++) {
-        var row = matrix[real];
-        var rowTotal = row[0] + row[1] + row[2] + row[3];
-        correct += row[real];
-        total += rowTotal;
-        logger.debug(names[real] + "    " + row[0].format("%6d") + "  " + row[1].format("%6d") + "  "
-            + row[2].format("%6d") + "  " + row[3].format("%6d") + " | "
-            + (100.0f * row[real] / rowTotal).format("%.1f") + " %");
-        // En cada fila gana la diagonal.
         for (var k = 0; k < DrowsinessClass.COUNT; k++) {
-            Test.assert(row[real] >= row[k]);
+            Test.assert(matrix[real][real] >= matrix[real][k]);
         }
     }
-    var accuracy = correct.toFloat() / total;
-    logger.debug("Exactitud global: " + correct + " de " + total + " = " + (100.0f * accuracy).format("%.1f") + " %");
-    Test.assert(accuracy > 0.9f);
-    // Nunca se confunden los extremos: tecleo con inerte ni al revés.
+    Test.assert(after.accuracy() > 0.9f);
     Test.assertEqual(matrix[DrowsinessClass.ACTIVE][DrowsinessClass.INERT], 0);
     Test.assertEqual(matrix[DrowsinessClass.INERT][DrowsinessClass.ACTIVE], 0);
+    // Sin falsos cabeceos al mirar la hora ni al dejar de teclear.
+    Test.assertEqual(after.glanceNods, 0);
+    Test.assertEqual(after.typingToNormalNods, 0);
     return true;
 }
