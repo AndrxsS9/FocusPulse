@@ -13,6 +13,8 @@ import Toybox.WatchUi;
 //!   abre la alerta sobre la esfera, como una alerta real.
 //! - Tomar descanso (solo con la guardia activa): cierra el menú y abre el descanso
 //!   guiado, igual que tocar el aviso de fatiga de la esfera.
+//! - Ajustes: sensibilidad, vibración, sonido, animaciones reducidas, confirmación por
+//!   IA y grabar actividad (SettingsMenu); el subtítulo es la sensibilidad.
 //! - Historial: las últimas 10 guardias (HistoryMenu); el subtítulo dice cuántas hay.
 //! - Modelo IA: versión, tipo y métricas del clasificador (ModelInfoView); el subtítulo
 //!   es la versión de los pesos.
@@ -28,6 +30,7 @@ module MainMenu {
     const ITEM_SCRIPT = :script;
     const ITEM_TEST_ALERT = :testAlert;
     const ITEM_BREAK = :takeBreak;
+    const ITEM_SETTINGS = :settings;
     const ITEM_HISTORY = :history;
     const ITEM_MODEL = :model;
     const ITEM_ABOUT = :about;
@@ -67,6 +70,8 @@ module MainMenu {
             items.add(new WatchUi.MenuItem(DemoText.text(Rez.Strings.MenuTakeBreak), null,
                 ITEM_BREAK, {}));
         }
+        items.add(new WatchUi.MenuItem(DemoText.text(Rez.Strings.SettingsTitle),
+            settingsSubLabel(guard), ITEM_SETTINGS, {}));
         items.add(new WatchUi.MenuItem(DemoText.text(Rez.Strings.MenuHistory),
             SummaryText.historyCount(guard.history().size()), ITEM_HISTORY, {}));
         items.add(new WatchUi.MenuItem(DemoText.text(Rez.Strings.MenuModel), ClassifierWeights.VERSION,
@@ -88,6 +93,13 @@ module MainMenu {
             menu.addItem(items[i]);
         }
         return menu;
+    }
+
+    //! Subtítulo de Ajustes: "Sensibilidad: Media".
+    function settingsSubLabel(guard as GuardController) as String {
+        return Lang.format(DemoText.text(Rez.Strings.SettingsSubFormat),
+            [DemoText.text(Rez.Strings.SettingSensitivity),
+                SettingsMenu.sensitivityName(guard.settings().sensitivity)]);
     }
 
     //! "Iniciar", o "Detener · paso 2/5" con el guion en marcha.
@@ -218,6 +230,8 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
             // El descanso se abre sobre la esfera, no sobre el menú.
             WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
             _guard.startBreak();
+        } else if (id == MainMenu.ITEM_SETTINGS) {
+            SettingsMenu.open(_guard);
         } else if (id == MainMenu.ITEM_HISTORY) {
             HistoryMenu.open(_guard, item);
         } else if (id == MainMenu.ITEM_MODEL) {

@@ -143,6 +143,8 @@
 
     <!-- Ajustes -->
     <string id="SettingsTitle">Settings</string>
+    <!-- Subtítulo de Ajustes en el menú principal: $1$ SettingSensitivity, $2$ su valor. -->
+    <string id="SettingsSubFormat">$1$: $2$</string>
     <string id="SettingSensitivity">Sensitivity</string>
     <string id="SettingVibration">Vibration</string>
     <string id="SettingSound">Sound</string>
@@ -159,6 +161,8 @@
     <string id="SettingVibrationStrong">Strong</string>
     <string id="SettingReducedAnimations">Reduced animations</string>
     <string id="SettingAiConfirmation">AI confirmation</string>
+    <!-- Versión corta de SettingRecordActivity para el menú del reloj. -->
+    <string id="SettingRecordActivityShort">Record activity</string>
 
     <!-- Clases del modelo IA -->
     <string id="AiClassActive">Active</string>
