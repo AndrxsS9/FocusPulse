@@ -30,6 +30,13 @@ import Toybox.WatchUi;
 //! propia alerta (onAlertTick); al subir, Haptics cambia al patrón del nivel nuevo. Se
 //! guarda el nivel máximo alcanzado junto al tiempo de respuesta.
 //!
+//! Episodios y fatiga (fase 9): cada alerta abierta por el detector es un episodio de
+//! la guardia actual (_episodes, que se vacía al iniciar una guardia), con su hora
+//! desde el inicio de la guardia, su respuesta (o ninguna, si se pausó con la alerta
+//! abierta) y su nivel máximo. Las alertas de "Probar alerta" no cuentan. Con cada lote
+//! y cada episodio nuevo, FatiguePredictor recalcula la fatiga; en Alto la esfera
+//! muestra el aviso de descanso.
+//!
 //! Modo demo (fase 8): DemoConfig decide la fuente y los tiempos; se guarda en Storage
 //! (DemoStore) con cada cambio. Cambiar de modo con la guardia activa la reinicia sin
 //! pausarla (restartGuard): otra fuente, motor, puntaje y detector desde cero, y la
@@ -80,10 +87,23 @@ class GuardController {
     //! Puntaje mínimo tras confirmar "Estoy despierto".
     static const SCORE_AFTER_ALERT = 70.0f;
 
-    //! Alerta a pantalla completa: estado, vibración y alertas respondidas (en memoria).
+    //! Alerta a pantalla completa: estado y vibración.
     private var _alerts as AlertController;
     private var _haptics as Haptics;
-    private var _alertLog as AlertLog;
+
+    //! true si la alerta abierta (o la última) la abrió el detector: es un episodio.
+    private var _alertFromDetector as Boolean = false;
+
+    //! Episodios de la guardia actual (startMs desde _guardStartMs).
+    private var _episodes as AlertLog;
+
+    //! System.getTimer() al iniciar la guardia (no cambia al reiniciar la detección).
+    private var _guardStartMs as Number = 0;
+
+    //! Desde cuándo cuenta el predictor de fatiga (ms desde el inicio de la guardia):
+    //! 0, o el final del último descanso completo.
+    private var _fatigueSinceMs as Number = 0;
+    private var _fatigue as FatigueLevel.Id = FatigueLevel.LOW;
 
     //! sessionName: nombre de la actividad grabada (texto localizado).
     function initialize(state as MonitorState, sessionName as String, demoSeed as Number) {
@@ -104,7 +124,7 @@ class GuardController {
         _alerts = new AlertController();
         _alerts.setEscalationMs(_demo.alertEscalationMs());
         _haptics = new Haptics();
-        _alertLog = new AlertLog();
+        _episodes = new AlertLog();
     }
 
     // --- Guardia ----------------------------------------------------------------
@@ -143,6 +163,11 @@ class GuardController {
         if (AppSettings.recordActivity()) {
             _recorder.start();
         }
+        // Guardia nueva: sin episodios y con la fatiga en Bajo.
+        _guardStartMs = System.getTimer();
+        _episodes.clear();
+        _fatigueSinceMs = 0;
+        _fatigue = FatigueLevel.LOW;
         _state.start();
         WatchUi.requestUpdate();
         return true;
@@ -213,10 +238,12 @@ class GuardController {
                 // Solo las alertas del detector cuentan para los pasos de espera del
                 // guion (no las de prueba del menú).
                 _script.onAlertOpened();
+                _alertFromDetector = true;
                 showAlert();
             }
         }
         updateAlert();
+        updateFatigue();
         if (_script.update(timestampMs, _alerts.isActive())) {
             onScriptStep();
         }
@@ -237,6 +264,7 @@ class GuardController {
         if (!_alerts.trigger(level, reason, System.getTimer())) {
             return false;
         }
+        _alertFromDetector = false;
         showAlert();
         return true;
     }
@@ -274,8 +302,8 @@ class GuardController {
     }
 
     //! "Estoy despierto" (botón o START): detiene la vibración, sube el puntaje a un
-    //! mínimo de SCORE_AFTER_ALERT, guarda la alerta con su tiempo de respuesta y
-    //! vuelve a la vista anterior. El detector sigue vigilando: no se reinicia, así que
+    //! mínimo de SCORE_AFTER_ALERT, guarda el episodio con su tiempo de respuesta y su
+    //! nivel máximo (si lo abrió el detector) y vuelve a la vista anterior. El detector sigue vigilando: no se reinicia, así que
     //! respeta el refractario del evento que abrió la alerta.
     function dismissAlert() as Void {
         var response = _alerts.dismiss(System.getTimer());
@@ -286,8 +314,7 @@ class GuardController {
         if (_state.isActive()) {
             _score.raiseTo(SCORE_AFTER_ALERT);
         }
-        _alertLog.add(new AlertRecord(_alerts.reason(), _alerts.level(), _alerts.startMs(),
-            response));
+        recordEpisode(response);
         logDismiss(response);
         WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
         if (_script.onAlertDismissed(System.getTimer())) {
@@ -303,8 +330,53 @@ class GuardController {
             return false;
         }
         _haptics.stop();
+        // El episodio cuenta igual, sin respuesta y con el nivel al que llegó.
+        recordEpisode(null);
         logCancel();
         return true;
+    }
+
+    //! Guarda la alerta que acaba de cerrarse como episodio de la guardia (solo las del
+    //! detector y con la guardia activa) y recalcula la fatiga.
+    private function recordEpisode(responseMs as Number?) as Void {
+        if (!_alertFromDetector || !_state.isActive()) {
+            return;
+        }
+        _episodes.add(new AlertRecord(_alerts.reason(), _alerts.level(),
+            _alerts.startMs() - _guardStartMs, responseMs));
+        updateFatigue();
+    }
+
+    // --- Fatiga -----------------------------------------------------------------
+
+    //! Recalcula la fatiga con los episodios de la guardia y la ventana del modo.
+    private function updateFatigue() as Void {
+        if (!_state.isActive()) {
+            return;
+        }
+        _fatigue = FatiguePredictor.assess(_episodes, guardElapsedMs(),
+            _demo.fatigueWindowMs(), _fatigueSinceMs);
+    }
+
+    //! Fatiga de la guardia actual (o de la última, en pausa).
+    function fatigue() as FatigueLevel.Id {
+        return _fatigue;
+    }
+
+    //! true si la esfera debe mostrar el aviso "Micro-sueños repetidos": guardia activa
+    //! con la fatiga en Alto.
+    function showsFatigueWarning() as Boolean {
+        return _state.isActive() && _fatigue == FatigueLevel.HIGH;
+    }
+
+    //! Tiempo desde el inicio de la guardia (ms).
+    function guardElapsedMs() as Number {
+        return System.getTimer() - _guardStartMs;
+    }
+
+    //! Episodios de la guardia actual (o de la última).
+    function episodes() as AlertLog {
+        return _episodes;
     }
 
     (:debug)
@@ -320,8 +392,9 @@ class GuardController {
     private function logDismiss(responseMs as Number) as Void {
         System.println("ALERTA descartada en " + responseMs + " ms, nivel máximo "
             + _alerts.level() + " (" + _haptics.bursts()
-            + " ráfagas); alertas respondidas: " + _alertLog.size() + ", media "
-            + _alertLog.averageResponseMs() + " ms; puntaje " + _score.value());
+            + " ráfagas); episodios: " + _episodes.size() + ", media "
+            + _episodes.averageResponseMs() + " ms; fatiga " + (_fatigue as Number)
+            + "; puntaje " + _score.value());
     }
 
     (:release)
@@ -330,11 +403,6 @@ class GuardController {
 
     function isAlertActive() as Boolean {
         return _alerts.isActive();
-    }
-
-    //! Alertas respondidas en esta ejecución de la app (solo en memoria).
-    function alertLog() as AlertLog {
-        return _alertLog;
     }
 
     //! Arranca el detector (calibrando) y el clasificador desde cero.

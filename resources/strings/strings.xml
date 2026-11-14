@@ -50,6 +50,10 @@
     <!-- Fatiga -->
     <string id="FatigueLabel">Fatigue</string>
     <string id="FatigueRepeatedMicrosleeps">Repeated micro-sleeps · take a 15 min break</string>
+    <!-- Aviso de la esfera con la fatiga en Alto, en dos líneas: título (ámbar) y acción.
+         Cada línea cabe en unos 290 px (FONT_XTINY): "toma un descanso de 15 min" no cabía. -->
+    <string id="FatigueBannerTitle">Repeated micro-sleeps</string>
+    <string id="FatigueBannerAction">take a 15 min break</string>
     <string id="FatigueLow">Low</string>
     <string id="FatigueModerate">Moderate</string>
     <string id="FatigueHigh">High</string>

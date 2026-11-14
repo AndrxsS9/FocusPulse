@@ -17,6 +17,10 @@ import Toybox.WatchUi;
 //!
 //! Medidas: RoundLayout (source/util/Layout.mc) y docs/DISENO.md.
 //!
+//! Con la fatiga en Alto (FatiguePredictor) el aviso ámbar "Micro-sueños repetidos ·
+//! descansa 15 min" ocupa el sitio del puntaje y de la píldora de estado
+//! (layout.fatigueBannerRect). El anillo sigue mostrando el nivel de alerta.
+//!
 //! Refresco: un Timer redibuja cada REFRESH_PAUSED_MS en pausa (la hora; el orbe está
 //! quieto) y cada REFRESH_ACTIVE_MS con la guardia activa (unos 12 cuadros por segundo
 //! para el orbe, el arco y el latido). Con ANIMATIONS_ENABLED = false la guardia activa
@@ -86,6 +90,10 @@ class MainView extends WatchUi.View {
     const TOAST_PADDING = 30;
     const TOAST_BORDER = 5;
 
+    //! Aviso de fatiga: grosor del borde, en milésimas del lado
+    //! (fr165: 2 px).
+    const BANNER_BORDER = 5;
+
     //! Batería en o por debajo de este porcentaje: ícono y número en rojo.
     const BATTERY_LOW = 15;
 
@@ -150,6 +158,8 @@ class MainView extends WatchUi.View {
     private var _toastText as String = "";
     private var _buttonStart as String = "";
     private var _buttonPause as String = "";
+    private var _bannerTitle as String = "";
+    private var _bannerAction as String = "";
 
     function initialize(guard as GuardController) {
         View.initialize();
@@ -181,6 +191,8 @@ class MainView extends WatchUi.View {
         _toastKind = -1;
         _buttonStart = WatchUi.loadResource(Rez.Strings.ButtonStartGuard) as String;
         _buttonPause = WatchUi.loadResource(Rez.Strings.ButtonPauseGuard) as String;
+        _bannerTitle = WatchUi.loadResource(Rez.Strings.FatigueBannerTitle) as String;
+        _bannerAction = WatchUi.loadResource(Rez.Strings.FatigueBannerAction) as String;
     }
 
     //! La vista vuelve a primer plano: reanuda el redibujo periódico.
@@ -367,8 +379,12 @@ class MainView extends WatchUi.View {
             animate as Boolean) as Void {
         drawBattery(dc, layout);
         drawClock(dc, layout);
-        drawScore(dc, layout, score);
-        drawStatus(dc, layout, animate);
+        if (_guard.showsFatigueWarning()) {
+            drawFatigueBanner(dc, layout);
+        } else {
+            drawScore(dc, layout, score);
+            drawStatus(dc, layout, animate);
+        }
         drawButton(dc, layout);
         drawToast(dc, layout);
     }
@@ -449,6 +465,28 @@ class MainView extends WatchUi.View {
             : -1.0f;
         Draw.statusPill(dc, layout.centerX, layout.pillY, text, Typography.LABEL, color,
             Palette.SURFACE, Palette.BORDER_STRONG, active, pulse);
+    }
+
+    //! Aviso de fatiga alta en lugar del puntaje y la píldora: caja SURFACE con borde
+    //! ámbar y dos líneas, "Micro-sueños repetidos" en ámbar y "descansa 15 min"
+    //! en TEXT. Es fijo (sin animación): en AMOLED solo se encienden el borde y
+    //! el texto. Un toque en la caja abre el descanso guiado (MainDelegate).
+    private function drawFatigueBanner(dc as Dc, layout as RoundLayout) as Void {
+        var rect = layout.fatigueBannerRect;
+        var corner = rect.height / 3;
+        dc.setColor(Palette.SURFACE, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(rect.x, rect.y, rect.width, rect.height, corner);
+        dc.setPenWidth(layout.scaled(BANNER_BORDER));
+        dc.setColor(Palette.AMBER, Graphics.COLOR_TRANSPARENT);
+        dc.drawRoundedRectangle(rect.x, rect.y, rect.width, rect.height, corner);
+        dc.setPenWidth(1);
+
+        var line = dc.getFontHeight(Typography.LABEL);
+        var cy = rect.centerY();
+        Draw.centeredText(dc, layout.centerX, cy - line / 2, Typography.LABEL, _bannerTitle,
+            Palette.AMBER);
+        Draw.centeredText(dc, layout.centerX, cy + line / 2, Typography.LABEL, _bannerAction,
+            Palette.TEXT);
     }
 
     //! Botón grande: "Iniciar guardia" (cian, texto oscuro) o "Pausar guardia"

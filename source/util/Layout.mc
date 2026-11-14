@@ -34,6 +34,8 @@ class RoundLayout {
     const ALERT_BUTTON_TOP = 670;       // "Estoy despierto" en la alerta a pantalla completa
     const ALERT_BUTTON_HEIGHT = 165;
     const ALERT_BUTTON_MAX_WIDTH = 720;
+    const FATIGUE_TOP = 520;            // aviso de fatiga: ocupa el puntaje y la píldora
+    const FATIGUE_BOTTOM = 705;
 
     var width as Number;
     var height as Number;
@@ -74,6 +76,10 @@ class RoundLayout {
     //! el de la esfera (la alerta no tiene píldora ni marca debajo): fr165 258×64 px (área táctil 280×86).
     var alertButtonRect as Rect;
     var alertButtonTouchRect as Rect;
+
+    //! Aviso de fatiga de la esfera ("Micro-sueños repetidos…"): de debajo de la fecha
+    //! al botón, tan ancho como permite el círculo seguro. fr165: 300×72 px.
+    var fatigueBannerRect as Rect;
 
     function initialize(screenWidth as Number, screenHeight as Number) {
         width = screenWidth;
@@ -117,6 +123,12 @@ class RoundLayout {
         }
         alertButtonRect = new Rect(centerX - alertWidth / 2, alertTop, alertWidth, alertHeight);
         alertButtonTouchRect = alertButtonRect.inflate(pad, pad).withMinSize(MIN_TOUCH);
+
+        var bannerTop = toScreenY(FATIGUE_TOP);
+        var bannerBottom = toScreenY(FATIGUE_BOTTOM);
+        var bannerWidth = safeWidthBetween(bannerTop, bannerBottom);
+        fatigueBannerRect = new Rect(centerX - bannerWidth / 2, bannerTop, bannerWidth,
+            bannerBottom - bannerTop);
     }
 
     //! Convierte milésimas del lado menor a píxeles.
@@ -164,6 +176,12 @@ class RoundLayout {
     //! botón dibujado para perdonar toques imprecisos (docs/DISENO.md §6).
     function hitsButton(x as Number, y as Number) as Boolean {
         return buttonTouchRect.contains(x, y);
+    }
+
+    //! true si el toque (x, y) cae en el aviso de fatiga y no en el área táctil del
+    //! botón grande (que se solapa unos píxeles con su borde inferior y tiene prioridad).
+    function hitsFatigueBanner(x as Number, y as Number) as Boolean {
+        return fatigueBannerRect.contains(x, y) && !hitsButton(x, y);
     }
 
     //! true si el toque (x, y) cae en el área táctil de "Estoy despierto".
