@@ -127,6 +127,12 @@ class MainView extends WatchUi.View {
     private var _statusCalibrating as String = "";
     private var _statusSensorUnavailable as String = "";
     private var _badgeDemo as String = "";
+    private var _demoBadgeFormat as String = "";
+
+    //! Línea del modo demo ya formateada y el escenario con el que se formateó (se
+    //! rehace solo cuando cambia, no en cada cuadro).
+    private var _demoLine as String = "";
+    private var _demoLineScenario as Number = -1;
     private var _buttonStart as String = "";
     private var _buttonPause as String = "";
 
@@ -151,6 +157,8 @@ class MainView extends WatchUi.View {
         _statusCalibrating = WatchUi.loadResource(Rez.Strings.StatusCalibrating) as String;
         _statusSensorUnavailable = WatchUi.loadResource(Rez.Strings.StatusSensorUnavailable) as String;
         _badgeDemo = WatchUi.loadResource(Rez.Strings.BadgeDemo) as String;
+        _demoBadgeFormat = WatchUi.loadResource(Rez.Strings.DemoBadgeFormat) as String;
+        _demoLineScenario = -1;
         _buttonStart = WatchUi.loadResource(Rez.Strings.ButtonStartGuard) as String;
         _buttonPause = WatchUi.loadResource(Rez.Strings.ButtonPauseGuard) as String;
     }
@@ -342,7 +350,6 @@ class MainView extends WatchUi.View {
         drawScore(dc, layout, score);
         drawStatus(dc, layout, animate);
         drawButton(dc, layout);
-        drawDemoBadge(dc, layout);
     }
 
     //! Ícono de batería y porcentaje real, centrados en topY.
@@ -364,11 +371,16 @@ class MainView extends WatchUi.View {
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
-    //! Hora grande (24 h o 12 h según el sistema) y fecha corta en el idioma del reloj.
+    //! Hora grande (24 h o 12 h según el sistema) y, debajo, la fecha corta en el idioma
+    //! del reloj o, con el modo demo activo, la línea del modo demo.
     private function drawClock(dc as Dc, layout as RoundLayout) as Void {
         var now = Gregorian.info(Time.now(), Time.FORMAT_MEDIUM);
         var time = ClockFormat.hoursMinutes(now.hour, now.min, System.getDeviceSettings().is24Hour);
         Draw.centeredText(dc, layout.centerX, layout.timeY, Typography.TIME, time, Palette.TEXT);
+        if (_guard.isDemoMode()) {
+            drawDemoLine(dc, layout);
+            return;
+        }
 
         var weekday = now.day_of_week as String;
         var month = now.month as String;
@@ -435,13 +447,18 @@ class MainView extends WatchUi.View {
         }
     }
 
-    //! Marca "DEMO" bajo el botón cuando la fuente es simulada, para que en la
-    //! sustentación se sepa qué datos se ven. Texto pequeño en color secundario: no
-    //! compite con el contenido y casi no enciende píxeles.
-    private function drawDemoBadge(dc as Dc, layout as RoundLayout) as Void {
-        if (_guard.isDemoMode()) {
-            Draw.centeredText(dc, layout.centerX, layout.footerY, Typography.LABEL, _badgeDemo,
-                Palette.TEXT_SECONDARY);
+    //! Línea del modo demo en el sitio de la fecha: "DEMO · Tecleo activo", en cian, para
+    //! que en la sustentación se sepa qué datos se ven y qué escenario corre. Va aquí y no
+    //! en el pie (footerY), donde la cuerda del círculo seguro solo deja unos 130 px; en
+    //! dateY hay unos 335 px. Los nombres cortos (DemoShort*) caben en ambos idiomas.
+    private function drawDemoLine(dc as Dc, layout as RoundLayout) as Void {
+        var scenario = _guard.demoScenario() as Number;
+        if (scenario != _demoLineScenario) {
+            _demoLine = Lang.format(_demoBadgeFormat,
+                [_badgeDemo, DemoText.scenarioShortName(scenario as AccelScenario.Id)]);
+            _demoLineScenario = scenario;
         }
+        Draw.centeredText(dc, layout.centerX, layout.dateY, Typography.LABEL, _demoLine,
+            Palette.ACCENT);
     }
 }

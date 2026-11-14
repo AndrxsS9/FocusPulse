@@ -21,6 +21,22 @@ module DemoText {
         }
     }
 
+    //! Nombre corto para la línea de la esfera ("Tecleo activo", "Inactividad"…).
+    function scenarioShortName(scenario as AccelScenario.Id) as String {
+        switch (scenario) {
+            case AccelScenario.TYPING:
+                return text(Rez.Strings.DemoShortTyping);
+            case AccelScenario.NOD:
+                return text(Rez.Strings.DemoShortNod);
+            case AccelScenario.INACTIVITY:
+                return text(Rez.Strings.DemoShortInactivity);
+            case AccelScenario.MANUAL:
+                return text(Rez.Strings.DemoShortManual);
+            default:
+                return text(Rez.Strings.DemoShortNormal);
+        }
+    }
+
     function text(id as ResourceId) as String {
         return WatchUi.loadResource(id) as String;
     }

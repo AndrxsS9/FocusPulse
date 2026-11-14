@@ -63,6 +63,15 @@
     <string id="DemoNormalMovement">Normal movement</string>
     <string id="DemoManual">Manual (fixed X/Y/Z)</string>
 
+    <!-- Nombres cortos de los escenarios para la línea de la esfera (unos 25 caracteres en total). -->
+    <string id="DemoShortNormal">Normal</string>
+    <string id="DemoShortTyping">Active typing</string>
+    <string id="DemoShortNod">Head nod</string>
+    <string id="DemoShortInactivity">Inactivity</string>
+    <string id="DemoShortManual">Manual</string>
+    <!-- Línea del modo demo en la esfera, en lugar de la fecha: $1$ BadgeDemo, $2$ nombre corto. -->
+    <string id="DemoBadgeFormat">$1$ · $2$</string>
+
     <!-- Menú principal (mantener UP). El título del menú es AppName. -->
     <string id="MenuDemoOn">Simulated data</string>
     <string id="MenuDemoOff">Real sensor</string>
