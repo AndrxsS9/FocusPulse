@@ -40,3 +40,9 @@ venv/
 env/
 .ipynb_checkpoints/
 .pytest_cache/
+
+# Datos pesados del pipeline de ML: se regeneran con scripts\train.ps1.
+# Las métricas, el informe, los PNG (ml/reports/) y el modelo exportado
+# (ml/models/) sí se versionan.
+ml/data/*
+!ml/data/README.md
