@@ -24,7 +24,8 @@ import Toybox.WatchUi;
 //! Refresco: un Timer redibuja cada REFRESH_PAUSED_MS en pausa (la hora; el orbe está
 //! quieto) y cada REFRESH_ACTIVE_MS con la guardia activa (unos 12 cuadros por segundo
 //! para el orbe, el arco y el latido). Con ANIMATIONS_ENABLED = false la guardia activa
-//! también redibuja una vez por segundo y nada se anima. Se detiene en onHide y se
+//! también redibuja una vez por segundo y nada se anima. Con el ajuste "Animaciones
+//! reducidas" el orbe sigue latiendo pero sin sus 16 partículas. Se detiene en onHide y se
 //! reanuda en onShow. El puntaje no depende del timer: se actualiza con cada lote de
 //! telemetría (GuardController.onBatch), que además pide su propio redibujo.
 //!
@@ -39,7 +40,8 @@ class MainView extends WatchUi.View {
     const REFRESH_ACTIVE_MS = 83;
 
     //! false desactiva el orbe animado, el arco de escaneo y el latido (orbe quieto,
-    //! 1 redibujo por segundo). Lo usará el ajuste "Animaciones reducidas".
+    //! 1 redibujo por segundo). El ajuste "Animaciones reducidas" solo quita las
+    //! partículas (drawOrb).
     const ANIMATIONS_ENABLED = true;
 
     //! Opacidad (milésimas) de cada anillo del orbe, del exterior al interior. En el
@@ -296,7 +298,7 @@ class MainView extends WatchUi.View {
 
     //! Orbe IA detrás de la hora: 3 anillos orgánicos (OrbModel) en los colores de
     //! orbPalette(score), atenuados, y 16 partículas que titilan en un anillo cerca del
-    //! borde. En pausa está quieto y más tenue.
+    //! borde (no con animaciones reducidas). En pausa está quieto y más tenue.
     private function drawOrb(dc as Dc, layout as RoundLayout, score as Number) as Void {
         var palette = OrbModel.paletteFor(score);
         var paused = _orb.state() == OrbState.PAUSED;
@@ -317,6 +319,9 @@ class MainView extends WatchUi.View {
             dc.drawLine(_xs[last], _ys[last], _xs[0], _ys[0]);
         }
         dc.setPenWidth(1);
+        if (_guard.settings().reducedAnimations) {
+            return;
+        }
 
         // Partículas: en el hueco entre el círculo seguro del contenido y el anillo de
         // alerta (170–177 px en el fr165), así no caen sobre textos ni el botón.

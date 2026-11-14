@@ -129,6 +129,9 @@ class GuardController {
     //! Últimas guardias (se carga al abrir la app: loadHistory).
     private var _history as SessionHistory;
 
+    //! Ajustes de usuario en uso (Settings).
+    private var _settings as Settings;
+
     //! sessionName: nombre de la actividad grabada (texto localizado).
     function initialize(state as MonitorState, sessionName as String, demoSeed as Number) {
         _state = state;
@@ -151,6 +154,12 @@ class GuardController {
         _episodes = new AlertLog();
         _break = new BreakTimer();
         _history = new SessionHistory();
+        _settings = new Settings();
+    }
+
+    //! Ajustes en uso (solo lectura para las vistas y los menús).
+    function settings() as Settings {
+        return _settings;
     }
 
     // --- Guardia ----------------------------------------------------------------
@@ -437,7 +446,8 @@ class GuardController {
 
     //! Apila la alerta sobre la vista actual (normalmente la esfera) y empieza a vibrar.
     private function showAlert() as Void {
-        WatchUi.pushView(new AlertView(_alerts, method(:onAlertTick), _haptics.alertVibration()),
+        WatchUi.pushView(new AlertView(_alerts, method(:onAlertTick), _haptics.alertVibration(),
+            _settings.reducedAnimations),
             new AlertDelegate(method(:dismissAlert)), WatchUi.SLIDE_IMMEDIATE);
         _haptics.start(_alerts.level());
     }

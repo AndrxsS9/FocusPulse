@@ -30,6 +30,8 @@ import Toybox.WatchUi;
 //!   - sacudida de 2/4/6 px mientras el motor vibra (VibePatterns.isOnAt con el patrón
 //!     del ajuste de vibración); con la vibración apagada no se sacude y la línea de
 //!     nivel dice "sin vibración".
+//!   - con **animaciones reducidas** (ajuste): sin sacudida, pulso el doble de lento y
+//!     10 cuadros por segundo. Color y textos no cambian.
 //!
 //! Escalamiento (fase 9): la vista lee el nivel de AlertController en cada cuadro. Si
 //! sube, sin cerrarse ni volver a abrirse cambia el color (el del nivel nuevo crece
@@ -46,6 +48,10 @@ class AlertView extends WatchUi.View {
     //! (AlertVisuals.SHAKE_STEP_MS), así cambia de lado en cada cuadro. La alerta dura
     //! pocos segundos: el costo en batería es pequeño.
     const REFRESH_MS = AlertVisuals.SHAKE_STEP_MS;
+
+    //! Con animaciones reducidas no hay sacudida: 10 cuadros por segundo bastan para el
+    //! pulso lento y las ondas del ícono.
+    const REFRESH_REDUCED_MS = 100;
 
     //! Una onda del ícono tarda WAVE_PERIOD_MS en expandirse y desvanecerse; hay
     //! WAVES desfasadas entre sí.
@@ -80,6 +86,9 @@ class AlertView extends WatchUi.View {
     //! Vibración efectiva de la alerta: la del ajuste, u OFF si el reloj no vibra.
     private var _vibration as VibrationLevel.Id;
 
+    //! Ajuste "Animaciones reducidas".
+    private var _reduced as Boolean;
+
     //! Nivel con el que se formateó _levelLine (se rehace al subir).
     private var _shownLevel as Number = 0;
     private var _layout as RoundLayout?;
@@ -97,12 +106,14 @@ class AlertView extends WatchUi.View {
 
     //! onTick: se llama en cada cuadro antes de dibujar (GuardController.onAlertTick).
     //! vibration: la vibración que de verdad suena (OFF si está apagada o sin motor).
+    //! reduced: ajuste "Animaciones reducidas".
     function initialize(alerts as AlertController, onTick as Method() as Void,
-            vibration as VibrationLevel.Id) {
+            vibration as VibrationLevel.Id, reduced as Boolean) {
         View.initialize();
         _alerts = alerts;
         _onTick = onTick;
         _vibration = vibration;
+        _reduced = reduced;
     }
 
     function onLayout(dc as Dc) as Void {
@@ -142,7 +153,7 @@ class AlertView extends WatchUi.View {
 
     function onShow() as Void {
         var timer = new Timer.Timer();
-        timer.start(method(:onTick), REFRESH_MS, true);
+        timer.start(method(:onTick), _reduced ? REFRESH_REDUCED_MS : REFRESH_MS, true);
         _timer = timer;
     }
 
@@ -183,9 +194,10 @@ class AlertView extends WatchUi.View {
         // empezar el patrón al subir, así que la sacudida sigue a los pulsos del motor.
         var levelElapsed = _alerts.levelElapsedMs(now);
         // Pulso de brillo lento (< 1 ciclo/s) y, en el nivel 3, rojo intenso ↔ rojo oscuro.
-        var background = AlertnessColors.alertPulseColor(level, AlertVisuals.pulse(level, levelElapsed));
+        var background = AlertnessColors.alertPulseColor(level,
+            AlertVisuals.pulse(level, _reduced, levelElapsed));
         var foreground = AlertnessColors.alertTextColor(level);
-        var dx = AlertVisuals.shakeOffset(level, _vibration, levelElapsed);
+        var dx = AlertVisuals.shakeOffset(level, _vibration, _reduced, levelElapsed);
 
         Draw.enableAntiAlias(dc);
         var progress = AlertVisuals.entranceProgress(elapsed);

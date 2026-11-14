@@ -31,15 +31,15 @@ class Contrast {
 (:test)
 function alertPulseIsSlowerThanThreeHertz(logger as Logger) as Boolean {
     for (var level = 1; level <= 3; level++) {
-        var period = AlertVisuals.pulsePeriodMs(level);
+        var period = AlertVisuals.pulsePeriodMs(level, false);
         Test.assertMessage(period >= AlertVisuals.PHOTOSENSITIVE_MIN_PERIOD_MS,
             "nivel " + level + ": " + period + " ms por ciclo (< 3 Hz)");
         // Contando máximos en 3 s muestreados cada 10 ms: menos de 9 (3 por segundo).
         var peaks = 0;
-        var previous = AlertVisuals.pulse(level, 0);
+        var previous = AlertVisuals.pulse(level, false, 0);
         var rising = true;
         for (var t = 10; t <= 3000; t += 10) {
-            var value = AlertVisuals.pulse(level, t);
+            var value = AlertVisuals.pulse(level, false, t);
             if (rising && value < previous) {
                 peaks++;
             }
@@ -54,14 +54,14 @@ function alertPulseIsSlowerThanThreeHertz(logger as Logger) as Boolean {
 
 (:test)
 function alertPulseIsSmoothTriangle(logger as Logger) as Boolean {
-    var period = AlertVisuals.pulsePeriodMs(2);
-    Test.assertEqual(AlertVisuals.pulse(2, 0), 0.0f);
-    Test.assertEqual(AlertVisuals.pulse(2, period / 2), 1.0f);
-    Test.assertEqual(AlertVisuals.pulse(2, period), 0.0f);
+    var period = AlertVisuals.pulsePeriodMs(2, false);
+    Test.assertEqual(AlertVisuals.pulse(2, false, 0), 0.0f);
+    Test.assertEqual(AlertVisuals.pulse(2, false, period / 2), 1.0f);
+    Test.assertEqual(AlertVisuals.pulse(2, false, period), 0.0f);
     // Sin saltos: entre muestras de 66 ms (un cuadro) cambia poco.
     var maxStep = 0.0f;
     for (var t = 66; t <= 2 * period; t += 66) {
-        var step = AlertVisuals.pulse(2, t) - AlertVisuals.pulse(2, t - 66);
+        var step = AlertVisuals.pulse(2, false, t) - AlertVisuals.pulse(2, false, t - 66);
         step = step < 0 ? -step : step;
         maxStep = step > maxStep ? step : maxStep;
     }
@@ -132,21 +132,41 @@ function alertShakeFollowsVibration(logger as Logger) as Boolean {
         var amplitude = AlertVisuals.shakeAmplitude(level);
         Test.assertMessage(amplitude >= 2 && amplitude <= 6, "nivel " + level + ": " + amplitude + " px");
         // Al empezar el motor está encendido: se mueve.
-        var offset = AlertVisuals.shakeOffset(level, normal, 10);
+        var offset = AlertVisuals.shakeOffset(level, normal, false, 10);
         Test.assertEqual(offset < 0 ? -offset : offset, amplitude);
         // Después de la ráfaga, quieto.
-        Test.assertEqual(AlertVisuals.shakeOffset(level, normal, VibePatterns.burstMs(level, normal) + 50), 0);
+        Test.assertEqual(AlertVisuals.shakeOffset(level, normal, false, VibePatterns.burstMs(level, normal) + 50), 0);
         // Con la vibración apagada no se sacude nunca.
-        Test.assertEqual(AlertVisuals.shakeOffset(level, VibrationLevel.OFF, 10), 0);
+        Test.assertEqual(AlertVisuals.shakeOffset(level, VibrationLevel.OFF, false, 10), 0);
     }
     Test.assert(AlertVisuals.shakeAmplitude(1) < AlertVisuals.shakeAmplitude(2));
     Test.assert(AlertVisuals.shakeAmplitude(2) < AlertVisuals.shakeAmplitude(3));
     // En la pausa entre pulsos del nivel 1 (150–300 ms) tampoco se mueve.
-    Test.assertEqual(AlertVisuals.shakeOffset(1, normal, 200), 0);
+    Test.assertEqual(AlertVisuals.shakeOffset(1, normal, false, 200), 0);
     // Con vibración suave el nivel 1 es un solo pulso: a los 350 ms ya está quieto.
-    Test.assertEqual(AlertVisuals.shakeOffset(1, VibrationLevel.SOFT, 350), 0);
-    Test.assert(AlertVisuals.shakeOffset(1, VibrationLevel.STRONG, 350) != 0);
+    Test.assertEqual(AlertVisuals.shakeOffset(1, VibrationLevel.SOFT, false, 350), 0);
+    Test.assert(AlertVisuals.shakeOffset(1, VibrationLevel.STRONG, false, 350) != 0);
     // Cambia de lado cada SHAKE_STEP_MS.
-    Test.assertEqual(AlertVisuals.shakeOffset(3, normal, 10), -AlertVisuals.shakeOffset(3, normal, 60));
+    Test.assertEqual(AlertVisuals.shakeOffset(3, normal, false, 10), -AlertVisuals.shakeOffset(3, normal, false, 60));
+    return true;
+}
+
+(:test)
+function alertReducedAnimationsKeepTheAlertClear(logger as Logger) as Boolean {
+    for (var level = 1; level <= 3; level++) {
+        // Pulso el doble de lento, todavía una onda suave de 0 a 1.
+        var period = AlertVisuals.pulsePeriodMs(level, true);
+        Test.assertEqual(period, 2 * AlertVisuals.pulsePeriodMs(level, false));
+        Test.assertEqual(AlertVisuals.pulse(level, true, period / 2), 1.0f);
+        Test.assertEqual(AlertVisuals.pulse(level, true, period), 0.0f);
+        // Sin sacudida aunque el motor esté encendido.
+        Test.assertEqual(AlertVisuals.shakeOffset(level, VibrationLevel.NORMAL, true, 10), 0);
+        // El color de fondo y el del texto son los mismos que sin reducir: la alerta se
+        // reconoce por el color de cada nivel y por sus textos.
+        Test.assertEqual(AlertnessColors.alertPulseColor(level, AlertVisuals.pulse(level, true, 0)),
+            AlertnessColors.alertBackgroundColor(level));
+    }
+    Test.assertMessage(AlertVisuals.pulsePeriodMs(3, true) >= AlertVisuals.pulsePeriodMs(1, false),
+        "reducido, ni el nivel 3 late más rápido que el nivel 1 normal");
     return true;
 }
