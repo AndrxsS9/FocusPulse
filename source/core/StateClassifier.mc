@@ -18,8 +18,11 @@ module DrowsinessClass {
     const COUNT = 4;
 }
 
-//! Clasificador de estado v1: regresión logística multiclase (softmax) sobre cinco
-//! características de cada lote, con los pesos de ClassifierWeights.
+//! Clasificador de estado: regresión logística multiclase (softmax) sobre cinco
+//! características de cada lote. Desde la fase 10 usa los pesos v2 de ClassifierWeights,
+//! entrenados en Python con datos sintéticos (ml/, docs/IA.md), con la estandarización ya
+//! plegada: z = COEF · x + INTERCEPT con x sin normalizar. Los pesos v1 a mano quedan en
+//! ClassifierWeightsV1 como referencia.
 //!
 //! | # | Característica | Fuente |
 //! |---|---|---|
@@ -28,6 +31,9 @@ module DrowsinessClass {
 //! | 2 | Segundos de quietud, con tope de STILL_CAP_S | DrowsinessDetector.stillSeconds |
 //! | 3 | Cambio de inclinación (grados), con tope de TILT_CAP_DEG | DrowsinessDetector.tiltDegrees |
 //! | 4 | Caída pendiente (0 o 1) | DrowsinessDetector.isFallPending |
+//!
+//! ml/features.py calcula exactamente lo mismo en Python (lo comprueba
+//! featuresMatchPythonVectors), así que el modelo entrenado ve lo mismo que el reloj.
 //!
 //! Las probabilidades crudas se suavizan con una EMA de peso SMOOTHING por lote, para
 //! que una ventana suelta no haga saltar el orbe ni el puntaje. Al empezar se supone
@@ -57,11 +63,24 @@ class StateClassifier {
     private var _features as Array<Float>;
     private var _ready as Boolean = false;
 
+    //! Pesos en uso (ClassifierWeights salvo que las pruebas pongan otros).
+    private var _coef as Array<Array<Float>>;
+    private var _intercept as Array<Float>;
+
     function initialize() {
+        _coef = ClassifierWeights.COEF as Array<Array<Float>>;
+        _intercept = ClassifierWeights.INTERCEPT as Array<Float>;
         _probabilities = new Array<Float>[DrowsinessClass.COUNT];
         _raw = new Array<Float>[DrowsinessClass.COUNT];
         _features = new Array<Float>[FEATURE_COUNT];
         reset();
+    }
+
+    //! Usa otros pesos con el mismo formato que ClassifierWeights (z = coef · x +
+    //! intercept). Solo para comparar versiones en las pruebas.
+    function setWeights(coef as Array<Array<Float>>, intercept as Array<Float>) as Void {
+        _coef = coef;
+        _intercept = intercept;
     }
 
     //! Vuelve a la suposición inicial (Normal) al iniciar o pausar la guardia.
@@ -83,7 +102,7 @@ class StateClassifier {
         }
         featuresInto(_features, snapshot.variance, snapshot.batchPeakJerk, detector.stillSeconds(),
             detector.tiltDegrees(), detector.isFallPending());
-        probabilitiesInto(_raw, _features);
+        probabilitiesWith(_raw, _features, _coef, _intercept);
         for (var k = 0; k < DrowsinessClass.COUNT; k++) {
             _probabilities[k] = SMOOTHING * _raw[k] + (1.0f - SMOOTHING) * _probabilities[k];
         }
@@ -101,19 +120,22 @@ class StateClassifier {
         out[FEATURE_FALL_PENDING] = fallPending ? 1.0f : 0.0f;
     }
 
-    //! Escribe en out la softmax de las características (sin suavizar).
+    //! Escribe en out la softmax de las características (sin suavizar) con los pesos de
+    //! ClassifierWeights.
     static function probabilitiesInto(out as Array<Float>, features as Array<Float>) as Void {
-        var mean = ClassifierWeights.FEATURE_MEAN as Array<Float>;
-        var scale = ClassifierWeights.FEATURE_SCALE as Array<Float>;
-        var coef = ClassifierWeights.COEF as Array<Array<Float>>;
-        var intercept = ClassifierWeights.INTERCEPT as Array<Float>;
+        probabilitiesWith(out, features, ClassifierWeights.COEF as Array<Array<Float>>,
+            ClassifierWeights.INTERCEPT as Array<Float>);
+    }
 
+    //! Escribe en out softmax(coef · features + intercept).
+    static function probabilitiesWith(out as Array<Float>, features as Array<Float>,
+            coef as Array<Array<Float>>, intercept as Array<Float>) as Void {
         var max = 0.0f;
         for (var k = 0; k < DrowsinessClass.COUNT; k++) {
             var z = intercept[k];
             var row = coef[k];
             for (var j = 0; j < FEATURE_COUNT; j++) {
-                z += row[j] * (features[j] - mean[j]) / scale[j];
+                z += row[j] * features[j];
             }
             out[k] = z;
             if (k == 0 || z > max) {

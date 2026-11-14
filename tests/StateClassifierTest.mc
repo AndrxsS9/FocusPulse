@@ -2,8 +2,31 @@ import Toybox.Lang;
 import Toybox.Math;
 import Toybox.Test;
 
-//! Pruebas de StateClassifier y ClassifierWeights: softmax, forma de la tabla, EMA,
+//! Pruebas de StateClassifier y ClassifierWeights (v2, entrenados) y ClassifierWeightsV1
+//! (a mano, referencia): softmax, forma de las tablas, coincidencia con Python, EMA,
 //! clase ganadora por escenario y matriz de confusión sobre secuencias simuladas.
+
+//! Pesos v1 plegados al formato de ClassifierWeights (z = coef · x + intercept):
+//! coef / escala, e intercepto − Σ coef · media / escala. Devuelve [coef, intercept].
+function foldV1Weights() as Array {
+    var mean = ClassifierWeightsV1.FEATURE_MEAN as Array<Float>;
+    var scale = ClassifierWeightsV1.FEATURE_SCALE as Array<Float>;
+    var coef = ClassifierWeightsV1.COEF as Array<Array<Float>>;
+    var intercept = ClassifierWeightsV1.INTERCEPT as Array<Float>;
+    var foldedCoef = new Array<Array<Float>>[DrowsinessClass.COUNT];
+    var foldedIntercept = new Array<Float>[DrowsinessClass.COUNT];
+    for (var k = 0; k < DrowsinessClass.COUNT; k++) {
+        var row = new Array<Float>[StateClassifier.FEATURE_COUNT];
+        var b = intercept[k];
+        for (var j = 0; j < StateClassifier.FEATURE_COUNT; j++) {
+            row[j] = coef[k][j] / scale[j];
+            b -= row[j] * mean[j];
+        }
+        foldedCoef[k] = row;
+        foldedIntercept[k] = b;
+    }
+    return [foldedCoef, foldedIntercept];
+}
 
 //! Probabilidades crudas de unas características escritas a mano.
 function classifyFeatures(logVariance as Float, peakJerk as Number, stillSeconds as Float,
@@ -52,18 +75,53 @@ function trueClass(scenario as AccelScenario.Id, timeMs as Number) as Drowsiness
 
 (:test)
 function classifierWeightTableHasTheRightShape(logger as Logger) as Boolean {
-    var coef = ClassifierWeights.COEF as Array<Array<Float>>;
-    Test.assertEqual(coef.size(), DrowsinessClass.COUNT);
-    for (var k = 0; k < coef.size(); k++) {
-        Test.assertEqual(coef[k].size(), StateClassifier.FEATURE_COUNT);
+    Test.assertEqual(ClassifierWeights.VERSION, "v2");
+    var tables = [
+        [ClassifierWeights.COEF, ClassifierWeights.INTERCEPT],
+        [ClassifierWeightsV1.COEF, ClassifierWeightsV1.INTERCEPT]
+    ] as Array<Array>;
+    for (var t = 0; t < tables.size(); t++) {
+        var coef = tables[t][0] as Array<Array<Float>>;
+        Test.assertEqual(coef.size(), DrowsinessClass.COUNT);
+        for (var k = 0; k < coef.size(); k++) {
+            Test.assertEqual(coef[k].size(), StateClassifier.FEATURE_COUNT);
+        }
+        Test.assertEqual((tables[t][1] as Array<Float>).size(), DrowsinessClass.COUNT);
     }
-    Test.assertEqual((ClassifierWeights.INTERCEPT as Array<Float>).size(), DrowsinessClass.COUNT);
-    var scale = ClassifierWeights.FEATURE_SCALE as Array<Float>;
+    // v1 conserva su escala (sin plegar).
+    var scale = ClassifierWeightsV1.FEATURE_SCALE as Array<Float>;
     Test.assertEqual(scale.size(), StateClassifier.FEATURE_COUNT);
-    Test.assertEqual((ClassifierWeights.FEATURE_MEAN as Array<Float>).size(), StateClassifier.FEATURE_COUNT);
+    Test.assertEqual((ClassifierWeightsV1.FEATURE_MEAN as Array<Float>).size(), StateClassifier.FEATURE_COUNT);
     for (var j = 0; j < scale.size(); j++) {
         Test.assert(scale[j] > 0.0f);
     }
+    // Métricas que muestra la pantalla "Modelo IA".
+    Test.assert(ClassifierWeights.TEST_ACCURACY > 0.0f && ClassifierWeights.TEST_ACCURACY <= 1.0f);
+    Test.assert(ClassifierWeights.FALSE_NOD_RATE >= 0.0f && ClassifierWeights.FALSE_NOD_RATE <= 1.0f);
+    Test.assert(ClassifierWeights.DATASET_WINDOWS > 0);
+    return true;
+}
+
+(:test)
+function classifierMatchesPythonProbabilities(logger as Logger) as Boolean {
+    Test.assertEqual(ModelVectors.VERSION, ClassifierWeights.VERSION);
+    var features = ModelVectors.FEATURES as Array<Array<Float>>;
+    var expected = ModelVectors.PROBABILITIES as Array<Array<Float>>;
+    var p = new Array<Float>[DrowsinessClass.COUNT];
+    var maxDiff = 0.0f;
+    for (var i = 0; i < features.size(); i++) {
+        StateClassifier.probabilitiesInto(p, features[i]);
+        for (var k = 0; k < DrowsinessClass.COUNT; k++) {
+            var diff = p[k] - expected[i][k];
+            diff = diff < 0.0f ? -diff : diff;
+            if (diff > maxDiff) {
+                maxDiff = diff;
+            }
+        }
+        Test.assertEqual(argmax(p), argmax(expected[i]));
+    }
+    logger.debug(features.size() + " ventanas; diferencia máxima con Python " + maxDiff);
+    Test.assert(maxDiff < 0.001f);
     return true;
 }
 
@@ -87,8 +145,11 @@ function classifierSoftmaxSeparatesTypicalFeatures(logger as Logger) as Boolean 
     Test.assertEqual(argmax(inert), DrowsinessClass.INERT);
     Test.assert(normal[DrowsinessClass.NORMAL] > 0.9f);
 
-    // Girar la muñeca para mirar la hora: inclinación grande pero sin caída pendiente.
-    Test.assertEqual(argmax(classifyFeatures(6.8f, 250, 0.0f, 90.0f, false)), DrowsinessClass.NORMAL);
+    // Mirar la hora (escenario simulado, ml/generate_dataset.py): el lote del giro rápido
+    // (varianza alta, 33° respecto al lote anterior) y el primero de la lectura con el
+    // brazo sostenido (temblor pequeño, 2 s quieto) siguen siendo Normal.
+    Test.assertEqual(argmax(classifyFeatures(8.9f, 355, 0.0f, 32.8f, false)), DrowsinessClass.NORMAL);
+    Test.assertEqual(argmax(classifyFeatures(4.06f, 29, 2.0f, 5.5f, false)), DrowsinessClass.NORMAL);
     // Quien apenas se mueve (≈ 200 mg²) sigue siendo Normal, no Inerte.
     Test.assertEqual(argmax(classifyFeatures(5.3f, 60, 0.0f, 0.2f, false)), DrowsinessClass.NORMAL);
     // Valores extremos: sin desbordes.

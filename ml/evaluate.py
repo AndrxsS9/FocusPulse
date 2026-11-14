@@ -57,8 +57,6 @@ def _mc_floats(text: str, name: str) -> np.ndarray:
 def load_v1() -> tuple[np.ndarray, np.ndarray]:
     """Pesos v1 (a mano) leídos del archivo Monkey C y plegados como los de v2."""
     path = CORE_DIR / "ClassifierWeightsV1.mc"
-    if not path.exists():
-        path = CORE_DIR / "ClassifierWeights.mc"  # antes de la integración de v2
     text = path.read_text(encoding="utf-8")
     if '"v1-manual"' not in text:
         raise ValueError(f"{path.name} no contiene los pesos v1")

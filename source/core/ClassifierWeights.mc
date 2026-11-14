@@ -1,45 +1,55 @@
 import Toybox.Lang;
 
-//! Pesos del clasificador de estado (StateClassifier): regresión logística multiclase.
+//! GENERADO por ml/export_weights.py, no editar a mano. Para cambiarlo, vuelve a
+//! entrenar con scripts\train.ps1 (ver ml/README.md y docs/IA.md).
 //!
-//! Este archivo es solo datos y está pensado para generarse desde Python en la fase de
-//! IA (ml/), con el mismo formato que scikit-learn:
+//! Pesos v2 del clasificador de estado (StateClassifier): regresión logística
+//! multinomial con 4 clases, entrenada el 2026-11-14 con semilla 20261114 sobre
+//! 17376 ventanas de 48 usuarios (528 secuencias).
+//! Exactitud en la prueba (usuarios separados, salida suavizada): 93.3 %.
 //!
-//!     x' = (x − FEATURE_MEAN) / FEATURE_SCALE            # StandardScaler.mean_, .scale_
-//!     z  = COEF · x' + INTERCEPT                        # LogisticRegression.coef_, .intercept_
-//!     p  = softmax(z)                                   # multi_class="multinomial"
+//! **Datos SINTÉTICOS** (ml/generate_dataset.py, a partir de las firmas del simulador):
+//! las métricas no son precisión en muñecas reales.
 //!
-//! - Filas de COEF e INTERCEPT: clases en el orden de DrowsinessClass (Activo, Normal,
-//!   Cabeceo, Inerte).
-//! - Columnas de COEF, FEATURE_MEAN y FEATURE_SCALE: características en el orden de
-//!   StateClassifier.FEATURE_* (ln(varianza + 1), sacudida del lote en mg, segundos de
-//!   quietud con tope de 30, cambio de inclinación en grados con tope de 90, caída
-//!   pendiente 0/1). Quien genere el archivo debe calcularlas igual.
+//! La estandarización (StandardScaler) ya va plegada en los pesos, así que el reloj
+//! calcula directamente, con x sin normalizar:
 //!
-//! **v1:** pesos ajustados a mano con los escenarios simulados; la escala solo pone las
-//! características en rangos parecidos (media 0). Ver docs/DETECTOR.md.
+//!     z = COEF · x + INTERCEPT,   p = softmax(z)
+//!
+//! - Filas: clases en el orden de DrowsinessClass (Activo, Normal, Cabeceo, Inerte).
+//! - Columnas: características en el orden de StateClassifier.FEATURE_*
+//!   (ln_varianza, sacudida_lote, quietud_s, inclinacion_deg, caida_pendiente).
+//!
+//! Los pesos v1 (a mano) siguen en ClassifierWeightsV1.mc como referencia.
 module ClassifierWeights {
 
-    //! Identificador de los pesos (se muestra en la depuración y en las pruebas).
-    const VERSION = "v1-manual";
+    //! Identificador de los pesos.
+    const VERSION = "v2";
 
-    const FEATURE_MEAN = [0.0f, 0.0f, 0.0f, 0.0f, 0.0f];
-    const FEATURE_SCALE = [3.0f, 400.0f, 10.0f, 30.0f, 1.0f];
+    //! Fecha del entrenamiento y semilla del dataset y de la división.
+    const TRAINED_ON = "2026-11-14";
+    const SEED = 20261114;
 
-    //! Una fila por clase: Activo, Normal, Cabeceo, Inerte. Normal es la referencia
-    //! (todo 0); las demás se comparan con ella:
-    //! - Activo: varianza y sacudida altas (frontera ≈ 5 600 mg² con sacudida de 400 mg);
-    //!   lo frenan la quietud, la inclinación y una caída pendiente.
-    //! - Cabeceo: sobre todo la caída pendiente; la inclinación ayuda, pero sola (girar
-    //!   la muñeca para mirar la hora) no supera a Normal.
-    //! - Inerte: varianza baja (frontera ≈ 100 mg², el umbral de quietud) y la quietud
-    //!   acumulada.
+    //! Tamaño del dataset sintético.
+    const DATASET_WINDOWS = 17376;
+    const DATASET_USERS = 48;
+
+    //! Exactitud en el conjunto de prueba (0–1), como la ve el reloj (con la EMA).
+    const TEST_ACCURACY = 0.93317866f;
+
+    //! Falsos cabeceos en los negativos difíciles de la prueba (mirar la hora, apoyar el
+    //! brazo): fracción de episodios con al menos una ventana tomada por Cabeceo
+    //! (12 de 48) y fracción de ventanas.
+    const FALSE_NOD_RATE = 0.25f;
+    const FALSE_NOD_WINDOW_RATE = 0.035683203f;
+
+    //! Una fila por clase: Activo, Normal, Cabeceo, Inerte.
     const COEF = [
-        [4.0f, 2.5f, -2.0f, -2.0f, -2.0f],
-        [0.0f, 0.0f, 0.0f, 0.0f, 0.0f],
-        [0.0f, 0.0f, -1.0f, 1.5f, 6.0f],
-        [-7.5f, 0.0f, 1.5f, 0.0f, 0.0f]
+        [2.0670521f, 0.004321216f, 0.26801062f, -0.23154828f, -6.378718f],
+        [0.08256078f, -0.0075985566f, -0.017406555f, 0.07182521f, -1.0287946f],
+        [-0.43059772f, 0.0016180276f, -0.32513365f, 0.10843931f, 2.6035395f],
+        [-1.7190152f, 0.001659313f, 0.074529566f, 0.051283766f, 4.8039727f]
     ];
 
-    const INTERCEPT = [-14.0f, 0.0f, -5.0f, 11.5f];
+    const INTERCEPT = [-16.800564f, 4.1797457f, 2.6167488f, 10.00407f];
 }
