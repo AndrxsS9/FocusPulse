@@ -1,7 +1,7 @@
 # Pendientes de verificar
 
 Las fases 1 y 2 se compilaron, probaron y revisaron en el simulador con el **Connect IQ SDK
-9.3.0** (2026-11-12), las fases 3 a 8 el 2026-11-13 y la fase 9 el 2026-11-14. La primera sección resume lo que quedó confirmado; el resto del
+9.3.0** (2026-11-12), las fases 3 a 8 el 2026-11-13 y las fases 9 y 10 el 2026-11-14. La primera sección resume lo que quedó confirmado; el resto del
 documento lista **solo lo que sigue abierto**. Al cerrar un punto, muévelo a la sección de
 datos confirmados o bórralo, y corrige el código si algo no coincide.
 
@@ -288,6 +288,53 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
   responderla se vuelve al menú, no a la esfera (comportamiento de `pushView`, ya existía
   en la fase 8). No molesta en la demo, pero ver el punto de la sección 3.
 
+### IA entrenada (fase 10, Python y simulador)
+
+- **Python 3.12.10** instalado con `winget install Python.Python.3.12` (en el equipo ya había
+  3.14; el pipeline usa 3.12 con `py -3.12`). `ml\.venv` con numpy 2.5.4, pandas 3.1.1,
+  scikit-learn 1.9.1 y matplotlib 3.11.2 (`ml\requirements.txt`).
+- `scripts\train.ps1` corre de punta a punta en ≈ 30 s y es **reproducible**: con la semilla
+  por defecto, `git status` queda limpio después (pesos, vectores, informe y PNG idénticos).
+  `-Seed 7 -NoExport` también funciona (y no toca `source\` ni `tests\`).
+- Las **172 pruebas** pasan (5 nuevas y varias ajustadas). `build.ps1` y `build.ps1 -Release`
+  sin advertencias con `-l 3`.
+- **Python y el reloj calculan lo mismo**: en 1 600 muestras fijas coinciden los 64 eventos
+  del detector y las características de 62 ventanas (diferencia máxima 8 × 10⁻⁶ grados en la
+  inclinación, 0 en el resto); las probabilidades de 16 ventanas, con diferencia < 10⁻⁶.
+- **`monkeyc -t -l 3` revienta con `java.lang.StackOverflowError`** con un arreglo literal de
+  ≈ 1 600 elementos (la compilación normal sí pasa). `ml/test_vectors.py` parte los arreglos
+  en filas de 100.
+- Los números de `ClassifierWeights.mc` se escriben como `Float` en notación decimal (el
+  `float32` más corto, sin exponente): compilan sin errores con `-l 3`.
+- Resultado en Python (12 usuarios sintéticos de prueba, [IA.md](IA.md) §8): exactitud 89,7 %
+  (v1) → 93,3 % (v2); falsos cabeceos en 16 → 12 de 48 episodios difíciles. En el reloj, la
+  matriz de los escenarios del simulador pasa de 93,1 % a 98,4 %.
+- Recorrido en el simulador (fr165), con una traza temporal del clasificador por lote en la
+  consola (no versionada):
+  - **Depuración, español**, escenarios con DOWN: tecleo (Activo) → cabeceo (Normal →
+    Cabeceo 0,51 y 0,64 con la caída pendiente → evento a los 6,0 s → alerta respondida →
+    Inerte) → inactividad → **mirar la hora: 31 de 31 lotes Normal, 0 eventos** → normal →
+    **tecleo → normal: ningún lote Cabeceo ni evento**. Al pausar, resumen (2 episodios).
+  - **Release, español e inglés**: **guion automático completo**: cabeceo a los 26 s (paso 3,
+    respondido), inactividad a los 45 s (paso 5, respondida), paso 6 sin responder hasta el
+    nivel 3 y resumen automático (1 min 12 s / 1 min 13 s, 3 episodios, nivel máximo 3 de 3,
+    fatiga Alto / High).
+  - **Inglés**: mirar la hora 32 de 32 lotes Normal, 0 eventos; "DEMO · Glance" cabe en la
+    esfera.
+  - Pantalla **Modelo IA** en los dos idiomas: "Modelo IA / v2" en el menú (entre *Historial*
+    y *Acerca de*); versión, "Regresión logística · 4 clases", exactitud 93,3 % (93.3%),
+    falsos cabeceos 25,0 % (25.0%) y "Entrenado con datos sintéticos" en dos líneas. La
+    primera versión cortaba la nota con "…": se subió el bloque y se le dio altura para dos
+    líneas. BACK vuelve al menú.
+- **Automatizar el simulador sin tocar el ratón del usuario**: `PrintWindow` captura la
+  ventana aunque esté tapada, y los clics simples se pueden enviar con
+  `PostMessage(WM_LBUTTONDOWN/UP)` a la ventana hija en coordenadas lógicas (el simulador no
+  es consciente del DPI). Los comandos de la barra de menús se envían con `WM_COMMAND`:
+  idioma español 6078, inglés 6064, *Kill App* 6005. **La pulsación larga (mantener UP) no
+  funciona por mensajes** (ni con `SetKeyboardState`): el simulador lee el estado físico del
+  ratón. Para el recorrido, un cambio temporal y no versionado hacía que DOWN en pausa
+  abriera el menú.
+
 ## 1. Entorno
 
 - [ ] **Hacer copia de seguridad de la llave** `%USERPROFILE%\Downloads\FocusPulse-keys\`
@@ -334,7 +381,7 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 - [ ] **Tono en el fr165**: si el reloj suena de verdad (tiene `playTone` según el SDK), con
       qué volumen, y si el `ToneProfile` con silencios de 0 Hz se acepta (si lanza
       `InvalidOptionsException`, `Haptics` pasa a `TONE_ALERT_HI`). Valorar el ajuste
-      "Sonido" de la fase 10 antes de usarlo en una oficina.
+      "Sonido" de la fase 11 (ajustes) antes de usarlo en una oficina.
 - [ ] La sacudida de la vista se calcula desde el inicio de la alerta y la vibración desde
       el `Timer` de `Haptics`: en una alerta larga podrían desfasarse unas decenas de ms.
       Mirarlo en el reloj; si se nota, que la vista lea el ciclo de `Haptics`.
@@ -344,21 +391,43 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
       DOWN durante la guardia llegue como `onNextPage` y cambie de escenario, y que el modo
       se recuerde tras reiniciar el reloj (`Storage`).
 
-- [ ] **Validar el detector con datos de muñeca reales** (fase 11 o antes, con
+- [ ] **Validar el detector y el modelo con datos de muñeca reales** (fase 12, con
       `SensorLogging`): la sacudida de 400 mg, los 35° de inclinación, los 50 mg de
-      "calma", el piso de 25 mg² del umbral y los pesos del clasificador salen de
-      escenarios simulados.
+      "calma" y el piso de 25 mg² salen de escenarios simulados, y los **pesos v2 se
+      entrenaron solo con datos sintéticos** ([IA.md](IA.md) §9). Grabar con etiquetas
+      (vídeo o pulsador), importar con `ml/import_real.py` y reentrenar.
+- [ ] **Leer el FIT de `SensorLogging`** en `ml/import_real.py` (`load_fit`, hoy
+      `NotImplementedError`): falta un archivo real del reloj para escribirlo y probarlo, y
+      añadir el FIT SDK de Garmin para Python a los requisitos.
 - [ ] **Ruido del acelerómetro del fr165 en reposo**: el umbral adaptativo no baja de
       25 mg² (σ = 5 mg). Si el ruido real de un brazo inerte supera eso, la quietud nunca
       llegaría para quien calibró moviéndose poco.
-- [ ] **Falso positivo posible: girar la muñeca para mirar la hora y quedarse leyendo**
-      (sacudida + inclinación > 35° + magnitud constante). Probarlo en el reloj; si
-      dispara, exigir la dirección de la caída ([DETECTOR.md](DETECTOR.md) §7).
+- [ ] **Falso cabeceo del detector al mirar la hora justo después de teclear** (medido con
+      datos sintéticos en la fase 10): el detector por reglas da un evento CABECEO en 15 de
+      24 secuencias de prueba de *mirar la hora*; la sacudida del tecleo deja abierta la
+      caída candidata y el brazo sostenido cuenta como quieto. El clasificador v2 no decide
+      la alerta. Probarlo en el reloj; opciones: que la candidata del tecleo no valga para
+      una quietud con temblor, exigir la dirección de la caída o pedir confirmación al
+      modelo ([DETECTOR.md](DETECTOR.md) §7, [IA.md](IA.md) §10).
+- [ ] **Mirar la hora en el clasificador v2**: todavía 12 de 48 episodios difíciles (todos de
+      mirar la hora) tienen algún lote Cabeceo, y al leer p(Inerte) sube hasta ≈ 0,4. Con
+      datos reales, valorar características nuevas (dirección final de la gravedad).
+- [ ] **Cabeceos lentos**: el detector solo ve el 61 % de los cabeceos sintéticos (caídas por
+      debajo de 400 mg) y v2 tiene un recall de Cabeceo de 0,48 (v1: 0,58). Revisar con datos
+      reales si la caída real es tan brusca como la simulada.
 - [ ] Con el acelerómetro del simulador (*Activity Data*, vectores de 1 g al azar) el
       detector daría cabeceos continuos. No se probó; para la sustentación, usar la fuente
       simulada.
 
 ## 3. Interfaz
+
+- [ ] **Cambiar de escenario con DOWN de *cabeceo* a *inactividad* da un cabeceo de más** (≈ 4 s
+      después): la fuente simulada salta del brazo colgando a la postura inerte en una sola
+      muestra (≈ 1 200 mg, 75°) y luego queda quieta. Visto en el recorrido de la fase 10; es
+      un artefacto de la fuente, no del detector. Para la demo, responder la alerta; si
+      molesta, que `SimulatedAccelSource` haga una transición de ~1 s al cambiar de
+      escenario. Lo mismo, sin evento, al pasar de *mirar la hora* (leyendo) a *normal*: un
+      lote Cabeceo en el clasificador.
 
 - [ ] **Decidir si la hora necesita una fuente personalizada** para acercarse a la demo web,
       y si su costo en memoria es aceptable dentro de los 768 KB.
@@ -442,6 +511,10 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 - [ ] Comprobar **en el reloj**, con la app instalada desde el `.iq`, que mantener UP abre el
       menú principal **sin** la entrada *Depuración*. En el simulador ya se vio con
       `run.ps1 -Release` (mismo `-r` que el `.iq`).
+- [ ] `ClassifierWeightsV1` (24 `Float`, solo referencia) y las auxiliares sin `(:test)` de
+      `FeatureMatchTest.mc`/`StateClassifierTest.mc` (`flattenRows`, `foldV1Weights`,
+      `FEATURE_TOLERANCE`) entran también en release. Los vectores de prueba grandes
+      (`FeatureVectors`, `ModelVectors`) son clases `(:test)` y no entran.
 - [ ] Las funciones auxiliares sin `(:test)` de `tests/` (`colorsMatch`, `insideCircle`) y
       los textos `StyleGuide*`/`TypeRole*`/`Debug*` se empaquetan también en release. Medir con el
       perfilador de memoria del simulador si el costo importa (fase 12).
@@ -456,7 +529,7 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 
 ## 6. Ícono y tienda (fase 13)
 
-- [ ] `AppInfo.VERSION` ("0.9.0", visible en *Acerca de*) debe coincidir con la versión que
+- [ ] `AppInfo.VERSION` ("0.10.0", visible en *Acerca de*) debe coincidir con la versión que
       se escriba al subir el paquete: el manifest de Connect IQ no lleva versión.
 
 - [ ] Ver el ícono de 54×54 en el menú de apps del simulador y del reloj: que el pulso se

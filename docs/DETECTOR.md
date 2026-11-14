@@ -6,7 +6,8 @@ como parámetro y las pruebas recorren secuencias completas de la fuente simulad
 reloj controlado. El detector emite eventos (se ven en la depuración, *Detector en vivo*) y,
 desde la fase 7, cada uno abre la alerta a pantalla completa con vibración
 ([DISENO.md](DISENO.md) §5.3). Desde la fase 9, los episodios alimentan el predictor de
-fatiga (§8).
+fatiga (§8). Desde la fase 10, el clasificador usa pesos **v2 entrenados** en Python con
+datos sintéticos ([IA.md](IA.md)).
 
 ## 1. Flujo por lote
 
@@ -28,7 +29,7 @@ El acelerómetro entrega un lote por segundo (25 muestras a 25 Hz). Con cada lot
         │   estado: calibrando · vigilando ·            └─► umbral de quietud
         │           caída detectada · evento
         ▼
- StateClassifier (softmax, ClassifierWeights)
+ StateClassifier (softmax, ClassifierWeights v2)
         │   p(Activo), p(Normal), p(Cabeceo), p(Inerte), suavizadas
         ▼
  AlertnessScore ─► anillo y porcentaje          OrbModel.stateFor ─► orbe
@@ -157,26 +158,38 @@ Los eventos **no esperan a la calibración**: con el umbral por defecto (100 mg�
 funcionan, y perder un cabeceo en los primeros 30 s sería peor que usar un umbral sin
 adaptar.
 
-## 5. Clasificador v1 (`StateClassifier`)
+## 5. Clasificador (`StateClassifier`)
 
-Regresión logística multiclase con cuatro clases: **Activo, Normal, Cabeceo, Inerte**.
+Regresión logística multiclase con cuatro clases: **Activo, Normal, Cabeceo, Inerte**. Desde
+la fase 10 usa los pesos **v2**, entrenados en Python ([IA.md](IA.md)); los v1, ajustados a
+mano en la fase 6, quedan en `ClassifierWeightsV1.mc` como referencia.
 
-| # | Característica (por lote) | Escala |
+| # | Característica (por lote) | Unidad |
 |---|---|---|
-| 0 | ln(varianza + 1) | ÷ 3 |
-| 1 | Sacudida del lote (mg) | ÷ 400 |
-| 2 | Segundos de quietud (tope 30) | ÷ 10 |
-| 3 | Cambio de inclinación en grados (tope 90): desde antes de la caída si hay una pendiente, si no respecto al lote anterior | ÷ 30 |
-| 4 | Caída pendiente (0/1) | ÷ 1 |
+| 0 | ln(varianza + 1) | ln(mg²) |
+| 1 | Sacudida del lote | mg |
+| 2 | Segundos de quietud (tope 30) | s |
+| 3 | Cambio de inclinación en grados (tope 90): desde antes de la caída si hay una pendiente, si no respecto al lote anterior | grados |
+| 4 | Caída pendiente | 0/1 |
 
 ```
-x' = (x − media) / escala
-z_k = intercepto_k + Σ_j coef_kj · x'_j
-p_k = e^z_k / Σ e^z            (se resta el máximo de z para no desbordar)
-p̂_k ← 0,6 · p_k + 0,4 · p̂_k     (EMA; al empezar, Normal = 1)
+z_k = INTERCEPT_k + Σ_j COEF_kj · x_j      (x sin normalizar: la estandarización va plegada)
+p_k = e^z_k / Σ e^z                         (se resta el máximo de z para no desbordar)
+p̂_k ← 0,6 · p_k + 0,4 · p̂_k                 (EMA; al empezar, Normal = 1)
 ```
 
-Pesos v1, ajustados a mano con los escenarios simulados (`source/core/ClassifierWeights.mc`):
+`ml/features.py` calcula las mismas características en Python (la prueba
+`featuresMatchPythonVectors` lo comprueba) y `ml/export_weights.py` genera
+`ClassifierWeights.mc`: no se edita a mano.
+
+**v2 (entrenado).** Regresión logística multinomial sobre 17 376 ventanas sintéticas de 48
+usuarios, con negativos difíciles (mirar la hora, apoyar el brazo); peso ×2 para Cabeceo y
+C = 1, elegidos con validación cruzada agrupada por usuario. En la prueba (12 usuarios no
+vistos): exactitud 93,3 % frente a 89,7 % de v1 y falsos cabeceos en 12 de 48 episodios
+difíciles frente a 16. Pesos, elección y limitaciones en [IA.md](IA.md).
+
+**v1 (referencia, fase 6).** Formato sin plegar: x' = (x − media) / escala, con media 0 y
+escala (3, 400, 10, 30, 1).
 
 | Clase | Intercepto | ln var | sacudida | quietud | inclinación | caída pend. |
 |---|---|---|---|---|---|---|
@@ -185,18 +198,10 @@ Pesos v1, ajustados a mano con los escenarios simulados (`source/core/Classifier
 | Cabeceo | −5 | 0 | 0 | −1 | 1,5 | 6 |
 | Inerte | 11,5 | −7,5 | 0 | 1,5 | 0 | 0 |
 
-Cómo se eligieron (Normal es la referencia):
-
-- **Activo** gana con varianza y sacudida altas: frontera ≈ 5 600 mg² con una sacudida
-  de 400 mg (el tecleo está en ≈ 18 000).
-- **Inerte** gana por debajo de ≈ 100 mg², el umbral de quietud, y crece con la quietud
-  acumulada. Quien apenas se mueve (≈ 200 mg²) sigue siendo Normal.
-- **Cabeceo** depende sobre todo de la caída pendiente; la inclinación ayuda, pero sola
-  no basta: girar la muñeca 90° para mirar la hora sigue siendo Normal.
-
-El archivo de pesos tiene el formato de scikit-learn (`StandardScaler.mean_` y `.scale_`,
-`LogisticRegression(multi_class="multinomial").coef_` e `.intercept_`), así que la fase
-de IA lo podrá generar desde Python sin tocar el clasificador.
+Activo ganaba con varianza y sacudida altas (frontera ≈ 5 600 mg² con una sacudida de
+400 mg); Inerte, por debajo de ≈ 100 mg²; Cabeceo, sobre todo con la caída pendiente. Su
+punto débil, medido en la fase 10: leer la hora con el brazo sostenido (≈ 40 mg²) caía en
+Inerte, y un giro rápido seguido de quietud, en Cabeceo.
 
 **Puntaje y orbe.** `AlertnessScore` se acerca a Σ p̂_k × nivel_k (Activo 100, Normal 85,
 Cabeceo 0, Inerte 10) a +3 / −2 puntos por segundo como mucho: de 88 a ≈ 84 con
@@ -208,34 +213,36 @@ el resto (y lento si el puntaje baja de 60).
 
 ### 6.1 Matriz de confusión
 
-`classifierConfusionMatrixOnSimulatedScenarios` (en `tests/StateClassifierTest.mc`)
-la escribe en el registro de pruebas. Con 5 semillas, se recorre cada escenario (tecleo
-40 s, normal 40 s, cabeceo 15 s, inactividad 40 s) más una guardia mixta (normal →
-tecleo → normal → inactividad, 10 s cada uno y 15 la inactividad), y se cuenta cada lote
-de 1 s desde que la ventana está llena.
+`classifierConfusionMatrixOnSimulatedScenarios` (en `tests/StateClassifierTest.mc`) la escribe
+en el registro de pruebas, con v1 y con v2 sobre los mismos lotes. Con 5 semillas se recorre
+cada escenario (tecleo 40 s, normal 40 s, cabeceo 15 s, inactividad 40 s y, desde la fase 10,
+mirar la hora 36 s) más una guardia mixta (normal → tecleo → normal → inactividad, 10 s cada
+uno y 15 la inactividad), y se cuenta cada lote de 1 s desde que la ventana está llena.
 
-Clase real: la del escenario en curso. En el cabeceo, Normal antes de la caída, Cabeceo
-desde la caída hasta 2 s después de terminar (mientras la ventana la contiene) e Inerte
-después (el usuario quedó dormido).
+Clase real: la del escenario en curso (mirar la hora es Normal). En el cabeceo, Normal antes
+de la caída, Cabeceo desde la caída hasta 2 s después de terminar (mientras la ventana la
+contiene) e Inerte después (el usuario quedó dormido).
+
+**v2:**
 
 | Real \ Predicha | Activo | Normal | Cabeceo | Inerte | Acierto |
 |---|---|---|---|---|---|
 | **Activo** | **241** | 4 | 0 | 0 | 98,4 % |
-| **Normal** | 4 | **296** | 0 | 0 | 98,7 % |
+| **Normal** | 3 | **472** | 0 | 0 | 99,4 % |
 | **Cabeceo** | 0 | 0 | **10** | 0 | 100 % |
-| **Inerte** | 0 | 5 | 0 | **315** | 98,4 % |
+| **Inerte** | 0 | 5 | 5 | **310** | 96,9 % |
 
-**Exactitud global: 862 de 875 lotes = 98,5 %.**
+**Exactitud global: 1 033 de 1 050 lotes = 98,4 %** (v1: 978 de 1 050 = 93,1 %).
 
-Los 13 errores están todos en los cambios de escenario de la guardia mixta y son retraso,
-no confusión. La ventana de 2 s y la EMA tardan uno o dos lotes en cambiar de clase:
-normal → tecleo (4), tecleo → normal (4) y normal → inactividad (5, porque la ventana
-tiene que llenarse de muestras quietas). Nunca se confunden los extremos (Activo con
-Inerte). Hay pocas muestras de Cabeceo porque un cabeceo dura ≈ 2 lotes.
+La diferencia con v1 está en *mirar la hora*: v1 toma 59 lotes de lectura por Inerte; v2,
+ninguno. Ninguno de los dos da Cabeceo al mirar la hora ni al dejar de teclear. Los errores de
+v2 son retrasos en los cambios de escenario de la guardia mixta (la ventana de 2 s y la EMA
+tardan uno o dos lotes) y 5 lotes Inerte tomados por Cabeceo justo después de la caída, con
+la candidata todavía pendiente. Nunca se confunden los extremos (Activo con Inerte).
 
 Ojo: son datos **simulados** y muy separables; la matriz demuestra que el algoritmo hace lo
-que se diseñó, no su exactitud en muñecas reales. Eso se medirá con datos del reloj en la
-fase de IA.
+que se diseñó, no su exactitud en muñecas reales. Las métricas del modelo sobre usuarios
+sintéticos variados están en [IA.md](IA.md) §8.
 
 ### 6.2 Pruebas del detector
 
@@ -250,6 +257,8 @@ fase de IA.
 | Refractario | inactividad continua: 8, 18 y 28 s; dos cabeceos: 6 y 16 s |
 | Calibración | termina a los 5 s (demo) y 30 s; aprende 6,59 ± 0,13 (≈ 725 mg²) con movimiento normal; umbral 50 mg² para 200 mg² |
 | Clasificador | gana la clase del escenario (> 90 %); Cabeceo durante la caída pendiente |
+| Mirar la hora 2 min (modo demo, fase 10) | 0 eventos; el giro llega a 366 mg (no abre caída candidata); leyendo: varianza 43 mg², inclinación 80° |
+| Python ↔ reloj (fase 10) | los 64 eventos y las características de 62 ventanas coinciden (máx. 8 × 10⁻⁶ grados) |
 
 ### 6.3 Simulador (fr165, español)
 
@@ -270,16 +279,28 @@ Recorrido en *Detector en vivo* con la fuente simulada:
 
 ## 7. Limitaciones
 
-- Los umbrales (400 mg, 35°, 50 mg, 25 mg²) y los pesos salen de escenarios simulados. Falta
-  validarlos con datos de muñeca reales (ver [PENDIENTES.md](PENDIENTES.md)).
+- Los umbrales (400 mg, 35°, 50 mg, 25 mg²) salen de escenarios simulados y los pesos v2, de
+  datos sintéticos. Falta validarlos con datos de muñeca reales (ver
+  [PENDIENTES.md](PENDIENTES.md) e [IA.md](IA.md) §10).
 - Un cabeceo sin cambio de postura del brazo (la cabeza cae pero la muñeca sigue apoyada)
   no da cabeceo; si el usuario queda inmóvil, lo cubre la inactividad.
-- **Posible falso positivo sin probar: girar la muñeca rápido para mirar la hora y
-  quedarse leyendo.** Un giro rápido da sacudida, la varianza de la *magnitud* no ve los
-  giros (|g| no cambia) y la inclinación pasa de 35°. Que dispare depende de si el brazo
-  sostenido en el aire queda por debajo del umbral de quietud, y eso solo se sabe en el
-  reloj. Si pasa, la salida es exigir también la *dirección* de la caída (la gravedad debe
-  acabar en la postura de brazo colgando o apoyado, no con la esfera hacia la cara).
+- **Mirar la hora y quedarse leyendo: medido con datos sintéticos (fase 10).** El escenario
+  de referencia del simulador no dispara (el giro da 366 mg, por debajo de 400). Pero en el
+  dataset sintético el detector da un evento CABECEO en el **62,5 %** de las secuencias de
+  mirar la hora de la prueba (15 de 24), casi todas mirando la hora **justo después de
+  teclear**: la sacudida del tecleo deja abierta una caída candidata de 5 s, el brazo
+  sostenido cuenta como quieto y el giro supera los 35°. El clasificador v2 reduce el
+  problema en su propia salida (12 de 48 episodios difíciles con algún lote Cabeceo, frente a
+  16 de v1), pero no decide la alerta. Salidas posibles: exigir la dirección de la caída, que
+  la candidata del tecleo no sirva para una quietud con temblor, o que el detector pida
+  confirmación al modelo ([IA.md](IA.md) §10). Hay que confirmarlo con datos reales.
+- El detector por reglas solo detecta el 61 % de los cabeceos sintéticos de la prueba (22 de
+  36): las caídas lentas no llegan a 400 mg de sacudida. Si el usuario queda inmóvil, lo
+  cubre la inactividad.
+- **Cambio de escenario en el simulador.** Pasar con DOWN de *cabeceo* (brazo colgando) a
+  *inactividad* salta de postura en una sola muestra (≈ 1 200 mg y 75°) y, con la quietud
+  que sigue, el detector da un cabeceo a los ≈ 4 s. Es un artefacto de la fuente simulada,
+  que cambia de postura sin transición, no del detector.
 - El acelerómetro del simulador (*Activity Data*) entrega vectores de 1 g en direcciones
   al azar: varianza de la magnitud ≈ 0, sacudidas enormes e inclinaciones grandes. Con esa
   fuente el detector daría cabeceos sin parar; para probar se usa la fuente simulada.

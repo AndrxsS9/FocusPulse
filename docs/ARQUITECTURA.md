@@ -50,7 +50,7 @@ detector está explicado en [DETECTOR.md](DETECTOR.md) y la alerta en [DISENO.md
                                                    ▼
                          DrowsinessDetector + Baseline (fase 6) → evento y estado
                                                    ▼
-                         StateClassifier (fase 6) → p(Activo, Normal, Cabeceo, Inerte)
+                         StateClassifier (fase 6; pesos v2 entrenados, fase 10) → p(Activo, Normal, Cabeceo, Inerte)
                                                    ▼
                          AlertnessScore → anillo y porcentaje · OrbModel → orbe
                          AlertController (fase 7) → AlertView + Haptics → AlertLog
@@ -98,6 +98,7 @@ Medidas con `tests/SimulatedAccelSourceTest.mc` y en la telemetría en vivo del 
 | Inactividad | (22, −18, 996) ± 4 | ≈ 5–7 mg² | < 15 | sí, desde los 2 s |
 | Cabeceo | 3 s de movimiento normal en (0, 0, 980); caída de 12 muestras (≈0,5 s, con un tramo brusco de 5) hasta (−240, −940, 240); reposo ± 4 | alta → ≈ 6 mg² | pico ≈ 466 en la caída | sí, ≈2 s después |
 | Manual | X/Y/Z fijos (por defecto 0, 0, 1000) ± 4 | ≈ 5 mg² | < 15 | sí |
+| Mirar la hora (fase 10) | Ciclo de 12 s: 4 s normal, giro de 80° en 0,32 s (módulo constante + ±300 mg de subir el brazo), 6 s leyendo en (14, 930, 346) ± 16 triangular, bajada de 0,6 s | ≈ 600 → ≈ 43 mg² leyendo | 366 en el giro | sí al leer, con 80° de inclinación |
 
 El ruido sale de un generador congruencial con semilla (no de `Math.rand`), así que las
 pruebas son reproducibles.
@@ -121,7 +122,7 @@ pruebas son reproducibles.
 | `source/core` | `TelemetryEngine`, `TelemetrySnapshot` | Recibe lotes con marca de tiempo, alimenta la ventana, mide los Hz efectivos y expone el snapshot. | 3 ✅ |
 | `source/platform` | `AccelSource` | Interfaz común de las fuentes (`start`, `stop`, callback de lote). | 3 ✅ |
 | `source/platform` | `RealAccelSource` | `Sensor.registerSensorDataListener`, solo acelerómetro, 25 Hz, lotes de 1 s. Si el sensor falta, `start()` devuelve `false`. | 3 ✅ |
-| `source/platform` | `SimulatedAccelSource` | Genera los escenarios (`AccelScenario`, en `core` desde la fase 8: normal, tecleo, cabeceo, inactividad, manual) con el mismo formato de lote. | 3 ✅ |
+| `source/platform` | `SimulatedAccelSource` | Genera los escenarios (`AccelScenario`, en `core` desde la fase 8: normal, tecleo, cabeceo, inactividad, manual y, desde la fase 10, mirar la hora) con el mismo formato de lote. | 3 ✅, 10 ✅ |
 | `source/platform` | `SessionRecorder` | `ActivityRecording` (`SPORT_GENERIC`): crear, iniciar, detener, guardar o descartar. Permiso `Fit`. | 3 ✅ |
 | `source/app` | `GuardController`, `AppSettings` | Inicia y pausa la guardia: fuente + grabación según el ajuste `recordActivity`. | 3 ✅ |
 | `source/views` | `DebugMenu`, `TelemetryDebugView` | Menú de depuración (`(:debug)`): telemetría en vivo, selector de fuente y escenario, guía de estilo. | 3 ✅ |
@@ -133,7 +134,10 @@ pruebas son reproducibles.
 | `source/core` | `Tilt` | Ángulo entre dos vectores de gravedad (media de cada eje en la ventana). | 6 ✅ |
 | `source/core` | `DrowsinessDetector` | Eventos CABECEO (sacudida > 400 mg + quietud antes de 5 s + inclinación > 35°) e INACTIVIDAD (quietud ≥ 60 s, 8 s en demo), refractario de 10 s, estados calibrando / vigilando / caída detectada / evento. | 6 ✅ |
 | `source/core` | `Baseline` | Línea base del usuario en ln(varianza + 1): calibración de 30 s (5 s demo), EMA lenta y umbral de quietud adaptativo. | 6 ✅ |
-| `source/core` | `StateClassifier`, `ClassifierWeights` | Regresión logística multiclase (Activo, Normal, Cabeceo, Inerte) con probabilidades suavizadas; pesos v1 a mano en formato scikit-learn. El orbe y el puntaje usan su salida. | 6 ✅ |
+| `source/core` | `StateClassifier`, `ClassifierWeights` | Regresión logística multiclase (Activo, Normal, Cabeceo, Inerte) con probabilidades suavizadas. El orbe y el puntaje usan su salida. Desde la fase 10, pesos v2 entrenados con datos sintéticos y estandarización plegada (z = COEF · x + INTERCEPT); `ClassifierWeights.mc` lo genera `ml/export_weights.py`. Ver [IA.md](IA.md). | 6 ✅, 10 ✅ |
+| `source/core` | `ClassifierWeightsV1` | Pesos v1 a mano (fase 6), sin plegar, solo como referencia: los leen `ml/evaluate.py` y la matriz de confusión v1/v2 de las pruebas. | 10 ✅ |
+| `ml/` | `generate_dataset.py`, `features.py`, `train.py`, `evaluate.py`, `export_weights.py`, `test_vectors.py`, `import_real.py` | Pipeline de entrenamiento (`scripts\train.ps1`): dataset sintético con negativos difíciles, características idénticas al reloj, división por usuario, validación cruzada agrupada, regresión logística, informe v1/v2 y exportación a Monkey C. `import_real.py`: esqueleto para datos reales. | 10 ✅ |
+| `source/views` | `ModelInfoView` | Pantalla *Modelo IA* del menú principal: versión, tipo, exactitud, falsos cabeceos y "Entrenado con datos sintéticos". | 10 ✅ |
 | `source/views` | `DetectorDebugView` | Detector en vivo (`(:debug)`): estado, barras de probabilidad, línea base, umbral, último evento y su hora. | 6 ✅ |
 | `source/core` | `AlertController` | Estado de la alerta: inactiva → activa (nivel 1–3, motivo, inicio) → descartada (tiempo de respuesta) o cancelada (pausa). Ignora eventos con una alerta abierta. | 7 ✅ |
 | `source/core` | `VibePatterns`, `AlertVisuals` | Patrón de vibración por nivel (≤ 8 tramos, periodo de repetición) y curvas de la alerta: pulso de brillo (< 1 ciclo/s), entrada con rebote y sacudida sincronizada con el motor. | 7 ✅ |
@@ -151,10 +155,9 @@ pruebas son reproducibles.
 | `source/core` | `Toast`, `ToastKind` | Aviso breve de 1,5 s (cambio de escenario, fin del guion); la vista pone el texto. | 8 ✅ |
 | `source/app` | `DemoStore`, `AppInfo` | `DemoConfig` en `Application.Storage` (se recuerda entre arranques); versión visible. | 8 ✅ |
 | `source/app` | `GuardController` (modo demo) | Aplica `DemoConfig`, reinicia la guardia activa al cambiar de modo sin cortar la grabación, corre el guion con los lotes y las alertas, y atiende DOWN. | 8 ✅ |
-| `source/views` | `MainMenu`, `ScenarioMenu`, `TestAlertMenu`, `AboutView`, `DemoText` | Menú principal (mantener UP, también en release): modo demo, escenario, guion automático, probar alerta (niveles 1–3), acerca de y, solo en depuración, el menú de depuración. | 8 ✅ |
+| `source/views` | `MainMenu`, `ScenarioMenu`, `TestAlertMenu`, `AboutView`, `DemoText` | Menú principal (mantener UP, también en release): modo demo, escenario, guion automático, probar alerta (niveles 1–3), historial, modelo IA, acerca de y, solo en depuración, el menú de depuración. | 8 ✅, 10 ✅ |
 | `resources/settings` | `properties.xml`, `settings.xml` | Sensibilidad, intensidad de vibración (junto a `recordActivity`). El modo demo ya está en el menú del reloj. | 9 |
-| `source/core` | `SessionStats` | Resumen de sesión (duración, eventos) e historial en `Application.Storage`. | 10 |
-| `ml/` + `source/core` | `ClassifierWeights` | Captura de datos, entrenamiento en Python y generación de `ClassifierWeights.mc` con pesos entrenados (mismo formato que los de la fase 6). | 11 |
+| `ml/` + `source/core` | `ClassifierWeights` | Captura de datos **reales** con `SensorLogging`, reentrenamiento con `import_real.py` y detector que pide confirmación al modelo. | 12 |
 
 `source/platform/` es la carpeta de adaptadores de hardware (sensores, grabación,
 vibración), creada en la fase 3. Igual que las vistas, puede importar `Toybox.Sensor`,
@@ -174,7 +177,7 @@ los módulos de las fases siguientes:
 | Restricción | Consecuencia |
 |---|---|
 | Acelerómetro hasta 100 Hz, lotes de hasta 4 s, valores en mili‑g. **Sin giroscopio.** | `RealAccelSource` pide 25 Hz (menos batería que 100 Hz) y solo baja si `getMaxSampleRateForSensorType(:accelerometer)` da menos; si da 0, la fuente no está disponible. `FeatureExtractor` solo usa el acelerómetro: la inclinación sale de la gravedad, no de la velocidad angular. |
-| Los Forerunner **ignoran el `dutyCycle`** de `VibeProfile`: la vibración siempre tiene la misma fuerza. Hay de 1 a 8 perfiles por llamada. | `Haptics` distingue los niveles 1–3 por duración, número de pulsos y pausas, no por intensidad. El ajuste "intensidad de vibración" (fase 10) cambiaría el patrón, no la fuerza. |
+| Los Forerunner **ignoran el `dutyCycle`** de `VibeProfile`: la vibración siempre tiene la misma fuerza. Hay de 1 a 8 perfiles por llamada. | `Haptics` distingue los niveles 1–3 por duración, número de pulsos y pausas, no por intensidad. El ajuste "intensidad de vibración" (fase 11) cambiaría el patrón, no la fuerza. |
 | Si la app pasa a **inactiva** sin grabar una actividad, los sensores bajan a 10 Hz o fallan y la vibración queda denegada. | **Decidido en la fase 3:** la guardia graba una actividad (`SessionRecorder`, permiso `Fit`) por defecto, y el ajuste `recordActivity` lo desactiva. `TelemetryEngine` mide los Hz efectivos para detectar la bajada a 10 Hz. |
 | El simulador 9.3.0 **se cierra con un error** si la app termina con una sesión de `ActivityRecording` todavía grabando, aunque `onStop` la guarde. | `MainDelegate.onBack` detiene y guarda la guardia antes de que la app empiece a cerrarse; `onStop` lo repite como respaldo. |
 | fr165 y fr165m comparten pantalla, teclas, sensores y API 5.2.0. | Un solo código para ambos productos; `scripts\build.ps1` compila para `fr165` y `export.ps1` para los dos. |
@@ -192,10 +195,11 @@ los módulos de las fases siguientes:
 | 7 | Alerta a pantalla completa con vibración por niveles, luz y tono; "Estoy despierto" con tiempo de respuesta. ✅ |
 | 8 | Modo demo oficial (también en release): menú principal, escenarios con DOWN, guion automático, probar alerta y acerca de; guía de la sustentación. ✅ |
 | 9 | Escalamiento de la alerta, predictor de fatiga por reglas, descanso guiado, resumen de la guardia e historial persistente; guion con escalamiento. ✅ |
-| 10 | Ajustes de usuario (sensibilidad, intensidad). |
-| 11 | Captura de datos, entrenamiento del modelo en `/ml` y detector basado en modelo. |
-| 12 | Rendimiento, memoria, batería y pruebas en dispositivo real. |
-| 13 | Preparación para la Connect IQ Store: íconos finales, capturas, textos de tienda es/en, export. |
+| 10 | IA entrenada: dataset sintético, entrenamiento en Python (regresión logística), exportación de pesos v2, métricas v1/v2, pantalla *Modelo IA* y escenario *mirar la hora*. ✅ |
+| 11 | Ajustes de usuario (sensibilidad, intensidad). |
+| 12 | Captura de datos reales, reentrenamiento y detector basado en modelo. |
+| 13 | Rendimiento, memoria, batería y pruebas en dispositivo real. |
+| 14 | Preparación para la Connect IQ Store: íconos finales, capturas, textos de tienda es/en, export. |
 
 En la fase 4 se adelantó la esfera principal (antes en la 7) para la sustentación en el
 simulador; las características de inclinación pasan a la fase 6 junto al detector.
@@ -203,6 +207,8 @@ simulador; las características de inclinación pasan a la fase 6 junto al detec
 La fase 2 se insertó como sistema de diseño, así que las fases siguientes se corrieron un
 número respecto al plan inicial. En la fase 9 se adelantaron el resumen y el historial
 (antes en la 10) junto al escalamiento y la fatiga; los ajustes de usuario pasan a la 10.
+En la fase 10 se adelantó el entrenamiento del modelo, con datos sintéticos; los ajustes
+pasan a la 11 y los datos reales a la 12.
 
 ## Pruebas
 
@@ -234,3 +240,9 @@ número respecto al plan inicial. En la fase 9 se adelantaron el resumen y el hi
   `Application.Storage` del simulador, `Toast` y la regla de DOWN, y `DemoScript` (orden y
   duración de los pasos, congelado con alerta, espera sin respuesta, cancelación y un
   recorrido completo con `DetectorRig`: alertas en los pasos 3 y 5, fin a los 48 s).
+- Fase 9: 167 pruebas (escalamiento, fatiga, descanso, resumen e historial).
+- Fase 10: 172 pruebas. Las nuevas comprueban que Python y el reloj calculan las mismas
+  características y probabilidades (`featuresMatchPythonVectors`,
+  `classifierMatchesPythonProbabilities`, con vectores generados en `ml/`), la firma del
+  escenario *mirar la hora* y que no da eventos, y el formato de la pantalla *Modelo IA*. La
+  matriz de confusión compara v1 y v2 en el reloj. Ver [IA.md](IA.md) §11.

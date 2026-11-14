@@ -71,11 +71,12 @@ tenue. Todo es casi negro porque la pantalla es AMOLED: cada píxel negro está 
 **Qué hacer:** mantener **UP** → se abre el menú *FocusPulse AI*. Con el foco en *Modo
 demo*, pulsar **START**: el interruptor pasa a verde, el subtítulo cambia de "Sensor real"
 a "Datos simulados" y aparecen *Escenario*, *Guion automático* y *Probar alerta* (después
-vienen *Historial* y *Acerca de*; con la guardia activa, también *Tomar descanso*). Pulsar
+vienen *Historial*, *Modelo IA* y *Acerca de*; con la guardia activa, también *Tomar
+descanso*). Pulsar
 **BACK** para volver a la esfera: donde estaba la fecha ahora se lee **"DEMO · Normal"**.
 
 **Qué decir:** "El simulador no tiene muñeca, así que el modo demo reemplaza el
-acelerómetro por una fuente simulada con cuatro escenarios. También acorta los tiempos:
+acelerómetro por una fuente simulada con cinco escenarios. También acorta los tiempos:
 la calibración pasa de 30 a 5 segundos y la inactividad prolongada de 60 a 8. El resto
 del código, detector, clasificador y alertas, es exactamente el mismo que con el sensor
 real. El modo queda guardado aunque cierre la app."
@@ -92,8 +93,13 @@ real. El modo queda guardado aunque cierre la app."
    Nivel 1 de 3 · vibración suave — Cabeceo / pérdida de tono muscular". Responder con
    **START** ("Estoy despierto").
 4. **DOWN** → "Inactividad prolongada". A los **~8 s** de quietud, alerta "Inactividad
-   prolongada". Responder con **START**.
-5. **DOWN** → vuelve a "Movimiento normal".
+   prolongada". Responder con **START**. Si llega antes una alerta de **cabeceo** (≈ 4 s
+   después de pulsar DOWN), es el salto de postura del simulador al pasar del brazo
+   colgando a la postura inerte: respóndela y espera la de inactividad.
+5. **DOWN** → "Mirar la hora". Cada 12 s la muñeca gira rápido y se queda 6 s leyendo con el
+   brazo sostenido. Esperar un ciclo o dos: **no llega ninguna alerta** y la guardia sigue
+   en "Guardia activa".
+6. **DOWN** → vuelve a "Movimiento normal".
 
 **Qué decir:**
 
@@ -107,6 +113,9 @@ real. El modo queda guardado aunque cierre la app."
   respuesta queda registrado."
 - *Inactividad:* "Si el brazo queda inmóvil el tiempo configurado, también alerta. En la
   vida real son 60 segundos."
+- *Mirar la hora:* "Este es el caso difícil: un giro rápido y luego el brazo quieto con la
+  muñeca inclinada se parece a un cabeceo. El clasificador entrenado lo ve como movimiento
+  normal; el de la versión anterior lo tomaba por inactividad." (Ver [IA.md](IA.md).)
 
 Al terminar, **START** para pausar la guardia.
 
@@ -156,7 +165,7 @@ control manual).
 2. Responde con **START** cada alerta (llegan cada ~10 s). Tras la **tercera**, en lugar del
    puntaje y la píldora aparece el aviso ámbar **"Micro-sueños repetidos / descansa
    15 min"**.
-3. **DOWN** una vez (vuelve a "Movimiento normal", para que no lleguen más alertas) y,
+3. **DOWN** una vez (pasa a "Mirar la hora", que no da alertas) y,
    enseguida, **toca el aviso** (clic sobre él). Se abre el **descanso**: anillo cian que
    se vacía y cuenta regresiva de **0:30** (15:00 en el reloj real). Sin pantalla táctil:
    mantener UP → *Tomar descanso*.
@@ -208,12 +217,22 @@ escala si no se responde, aunque la guardia esté en pausa.
 > se ve: la sacudida de la propia alerta, que sigue el mismo patrón que el motor, y el
 > indicador de luz de la barra de estado, que pasa de "☀ Off" a "☀ Default".
 
-### Paso 8 — Acerca de (15 s)
+### Paso 8 — Modelo IA y Acerca de (45 s)
 
-**Qué hacer:** mantener **UP** → **DOWN** hasta *Acerca de* (el último) → **START**.
-**BACK** dos veces para volver.
+**Qué hacer:** mantener **UP** → **DOWN** hasta *Modelo IA* (subtítulo "v2", el penúltimo) →
+**START**. Se ve el tipo de modelo, la versión, la exactitud, los falsos cabeceos y "Entrenado
+con datos sintéticos". **BACK** vuelve al menú; **DOWN** → *Acerca de* → **START**; **BACK**
+dos veces para volver a la esfera.
 
-**Qué decir:** nombre, versión 0.9.0 y la frase de la app.
+**Qué decir (Modelo IA):** "El clasificador es una regresión logística de cuatro clases
+entrenada en Python y exportada a Monkey C: 24 números, sin librerías en el reloj. Lo
+entrenamos con datos sintéticos generados a partir de los mismos patrones del simulador,
+con 48 usuarios distintos y casos difíciles como mirar la hora. Separamos los usuarios de
+prueba para no hacer trampa. Estos porcentajes comparan versiones con datos simulados: no
+son la precisión en una muñeca real, que se medirá con datos del reloj." (Detalle en
+[IA.md](IA.md).)
+
+**Qué decir (Acerca de):** nombre, versión 0.10.0 y la frase de la app.
 
 ### Paso 9 — Volver al sensor real (30 s)
 
@@ -250,5 +269,6 @@ Para terminar, **START** (pausar) y **BACK** (salir).
 ## 4. Referencias
 
 - Algoritmo del detector y matriz de confusión: [DETECTOR.md](DETECTOR.md).
+- Entrenamiento del clasificador, métricas v1/v2 y limitaciones: [IA.md](IA.md).
 - Diseño de la esfera, la alerta y el aviso: [DISENO.md](DISENO.md).
 - Lo que está confirmado y lo que falta probar en el reloj real: [PENDIENTES.md](PENDIENTES.md).
