@@ -13,12 +13,12 @@ import Toybox.WatchUi;
 //! el círculo y los textos. START, un toque o BACK la cierran (NoFeedbackDelegate).
 class NoFeedbackView extends WatchUi.View {
 
-    const ICON_Y = 230;
+    const ICON_Y = 200;
     const ICON_RADIUS = 70;
     const ICON_PEN = 8;
-    const TITLE_Y = 400;
-    const BODY_TOP = 460;
-    const BODY_BOTTOM = 800;
+    const TITLE_Y = 360;
+    const BODY_TOP = 410;
+    const BODY_BOTTOM = 790;
 
     private var _layout as RoundLayout?;
     private var _title as String = "";

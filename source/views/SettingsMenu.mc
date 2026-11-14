@@ -7,8 +7,10 @@ import Toybox.WatchUi;
 //!
 //! - Sensibilidad (Baja / Media / Alta) y Vibración (Apagada / Suave / Normal / Fuerte):
 //!   submenú con las opciones y el foco en la actual (como "Escenario").
-//! - Sonido (solo si el reloj tiene Attention.playTone), Animaciones reducidas,
-//!   Confirmación por IA y Grabar actividad: interruptores.
+//! - Sonido (solo si el reloj tiene Attention.playTone), Animaciones (Reducidas /
+//!   Completas), Confirmar IA y Grabar actividad: interruptores. Las etiquetas del reloj
+//!   son más cortas que las de Garmin Connect: Menu2 corta las que pasan de unos 13
+//!   caracteres junto al interruptor.
 //!
 //! Cada cambio se guarda en Application.Properties (AppSettings.save) y se aplica en el
 //! acto (GuardController.applySettings), igual que un cambio desde Garmin Connect.
@@ -47,8 +49,13 @@ module SettingsMenu {
         if (Haptics.hasToneHardware()) {
             items.add(toggle(Rez.Strings.SettingSound, ITEM_SOUND, settings.sound));
         }
-        items.add(toggle(Rez.Strings.SettingReducedAnimations, ITEM_REDUCED, settings.reducedAnimations));
-        items.add(toggle(Rez.Strings.SettingAiConfirmation, ITEM_AI, settings.aiConfirmation));
+        items.add(new WatchUi.ToggleMenuItem(DemoText.text(Rez.Strings.SettingAnimationsShort),
+            {
+                :enabled => DemoText.text(Rez.Strings.SettingAnimationsReduced),
+                :disabled => DemoText.text(Rez.Strings.SettingAnimationsFull)
+            },
+            ITEM_REDUCED, settings.reducedAnimations, {}));
+        items.add(toggle(Rez.Strings.SettingAiConfirmationShort, ITEM_AI, settings.aiConfirmation));
         items.add(toggle(Rez.Strings.SettingRecordActivityShort, ITEM_RECORD, settings.recordActivity));
 
         var focusIndex = 0;

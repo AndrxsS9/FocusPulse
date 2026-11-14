@@ -161,14 +161,19 @@
     <string id="SettingVibrationStrong">Strong</string>
     <string id="SettingReducedAnimations">Reduced animations</string>
     <string id="SettingAiConfirmation">AI confirmation</string>
-    <!-- Versión corta de SettingRecordActivity para el menú del reloj. -->
+    <!-- Versiones cortas para el menú del reloj (Menu2 corta las etiquetas de más de unos
+         13 caracteres junto al interruptor). Animaciones: interruptor activado = reducidas. -->
     <string id="SettingRecordActivityShort">Record activity</string>
+    <string id="SettingAiConfirmationShort">AI confirm</string>
+    <string id="SettingAnimationsShort">Animations</string>
+    <string id="SettingAnimationsReduced">Reduced</string>
+    <string id="SettingAnimationsFull">Full</string>
 
     <!-- Aviso de seguridad: vibración apagada y sin sonido (Ajustes, esfera al iniciar la
          guardia y pantalla de aviso). WarningVisualOnlyBody va en varias líneas. -->
     <string id="WarningVisualOnlyTitle">Visual-only alert</string>
     <string id="WarningVisualOnlyShort">No vibration or sound</string>
-    <string id="WarningVisualOnlyBody">Vibration and sound are off: alerts will only show on screen. Turn one on in Settings.</string>
+    <string id="WarningVisualOnlyBody">Alerts will only show on screen. Turn on vibration or sound.</string>
 
     <!-- Subtítulo de Vibración en Ajustes con la alerta solo visual: $1$ valor, $2$ WarningVisualOnlyTag. -->
     <string id="WarningSubFormat">$1$ · $2$</string>

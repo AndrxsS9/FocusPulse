@@ -283,7 +283,9 @@ class AlertView extends WatchUi.View {
 
         var from = layout.scaled(WAVE_FROM);
         var span = layout.scaled(WAVE_SPAN);
-        for (var i = 0; i < WAVES; i++) {
+        // Sin vibración no hay ondas: solo el reloj.
+        var waves = _vibration == VibrationLevel.OFF ? 0 : WAVES;
+        for (var i = 0; i < waves; i++) {
             var phase = ((elapsed + i * WAVE_PERIOD_MS / WAVES) % WAVE_PERIOD_MS)
                 / WAVE_PERIOD_MS.toFloat();
             var radius = from + (span * phase).toNumber();

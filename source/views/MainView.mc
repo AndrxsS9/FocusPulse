@@ -510,7 +510,8 @@ class MainView extends WatchUi.View {
     //! Aviso breve (Toast) sobre el centro de la esfera durante 1,5 s: caja SURFACE con
     //! borde cian, título pequeño en gris ("Escenario") y el valor debajo ("Tecleo
     //! activo"), con la fuente más grande que quepa. Tapa la fecha, el puntaje y la
-    //! píldora mientras dura; la hora y el botón siguen a la vista.
+    //! píldora mientras dura; la hora y el botón siguen a la vista. El aviso de seguridad
+    //! ("Alerta solo visual", 3 s) lleva el borde y el título en ámbar, como el de fatiga.
     private function drawToast(dc as Dc, layout as RoundLayout) as Void {
         var toast = _guard.toast();
         if (!toast.isVisible(System.getTimer()) || !updateToastTexts(toast)) {
@@ -538,12 +539,13 @@ class MainView extends WatchUi.View {
 
         dc.setColor(Palette.SURFACE, Graphics.COLOR_TRANSPARENT);
         dc.fillRoundedRectangle(left, top, width, height, pad);
+        var warning = toast.kind() == ToastKind.VISUAL_ONLY;
         dc.setPenWidth(layout.scaled(TOAST_BORDER));
-        dc.setColor(Palette.ACCENT, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(warning ? Palette.AMBER : Palette.ACCENT, Graphics.COLOR_TRANSPARENT);
         dc.drawRoundedRectangle(left, top, width, height, pad);
         dc.setPenWidth(1);
         Draw.centeredText(dc, layout.centerX, top + pad + titleHeight / 2, Typography.LABEL,
-            _toastTitle, Palette.TEXT_SECONDARY);
+            _toastTitle, warning ? Palette.AMBER : Palette.TEXT_SECONDARY);
         Draw.centeredText(dc, layout.centerX, top + pad + titleHeight + valueHeight / 2,
             valueFont, _toastText, Palette.TEXT);
     }
