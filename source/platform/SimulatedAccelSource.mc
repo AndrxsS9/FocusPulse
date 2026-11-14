@@ -2,27 +2,6 @@ import Toybox.Lang;
 import Toybox.System;
 import Toybox.Timer;
 
-//! Escenarios de la fuente simulada.
-module AccelScenario {
-
-    enum Id {
-        //! Movimiento normal: ruido ±70 mg (triangular) con Z ≈ 975 mg.
-        NORMAL = 0,
-        //! Tecleo activo: ±250 mg en X/Y y Z 960 ± 220 mg.
-        TYPING = 1,
-        //! Cabeceo: 3 s de movimiento normal, caída brusca de ~0,5 s hacia el brazo
-        //! colgando y después quietud total.
-        NOD = 2,
-        //! Inactividad prolongada: brazo inerte, ±4 mg alrededor de (22, -18, 996).
-        INACTIVITY = 3,
-        //! Manual: X/Y/Z fijos (SimulatedAccelSource.setManual) con ruido de ±4 mg.
-        MANUAL = 4
-    }
-
-    //! Número de escenarios (para recorrerlos en el selector de depuración).
-    const COUNT = 5;
-}
-
 //! Fuente simulada: genera lotes con el mismo formato que RealAccelSource (25 muestras
 //! por segundo en mg) para el modo demo y para la sustentación en el simulador.
 //!
