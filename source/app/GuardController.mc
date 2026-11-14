@@ -59,6 +59,9 @@ class GuardController {
     //! Modo demo: fuente simulada, escenario y tiempos del detector.
     private var _demo as DemoConfig;
 
+    //! Aviso breve en la esfera (cambio de escenario con DOWN).
+    private var _toast as Toast;
+
     //! true si el último intento de iniciar la guardia falló por el sensor.
     private var _sensorUnavailable as Boolean = false;
 
@@ -81,6 +84,7 @@ class GuardController {
         _recorder = new SessionRecorder(sessionName);
         _realSource = new RealAccelSource();
         _demo = new DemoConfig();
+        _toast = new Toast();
         _demoSource = new SimulatedAccelSource(_demo.scenario(), demoSeed);
         _realSource.setListener(method(:onBatch));
         _demoSource.setListener(method(:onBatch));
@@ -396,6 +400,23 @@ class GuardController {
         _demoSource.setScenario(_demo.scenario());
         DemoStore.save(_demo);
         WatchUi.requestUpdate();
+    }
+
+    //! Atajo DOWN de la esfera: con el modo demo activo y la guardia en marcha pasa al
+    //! siguiente escenario (normal → tecleo → cabeceo → inactividad → normal) y muestra
+    //! un aviso de 1,5 s con su nombre. Devuelve false, sin hacer nada, en otro caso.
+    function cycleDemoScenario() as Boolean {
+        if (!_demo.handlesDownButton(_state.isActive())) {
+            return false;
+        }
+        setDemoScenario(DemoConfig.scenarioAfter(_demo.scenario()));
+        _toast.show(ToastKind.SCENARIO, _demo.scenario() as Number, System.getTimer());
+        return true;
+    }
+
+    //! Aviso breve para la esfera (solo lectura).
+    function toast() as Toast {
+        return _toast;
     }
 
     //! Frecuencia nominal de la fuente elegida (Hz).

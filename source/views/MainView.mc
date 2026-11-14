@@ -81,6 +81,11 @@ class MainView extends WatchUi.View {
     //! dt máximo (s) entre cuadros: tras un onHide largo la animación no da un salto.
     const MAX_FRAME_DT = 0.25f;
 
+    //! Aviso breve (Toast): margen interior y grosor del borde, en milésimas del lado
+    //! (fr165: 12 px y 2 px).
+    const TOAST_PADDING = 30;
+    const TOAST_BORDER = 5;
+
     //! Batería en o por debajo de este porcentaje: ícono y número en rojo.
     const BATTERY_LOW = 15;
 
@@ -133,6 +138,13 @@ class MainView extends WatchUi.View {
     //! rehace solo cuando cambia, no en cada cuadro).
     private var _demoLine as String = "";
     private var _demoLineScenario as Number = -1;
+
+    //! Textos del aviso breve: título y valor, rehechos solo cuando cambia el aviso.
+    private var _toastScenarioTitle as String = "";
+    private var _toastKind as Number = -1;
+    private var _toastValue as Number = -1;
+    private var _toastTitle as String = "";
+    private var _toastText as String = "";
     private var _buttonStart as String = "";
     private var _buttonPause as String = "";
 
@@ -159,6 +171,8 @@ class MainView extends WatchUi.View {
         _badgeDemo = WatchUi.loadResource(Rez.Strings.BadgeDemo) as String;
         _demoBadgeFormat = WatchUi.loadResource(Rez.Strings.DemoBadgeFormat) as String;
         _demoLineScenario = -1;
+        _toastScenarioTitle = WatchUi.loadResource(Rez.Strings.MenuScenario) as String;
+        _toastKind = -1;
         _buttonStart = WatchUi.loadResource(Rez.Strings.ButtonStartGuard) as String;
         _buttonPause = WatchUi.loadResource(Rez.Strings.ButtonPauseGuard) as String;
     }
@@ -350,6 +364,7 @@ class MainView extends WatchUi.View {
         drawScore(dc, layout, score);
         drawStatus(dc, layout, animate);
         drawButton(dc, layout);
+        drawToast(dc, layout);
     }
 
     //! Ícono de batería y porcentaje real, centrados en topY.
@@ -445,6 +460,65 @@ class MainView extends WatchUi.View {
             Draw.largeButton(dc, rect, _buttonStart, Typography.BODY, Palette.ACCENT,
                 Palette.BACKGROUND);
         }
+    }
+
+    //! Aviso breve (Toast) sobre el centro de la esfera durante 1,5 s: caja SURFACE con
+    //! borde cian, título pequeño en gris ("Escenario") y el valor debajo ("Tecleo
+    //! activo"), con la fuente más grande que quepa. Tapa la fecha, el puntaje y la
+    //! píldora mientras dura; la hora y el botón siguen a la vista.
+    private function drawToast(dc as Dc, layout as RoundLayout) as Void {
+        var toast = _guard.toast();
+        if (!toast.isVisible(System.getTimer()) || !updateToastTexts(toast)) {
+            return;
+        }
+        var pad = layout.scaled(TOAST_PADDING);
+        var titleHeight = dc.getFontHeight(Typography.LABEL);
+        // El ancho disponible se mide con el alto máximo (valor en BODY): la caja final
+        // solo puede ser igual o más baja, así que también cabe.
+        var height = 2 * pad + titleHeight + dc.getFontHeight(Typography.BODY);
+        var top = layout.centerY - height / 2;
+        var maxWidth = layout.safeWidthBetween(top, top + height);
+        var valueFont = Draw.fittingFont(dc, _toastText, maxWidth - 2 * pad, Typography.BODY);
+        var valueHeight = dc.getFontHeight(valueFont);
+        height = 2 * pad + titleHeight + valueHeight;
+        top = layout.centerY - height / 2;
+
+        var textWidth = dc.getTextWidthInPixels(_toastText, valueFont);
+        var titleWidth = dc.getTextWidthInPixels(_toastTitle, Typography.LABEL);
+        var width = (textWidth > titleWidth ? textWidth : titleWidth) + 4 * pad;
+        if (width > maxWidth) {
+            width = maxWidth;
+        }
+        var left = layout.centerX - width / 2;
+
+        dc.setColor(Palette.SURFACE, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(left, top, width, height, pad);
+        dc.setPenWidth(layout.scaled(TOAST_BORDER));
+        dc.setColor(Palette.ACCENT, Graphics.COLOR_TRANSPARENT);
+        dc.drawRoundedRectangle(left, top, width, height, pad);
+        dc.setPenWidth(1);
+        Draw.centeredText(dc, layout.centerX, top + pad + titleHeight / 2, Typography.LABEL,
+            _toastTitle, Palette.TEXT_SECONDARY);
+        Draw.centeredText(dc, layout.centerX, top + pad + titleHeight + valueHeight / 2,
+            valueFont, _toastText, Palette.TEXT);
+    }
+
+    //! Prepara el título y el valor del aviso si cambió. Devuelve false si el tipo de
+    //! aviso no tiene texto.
+    private function updateToastTexts(toast as Toast) as Boolean {
+        var kind = toast.kind() as Number;
+        if (kind == _toastKind && toast.value() == _toastValue) {
+            return true;
+        }
+        if (toast.kind() == ToastKind.SCENARIO) {
+            _toastTitle = _toastScenarioTitle;
+            _toastText = DemoText.scenarioName(toast.value() as AccelScenario.Id);
+        } else {
+            return false;
+        }
+        _toastKind = kind;
+        _toastValue = toast.value();
+        return true;
     }
 
     //! Línea del modo demo en el sitio de la fecha: "DEMO · Tecleo activo", en cian, para
