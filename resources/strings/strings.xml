@@ -78,7 +78,14 @@
     <string id="MenuScenario">Scenario</string>
     <!-- Probar alerta: los ítems reutilizan AlertLevel1..3 y AlertVibration*. -->
     <string id="MenuTestAlert">Test alert</string>
-
+    <!-- Guion automático: subtítulo para empezarlo o detenerlo ($1$ paso actual, $2$ total). -->
+    <string id="MenuScript">Auto script</string>
+    <string id="MenuScriptStart">Start</string>
+    <string id="MenuScriptStopFormat">Stop · step $1$/$2$</string>
+    <!-- Línea de la esfera con el guion en marcha: $1$ paso, $2$ total, $3$ nombre corto. -->
+    <string id="ScriptProgressFormat">Script $1$/$2$ · $3$</string>
+    <!-- Aviso al terminar el guion (título MenuScript). -->
+    <string id="ToastScriptDone">Complete</string>
     <string id="MenuAbout">About</string>
     <!-- Acerca de: $1$ es la versión (AppInfo.VERSION). -->
     <string id="AboutVersionFormat">Version $1$</string>

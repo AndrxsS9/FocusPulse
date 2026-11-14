@@ -29,6 +29,10 @@ import Toybox.WatchUi;
 //! (DemoStore) con cada cambio. Cambiar de modo con la guardia activa la reinicia sin
 //! pausarla (restartGuard): otra fuente, motor, puntaje y detector desde cero, y la
 //! grabación sigue.
+//!
+//! Guion automático (DemoScript): avanza con los lotes y con las alertas del detector
+//! que se responden; cada paso cambia el escenario simulado. Se cancela al pausar la
+//! guardia, al apagar el modo demo, con DOWN o al elegir un escenario a mano.
 class GuardController {
 
     private var _state as MonitorState;
@@ -59,8 +63,11 @@ class GuardController {
     //! Modo demo: fuente simulada, escenario y tiempos del detector.
     private var _demo as DemoConfig;
 
-    //! Aviso breve en la esfera (cambio de escenario con DOWN).
+    //! Aviso breve en la esfera (cambio de escenario con DOWN, fin del guion).
     private var _toast as Toast;
+
+    //! Guion automático del modo demo.
+    private var _script as DemoScript;
 
     //! true si el último intento de iniciar la guardia falló por el sensor.
     private var _sensorUnavailable as Boolean = false;
@@ -85,6 +92,7 @@ class GuardController {
         _realSource = new RealAccelSource();
         _demo = new DemoConfig();
         _toast = new Toast();
+        _script = new DemoScript();
         _demoSource = new SimulatedAccelSource(_demo.scenario(), demoSeed);
         _realSource.setListener(method(:onBatch));
         _demoSource.setListener(method(:onBatch));
@@ -159,6 +167,7 @@ class GuardController {
     }
 
     private function stopAll() as Void {
+        _script.cancel();
         _score.setActive(false);
         _detector.reset();
         _classifier.reset();
@@ -195,8 +204,14 @@ class GuardController {
             logEvent(event, timestampMs);
             // Con una alerta ya abierta, AlertController ignora el evento.
             if (_alerts.onEvent(event, System.getTimer())) {
+                // Solo las alertas del detector cuentan para los pasos de espera del
+                // guion (no las de prueba del menú).
+                _script.onAlertOpened();
                 showAlert();
             }
+        }
+        if (_script.update(timestampMs, _alerts.isActive())) {
+            onScriptStep();
         }
         _score.update(_classifier.isReady() ? _classifier.probabilities() : null, dt);
 
@@ -243,6 +258,9 @@ class GuardController {
             response));
         logDismiss(response);
         WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+        if (_script.onAlertDismissed(System.getTimer())) {
+            onScriptStep();
+        }
         WatchUi.requestUpdate();
     }
 
@@ -387,19 +405,84 @@ class GuardController {
         if (enabled == _demo.isEnabled()) {
             return;
         }
+        if (!enabled) {
+            _script.cancel();
+        }
         _demo.setEnabled(enabled);
         DemoStore.save(_demo);
         restartGuard();
     }
 
+    //! Elige un escenario a mano (menú, DOWN, depuración): cancela el guion, si
+    //! corría, y aplica el escenario.
+    function setDemoScenario(scenario as AccelScenario.Id) as Void {
+        _script.cancel();
+        applyScenario(scenario);
+    }
+
     //! Cambia el escenario simulado y lo guarda. El escenario empieza desde el
     //! principio (elegir otra vez "Simular cabeceo" repite el cabeceo); el detector no
     //! se reinicia, como al cambiar de postura de verdad.
-    function setDemoScenario(scenario as AccelScenario.Id) as Void {
+    private function applyScenario(scenario as AccelScenario.Id) as Void {
         _demo.setScenario(scenario);
         _demoSource.setScenario(_demo.scenario());
         DemoStore.save(_demo);
         WatchUi.requestUpdate();
+    }
+
+    // --- Guion automático ---------------------------------------------------------
+
+    //! Empieza el guion desde el paso 1 (movimiento normal). Si la guardia está en
+    //! pausa, la inicia (calibra durante el paso 1). Solo con el modo demo activo;
+    //! devuelve false si no se pudo empezar.
+    function startDemoScript() as Boolean {
+        if (!_demo.isEnabled()) {
+            return false;
+        }
+        _script.cancel();
+        applyScenario(AccelScenario.NORMAL);
+        if (!_state.isActive() && !start()) {
+            return false;
+        }
+        _script.start(System.getTimer());
+        logScriptStep();
+        WatchUi.requestUpdate();
+        return true;
+    }
+
+    //! Detiene el guion (menú). El escenario del paso en curso sigue activo.
+    function cancelDemoScript() as Void {
+        if (_script.cancel()) {
+            WatchUi.requestUpdate();
+        }
+    }
+
+    //! Guion automático (solo lectura para la esfera y el menú).
+    function demoScript() as DemoScript {
+        return _script;
+    }
+
+    //! El guion cambió de paso o terminó: aplica el escenario del paso nuevo; al
+    //! terminar vuelve a movimiento normal y muestra el aviso "Guion · Completado".
+    private function onScriptStep() as Void {
+        logScriptStep();
+        if (_script.isFinished()) {
+            applyScenario(AccelScenario.NORMAL);
+            _toast.show(ToastKind.SCRIPT_DONE, 0, System.getTimer());
+            return;
+        }
+        applyScenario(_script.scenario());
+    }
+
+    (:debug)
+    private function logScriptStep() as Void {
+        System.println(_script.isFinished() ? "GUION terminado"
+            : "GUION paso " + _script.stepNumber() + "/" + _script.stepCount() + ": escenario "
+                + (_script.scenario() as Number));
+    }
+
+    (:release)
+    private function logScriptStep() as Void {
     }
 
     //! Atajo DOWN de la esfera: con el modo demo activo y la guardia en marcha pasa al
@@ -409,6 +492,7 @@ class GuardController {
         if (!_demo.handlesDownButton(_state.isActive())) {
             return false;
         }
+        // Tomar el control a mano cancela el guion (setDemoScenario).
         setDemoScenario(DemoConfig.scenarioAfter(_demo.scenario()));
         _toast.show(ToastKind.SCENARIO, _demo.scenario() as Number, System.getTimer());
         return true;

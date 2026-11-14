@@ -133,14 +133,17 @@ class MainView extends WatchUi.View {
     private var _statusSensorUnavailable as String = "";
     private var _badgeDemo as String = "";
     private var _demoBadgeFormat as String = "";
+    private var _scriptFormat as String = "";
 
-    //! Línea del modo demo ya formateada y el escenario con el que se formateó (se
-    //! rehace solo cuando cambia, no en cada cuadro).
+    //! Línea del modo demo ya formateada y la clave con la que se formateó (escenario
+    //! y paso del guion; se rehace solo cuando cambia, no en cada cuadro).
     private var _demoLine as String = "";
-    private var _demoLineScenario as Number = -1;
+    private var _demoLineKey as Number = -1;
 
     //! Textos del aviso breve: título y valor, rehechos solo cuando cambia el aviso.
     private var _toastScenarioTitle as String = "";
+    private var _toastScriptTitle as String = "";
+    private var _toastScriptDone as String = "";
     private var _toastKind as Number = -1;
     private var _toastValue as Number = -1;
     private var _toastTitle as String = "";
@@ -170,8 +173,11 @@ class MainView extends WatchUi.View {
         _statusSensorUnavailable = WatchUi.loadResource(Rez.Strings.StatusSensorUnavailable) as String;
         _badgeDemo = WatchUi.loadResource(Rez.Strings.BadgeDemo) as String;
         _demoBadgeFormat = WatchUi.loadResource(Rez.Strings.DemoBadgeFormat) as String;
-        _demoLineScenario = -1;
+        _scriptFormat = WatchUi.loadResource(Rez.Strings.ScriptProgressFormat) as String;
+        _demoLineKey = -1;
         _toastScenarioTitle = WatchUi.loadResource(Rez.Strings.MenuScenario) as String;
+        _toastScriptTitle = WatchUi.loadResource(Rez.Strings.MenuScript) as String;
+        _toastScriptDone = WatchUi.loadResource(Rez.Strings.ToastScriptDone) as String;
         _toastKind = -1;
         _buttonStart = WatchUi.loadResource(Rez.Strings.ButtonStartGuard) as String;
         _buttonPause = WatchUi.loadResource(Rez.Strings.ButtonPauseGuard) as String;
@@ -513,6 +519,9 @@ class MainView extends WatchUi.View {
         if (toast.kind() == ToastKind.SCENARIO) {
             _toastTitle = _toastScenarioTitle;
             _toastText = DemoText.scenarioName(toast.value() as AccelScenario.Id);
+        } else if (toast.kind() == ToastKind.SCRIPT_DONE) {
+            _toastTitle = _toastScriptTitle;
+            _toastText = _toastScriptDone;
         } else {
             return false;
         }
@@ -521,16 +530,22 @@ class MainView extends WatchUi.View {
         return true;
     }
 
-    //! Línea del modo demo en el sitio de la fecha: "DEMO · Tecleo activo", en cian, para
-    //! que en la sustentación se sepa qué datos se ven y qué escenario corre. Va aquí y no
-    //! en el pie (footerY), donde la cuerda del círculo seguro solo deja unos 130 px; en
-    //! dateY hay unos 335 px. Los nombres cortos (DemoShort*) caben en ambos idiomas.
+    //! Línea del modo demo en el sitio de la fecha: "DEMO · Tecleo activo" o, con el
+    //! guion en marcha, "Guion 2/5 · Tecleo activo", en cian, para que en la
+    //! sustentación se sepa qué datos se ven y qué escenario corre. Va aquí y no en el
+    //! pie (footerY), donde la cuerda del círculo seguro solo deja unos 130 px; en dateY
+    //! hay unos 335 px. Los nombres cortos (DemoShort*) caben en ambos idiomas.
     private function drawDemoLine(dc as Dc, layout as RoundLayout) as Void {
         var scenario = _guard.demoScenario() as Number;
-        if (scenario != _demoLineScenario) {
-            _demoLine = Lang.format(_demoBadgeFormat,
-                [_badgeDemo, DemoText.scenarioShortName(scenario as AccelScenario.Id)]);
-            _demoLineScenario = scenario;
+        var script = _guard.demoScript();
+        var step = script.stepNumber();
+        var key = step * AccelScenario.COUNT + scenario;
+        if (key != _demoLineKey) {
+            var name = DemoText.scenarioShortName(scenario as AccelScenario.Id);
+            _demoLine = step > 0
+                ? Lang.format(_scriptFormat, [step, script.stepCount(), name])
+                : Lang.format(_demoBadgeFormat, [_badgeDemo, name]);
+            _demoLineKey = key;
         }
         Draw.centeredText(dc, layout.centerX, layout.dateY, Typography.LABEL, _demoLine,
             Palette.ACCENT);

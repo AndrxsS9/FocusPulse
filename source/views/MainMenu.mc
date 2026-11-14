@@ -7,6 +7,8 @@ import Toybox.WatchUi;
 //! - Modo demo (ToggleMenuItem): activa la fuente simulada y los tiempos cortos; se
 //!   guarda en Storage (GuardController.setDemoMode → DemoStore).
 //! - Escenario (solo con el modo demo): submenú con los 4 escenarios de la demo.
+//! - Guion automático (solo con el modo demo): lo inicia (y la guardia, si estaba en
+//!   pausa) o, si ya corre, lo detiene. Cierra el menú en ambos casos.
 //! - Probar alerta (solo con el modo demo): submenú nivel 1 / 2 / 3; cierra los menús y
 //!   abre la alerta sobre la esfera, como una alerta real.
 //! - Acerca de: nombre, versión y qué hace la app.
@@ -18,6 +20,7 @@ module MainMenu {
 
     const ITEM_DEMO = :demo;
     const ITEM_SCENARIO = :scenario;
+    const ITEM_SCRIPT = :script;
     const ITEM_TEST_ALERT = :testAlert;
     const ITEM_ABOUT = :about;
     const ITEM_DEBUG = :debug;
@@ -47,6 +50,8 @@ module MainMenu {
         if (demo) {
             items.add(new WatchUi.MenuItem(DemoText.text(Rez.Strings.MenuScenario),
                 DemoText.scenarioName(guard.demoScenario()), ITEM_SCENARIO, {}));
+            items.add(new WatchUi.MenuItem(DemoText.text(Rez.Strings.MenuScript),
+                scriptSubLabel(guard.demoScript()), ITEM_SCRIPT, {}));
             items.add(new WatchUi.MenuItem(DemoText.text(Rez.Strings.MenuTestAlert), null,
                 ITEM_TEST_ALERT, {}));
         }
@@ -67,6 +72,15 @@ module MainMenu {
             menu.addItem(items[i]);
         }
         return menu;
+    }
+
+    //! "Iniciar", o "Detener · paso 2/5" con el guion en marcha.
+    function scriptSubLabel(script as DemoScript) as String {
+        if (!script.isRunning()) {
+            return DemoText.text(Rez.Strings.MenuScriptStart);
+        }
+        return Lang.format(DemoText.text(Rez.Strings.MenuScriptStopFormat),
+            [script.stepNumber(), script.stepCount()]);
     }
 
     //! En depuración, el último ítem abre el menú de depuración.
@@ -174,6 +188,14 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
             MainMenu.rebuild(_guard, MainMenu.ITEM_DEMO);
         } else if (id == MainMenu.ITEM_SCENARIO) {
             ScenarioMenu.open(_guard, item);
+        } else if (id == MainMenu.ITEM_SCRIPT) {
+            // Vuelve a la esfera: el guion se sigue allí.
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+            if (_guard.demoScript().isRunning()) {
+                _guard.cancelDemoScript();
+            } else {
+                _guard.startDemoScript();
+            }
         } else if (id == MainMenu.ITEM_TEST_ALERT) {
             TestAlertMenu.open(_guard);
         } else if (id == MainMenu.ITEM_ABOUT) {
