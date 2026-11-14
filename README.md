@@ -4,10 +4,10 @@ Aplicación nativa de **Garmin Connect IQ** (Monkey C) para el **Forerunner 165*
 (pantalla redonda AMOLED de 390×390, táctil + botones).
 
 FocusPulse AI detecta **micro-sueños y cabeceos** a partir del acelerómetro del reloj y
-despierta al usuario con **vibraciones progresivas**. Incluye un **modo demo** interno para
+despierta al usuario con **vibraciones progresivas**. Incluye un **modo demo** para
 simular eventos sin necesidad de dormirse frente al reloj.
 
-> Estado: **Fase 7 — alerta háptica**. La pantalla inicial es la esfera de guardia: anillo de
+> Estado: **Fase 8 — modo demo**. La pantalla inicial es la esfera de guardia: anillo de
 > nivel de alerta en el borde, batería, hora, fecha, porcentaje de alerta, píldora de estado
 > y botón grande "Iniciar guardia" (START o un toque en el botón). Detrás de la hora, un orbe
 > IA de 3 anillos orgánicos cambia de color con el puntaje y de velocidad con la actividad
@@ -18,8 +18,13 @@ simular eventos sin necesidad de dormirse frente al reloj.
 > del brazo) e **inactividad prolongada**, y un clasificador (Activo, Normal, Cabeceo,
 > Inerte) mueve el puntaje y el orbe. Cada evento abre una **alerta a pantalla completa**
 > "¡DESPIERTA!" con vibración por pulsos, luz y tono, que solo se cierra con "Estoy despierto"
-> (botón o START; BACK no la cierra). Ver [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md),
-> [docs/DETECTOR.md](docs/DETECTOR.md) y [docs/DISENO.md](docs/DISENO.md).
+> (botón o START; BACK no la cierra). **Mantener UP** abre el menú principal, también en
+> release: *Modo demo* (fuente simulada, calibración de 5 s e inactividad a 8 s; se
+> recuerda entre arranques), *Escenario*, *Guion automático* y *Probar alerta* (solo con el
+> modo demo) y *Acerca de*. Con el modo demo y la guardia activa, **DOWN** pasa al
+> siguiente escenario. Ver [docs/GUIA_DEMO.md](docs/GUIA_DEMO.md) (sustentación),
+> [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md), [docs/DETECTOR.md](docs/DETECTOR.md) y
+> [docs/DISENO.md](docs/DISENO.md).
 
 ## Requisitos
 
@@ -49,8 +54,8 @@ powershell -ExecutionPolicy Bypass -File scripts\build.ps1
 | Script | Qué hace | Salida |
 |---|---|---|
 | `setup.ps1` | Instala la extensión de VS Code y genera la llave si no existe (nunca la sobrescribe). Informa si faltan Java o el SDK. | Llave en `Downloads\FocusPulse-keys\` |
-| `build.ps1` | Compila para `fr165` con verificación de tipos estricta (`-l 3`). | `bin\FocusPulse.prg` |
-| `run.ps1` | Compila, abre el simulador y ejecuta la app en `fr165`. `-NoBuild` omite la compilación; `-TargetDevice fr165m` usa el 165 Music. | — |
+| `build.ps1` | Compila para `fr165` con verificación de tipos estricta (`-l 3`). `-Release` compila en modo release (sin el código `(:debug)`), como el paquete de la tienda. | `bin\FocusPulse.prg` (`-Release`: `bin\FocusPulse-release.prg`) |
+| `run.ps1` | Compila, abre el simulador y ejecuta la app en `fr165`. `-NoBuild` omite la compilación; `-TargetDevice fr165m` usa el 165 Music; `-Release` ejecuta la compilación de release (la de la sustentación). | — |
 | `test.ps1` | Compila con pruebas (`-t`), las ejecuta en el simulador y termina con error si alguna falla. | `bin\FocusPulse-test.prg` |
 | `export.ps1` | Genera el paquete firmado en modo release para la tienda (`fr165` y `fr165m`). | `bin\FocusPulse.iq` |
 | `icon.ps1` | Genera el ícono del launcher con los colores de `Palette.mc`. `-Size` cambia el tamaño. No necesita el SDK. | `resources\drawables\launcher_icon.png` |
@@ -62,17 +67,36 @@ Primer uso:
 .\scripts\run.ps1
 ```
 
+## Modo demo
+
+Para presentar la app en el simulador (o en el reloj sin dormirse), en cualquier
+compilación:
+
+1. `.\scripts\run.ps1 -Release` abre la compilación de release en el simulador del fr165.
+2. **Mantén pulsado UP** en la esfera: menú principal → *Modo demo* (START). La esfera
+   cambia la fecha por **"DEMO · Normal"**.
+3. START inicia la guardia (5 s de calibración). **DOWN** recorre *Movimiento normal →
+   Tecleo activo → Simular cabeceo → Inactividad prolongada* con un aviso de 1,5 s; el
+   cabeceo abre la alerta a los ~6 s y la inactividad a los ~8 s.
+4. *Guion automático* recorre todo solo (normal 10 s → tecleo 10 s → cabeceo → normal 8 s →
+   inactividad) y espera a que se responda cada alerta; la esfera muestra "Guion 2/5 ·
+   Tecleo activo". *Probar alerta* abre los niveles 1, 2 y 3.
+
+Paso a paso, qué decir y qué hacer si algo falla: [docs/GUIA_DEMO.md](docs/GUIA_DEMO.md).
+
 ## Probar la telemetría en el simulador
 
-Solo en compilaciones de depuración (`build.ps1` / `run.ps1`; el `.iq` de `export.ps1` no
-incluye nada de esto).
+Solo en compilaciones de depuración (`build.ps1` / `run.ps1` sin `-Release`; ni
+`run.ps1 -Release` ni el `.iq` de `export.ps1` incluyen nada de esto).
 
 1. `.\scripts\run.ps1` abre la app en el simulador del fr165.
-2. **Mantén pulsado UP** (menú) en la pantalla principal: se abre el menú de depuración.
+2. **Mantén pulsado UP** en la esfera: menú principal → *Debug* / *Depuración* (último
+   ítem, solo en depuración) abre el menú de depuración.
 3. **Fuente de datos** → elige *Sensor real* o un escenario simulado: *Movimiento normal*,
    *Tecleo activo*, *Simular cabeceo*, *Inactividad prolongada* o *Manual (X/Y/Z fijos)*.
-   La elección se guarda y se recupera en el siguiente arranque. Con una fuente simulada,
-   la pantalla principal muestra "Modo demo".
+   Es el mismo ajuste que el *Modo demo* del menú principal (elegir un escenario lo
+   enciende, *Sensor real* lo apaga) y se recuerda en el siguiente arranque. El escenario
+   manual solo está aquí.
 4. **Telemetría en vivo** → START (o un toque) inicia y pausa la guardia. Se ven las
    muestras recibidas, la fuente, X/Y/Z, la varianza, la sacudida (últimas 10 muestras y
    pico del lote), la quietud, los Hz efectivos frente a los pedidos y si está grabando.
@@ -91,8 +115,8 @@ acelerómetro por sí solo (la telemetría se queda en 0 muestras). Para inyecta
   SDK, un FIT grabado en el reloj con `SensorLogging` reproduce el acelerómetro real
   (pendiente de probar, ver [docs/PENDIENTES.md](docs/PENDIENTES.md)).
 
-Para la sustentación se recomienda la **fuente simulada**: es reproducible y cada escenario
-tiene su firma (tabla en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)).
+Para la sustentación se usa el **modo demo**: es reproducible y cada escenario tiene su
+firma (tabla en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)).
 
 Las actividades grabadas en el simulador se guardan en
 `%TEMP%\com.garmin.connectiq\GARMIN\Activities\`. El ajuste "Grabar guardia como
@@ -105,8 +129,8 @@ Application.Properties data* y en el reloj desde la app Garmin Connect.
 manifest.xml        Manifest de Connect IQ (watch-app, fr165/fr165m, permisos, idiomas)
 monkey.jungle       Configuración de compilación
 source/app/         Punto de entrada (FocusPulseApp)
-source/views/       Vistas y delegados de entrada (incluye el menú de depuración)
-source/core/        Lógica pura (estado, telemetría, detector) sin dependencias de UI
+source/views/       Vistas, menú principal y delegados de entrada (incluye el menú de depuración)
+source/core/        Lógica pura (estado, telemetría, detector, modo demo) sin dependencias de UI
 source/platform/    Adaptadores de hardware: acelerómetro real y simulado, grabación
 source/util/        Sistema de diseño: paleta, tipografía, layout redondo, dibujo
 resources/          Recursos por defecto (inglés): textos, ícono, layouts, ajustes
@@ -119,6 +143,7 @@ ml/                 Entrenamiento del modelo de detección (no se empaqueta en e
 
 ## Documentación
 
+- [docs/GUIA_DEMO.md](docs/GUIA_DEMO.md) — guía paso a paso de la demo para la sustentación.
 - [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) — módulos y plan por fases.
 - [docs/DETECTOR.md](docs/DETECTOR.md) — algoritmo del detector, línea base, clasificador y
   matriz de confusión.

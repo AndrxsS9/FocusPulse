@@ -146,7 +146,7 @@ hay números fijos de 390. Valores resultantes en el fr165:
 | Píldora de estado (`pillY`) | 648 ‰ | 252 |
 | Botón grande (`buttonRect`) | arriba 720 ‰, alto 140 ‰ | x 82, y 280, 226×54 |
 | Área táctil del botón (`buttonTouchRect`) | botón + 30 ‰ por lado | x 71, y 269, 248×76 |
-| Marca "DEMO" / indicador de página (`footerY`) | 905 ‰ | 352 |
+| Indicador de página (`footerY`) | 905 ‰ | 352 |
 
 En la fase 4 la hora subió (de 420 ‰ a 335 ‰) para dejar sitio a la fecha, y el porcentaje
 y la píldora se acercaron para que quede aire entre la píldora y el botón. La anatomía
@@ -178,11 +178,11 @@ en español e inglés. Medidas reales en el fr165 (390×390):
               ╭──┤          ▭ 50 %                 y 50       ├──╮   batería
             ╱   │                                              │   ╲
            │    │          11:06                   y 130       │    │  hora (orbe IA detrás)
-           │    │       vie 13 nov                 y 183       │    │  fecha
+           │    │       vie 13 nov                 y 183       │    │  fecha / "DEMO · Normal"
            │    │     ALERTA 88 %                  y 217       │    │  puntaje
            │    │  ( • Guardia activa )            y 232–272   │    │  píldora
             ╲   │  [  Pausar guardia  ]            y 280–334   │   ╱   botón
-              ╰─┤          DEMO                    y 352       ├─╯     fuente simulada
+              ╰─┤                                              ├─╯
                  ╰──────────────────────────────────────────────╯
 ```
 
@@ -195,7 +195,8 @@ en español e inglés. Medidas reales en el fr165 (390×390):
 | Puntaje (`scoreY` 217) | "ALERTA" + porcentaje, centrados juntos con 7 px de separación. | `LABEL` + `FONT_SMALL` (45 px) | etiqueta `TEXT_SECONDARY`; número del color del anillo |
 | Píldora (`pillY` 252) | "Monitoreo en pausa" / "Guardia activa" (con punto delante; "Calibrando…" mientras el detector aprende la línea base, 30 s o 5 s en demo) / "Sensor no disponible". 40 px de alto. | `LABEL` | `TEXT_SECONDARY` / `ACCENT` / `AMBER`; relleno `SURFACE`, borde `BORDER_STRONG` |
 | Botón (`buttonRect`) | "Iniciar guardia" o "Pausar guardia"; `fittingFont` baja de `BODY` si no cabe ("Iniciar guardia" va en `FONT_TINY`). | `BODY` → `TINY` | inicio: `ACCENT` con texto `BACKGROUND`; pausa: `SURFACE` + borde `BORDER_STRONG`, texto `TEXT` |
-| Marca DEMO (`footerY` 352) | Solo con la fuente simulada. | `LABEL` | `TEXT_SECONDARY` |
+| Línea del modo demo (`dateY` 183, fase 8) | Con el modo demo activo reemplaza a la fecha: "DEMO · Tecleo activo" o, con el guion, "Guion 2/5 · Tecleo activo". Nombres cortos (`DemoShort*`) para que quepa en los ≈ 335 px de esa altura en ambos idiomas; en `footerY` solo había ≈ 130 px. | `LABEL` | `ACCENT` |
+| Aviso breve (centro, fase 8) | 1,5 s al cambiar de escenario con DOWN ("Escenario / Tecleo activo") o al terminar el guion ("Guion automático / Completado"). Caja de esquinas redondas centrada en la pantalla; el valor baja de `BODY` hasta que cabe ("Inactividad prolongada"). Tapa la fecha y el puntaje mientras dura. | `LABEL` + `BODY` → `XTINY` | relleno `SURFACE`, borde `ACCENT`, título `TEXT_SECONDARY`, valor `TEXT` |
 
 **Orden de dibujo:** fondo → orbe IA y partículas → anillo de alerta y arco de escaneo →
 contenido. Ver la sección 5.2.

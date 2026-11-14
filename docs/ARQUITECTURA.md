@@ -105,7 +105,7 @@ pruebas son reproducibles.
 | `source/app` | `FocusPulseApp` | Punto de entrada, ciclo de vida, cableado de dependencias. | 1 ✅ |
 | `source/util` | `Palette` | Tokens de color (constantes). | 1 ✅, 2 ✅ |
 | `source/core` | `MonitorState` | Estado de sesión (activo / en pausa). | 1 ✅ |
-| `source/views` | `MainView`, `MainDelegate` | Esfera principal: anillo de alerta, batería, hora, fecha, puntaje, píldora de estado, botón de guardia con hit-testing y marca DEMO. Anatomía en [DISENO.md](DISENO.md) §5.1. | 1 ✅, 4 ✅ |
+| `source/views` | `MainView`, `MainDelegate` | Esfera principal: anillo de alerta, batería, hora, fecha (o línea del modo demo), puntaje, píldora de estado, botón de guardia con hit-testing y aviso breve. Anatomía en [DISENO.md](DISENO.md) §5.1. | 1 ✅, 4 ✅, 8 ✅ |
 | `source/core` | `AlertnessScore` | Puntaje de alerta (0–100). Desde la fase 6 se acerca a la media de los niveles de cada clase pesada por las probabilidades del clasificador, a +3 / −2 puntos por segundo como mucho. | 4 ✅, 6 ✅ |
 | `source/util` | `ClockFormat` | Hora en 24 h / 12 h y porcentaje de batería. | 4 ✅ |
 | `source/core` | `AlertnessColors` | Banda y color según el puntaje de alerta, colores del orbe IA y de la alerta por nivel. | 2 ✅ |
@@ -117,7 +117,7 @@ pruebas son reproducibles.
 | `source/core` | `TelemetryEngine`, `TelemetrySnapshot` | Recibe lotes con marca de tiempo, alimenta la ventana, mide los Hz efectivos y expone el snapshot. | 3 ✅ |
 | `source/platform` | `AccelSource` | Interfaz común de las fuentes (`start`, `stop`, callback de lote). | 3 ✅ |
 | `source/platform` | `RealAccelSource` | `Sensor.registerSensorDataListener`, solo acelerómetro, 25 Hz, lotes de 1 s. Si el sensor falta, `start()` devuelve `false`. | 3 ✅ |
-| `source/platform` | `SimulatedAccelSource` | Escenarios del modo demo (normal, tecleo, cabeceo, inactividad, manual) con el mismo formato de lote. | 3 ✅ |
+| `source/platform` | `SimulatedAccelSource` | Genera los escenarios (`AccelScenario`, en `core` desde la fase 8: normal, tecleo, cabeceo, inactividad, manual) con el mismo formato de lote. | 3 ✅ |
 | `source/platform` | `SessionRecorder` | `ActivityRecording` (`SPORT_GENERIC`): crear, iniciar, detener, guardar o descartar. Permiso `Fit`. | 3 ✅ |
 | `source/app` | `GuardController`, `AppSettings` | Inicia y pausa la guardia: fuente + grabación según el ajuste `recordActivity`. | 3 ✅ |
 | `source/views` | `DebugMenu`, `TelemetryDebugView` | Menú de depuración (`(:debug)`): telemetría en vivo, selector de fuente y escenario, guía de estilo. | 3 ✅ |
@@ -137,8 +137,13 @@ pruebas son reproducibles.
 | `source/platform` | `Haptics` | `Attention.vibrate` con `VibeProfile` según el patrón, repetido con un `Timer`; respeta `vibrateOn`, enciende la luz y toca un tono por pulso si hay tonos. | 7 ✅ |
 | `source/views` | `AlertView`, `AlertDelegate` | Alerta a pantalla completa: "¡DESPIERTA!", nivel, motivo y "Estoy despierto" (botón o START; BACK no la cierra). Ver [DISENO.md](DISENO.md) §5.3. | 7 ✅ |
 | `source/core` | `AlertEscalator` | Escalamiento automático entre niveles (1 suave → 3 máxima) si el usuario no responde. En la fase 7 los niveles 2 y 3 solo se abren desde depuración. | siguiente |
-| `source/views` | Modo demo | Pantalla del modo demo sobre `SimulatedAccelSource`; sustituye al selector de depuración. | 8 |
-| `resources/settings` | `properties.xml`, `settings.xml` | Sensibilidad, intensidad de vibración, modo demo (junto a `recordActivity`). | 9 |
+| `source/core` | `DemoConfig` | Modo demo activo o no y escenario: decide la fuente (simulada o real), la calibración (5 s / 30 s) y la inactividad (8 s / 60 s), el ciclo de escenarios de DOWN y su diccionario para `Storage`. | 8 ✅ |
+| `source/core` | `DemoScript` | Guion automático de 5 pasos (normal 10 s → tecleo 10 s → cabeceo hasta responder → normal 8 s → inactividad hasta responder); se congela con una alerta abierta y se cancela en cualquier momento. | 8 ✅ |
+| `source/core` | `Toast`, `ToastKind` | Aviso breve de 1,5 s (cambio de escenario, fin del guion); la vista pone el texto. | 8 ✅ |
+| `source/app` | `DemoStore`, `AppInfo` | `DemoConfig` en `Application.Storage` (se recuerda entre arranques); versión visible. | 8 ✅ |
+| `source/app` | `GuardController` (modo demo) | Aplica `DemoConfig`, reinicia la guardia activa al cambiar de modo sin cortar la grabación, corre el guion con los lotes y las alertas, y atiende DOWN. | 8 ✅ |
+| `source/views` | `MainMenu`, `ScenarioMenu`, `TestAlertMenu`, `AboutView`, `DemoText` | Menú principal (mantener UP, también en release): modo demo, escenario, guion automático, probar alerta (niveles 1–3), acerca de y, solo en depuración, el menú de depuración. | 8 ✅ |
+| `resources/settings` | `properties.xml`, `settings.xml` | Sensibilidad, intensidad de vibración (junto a `recordActivity`). El modo demo ya está en el menú del reloj. | 9 |
 | `source/core` | `SessionStats` | Resumen de sesión (duración, eventos) e historial en `Application.Storage`. | 10 |
 | `ml/` + `source/core` | `ClassifierWeights` | Captura de datos, entrenamiento en Python y generación de `ClassifierWeights.mc` con pesos entrenados (mismo formato que los de la fase 6). | 11 |
 
@@ -176,7 +181,7 @@ los módulos de las fases siguientes:
 | 5 | Orbe IA animado, arco de escaneo y punto que late. ✅ |
 | 6 | Inclinación, detector de cabeceos e inactividad, línea base adaptativa y clasificador v1. ✅ |
 | 7 | Alerta a pantalla completa con vibración por niveles, luz y tono; "Estoy despierto" con tiempo de respuesta. ✅ |
-| 8 | Modo demo interno para simular eventos. |
+| 8 | Modo demo oficial (también en release): menú principal, escenarios con DOWN, guion automático, probar alerta y acerca de; guía de la sustentación. ✅ |
 | 9 | Ajustes de usuario (sensibilidad, intensidad). |
 | 10 | Resumen de sesión e historial. |
 | 11 | Captura de datos, entrenamiento del modelo en `/ml` y detector basado en modelo. |
@@ -214,3 +219,8 @@ número respecto al plan inicial.
   `AlertVisuals` y `alertPulseColor` (pulso más lento que 3 Hz, contraste ≥ 4,5:1 en todo
   el ciclo, rebote de entrada, sacudida solo con el motor encendido), `AlertLog`,
   `AlertnessScore.raiseTo` y el área táctil del botón de la alerta.
+- Fase 8: 142 pruebas. Las nuevas cubren `DemoConfig` (tiempos de cada modo iguales a los
+  del detector, ciclo de escenarios, persistencia y datos inválidos), `DemoStore` con el
+  `Application.Storage` del simulador, `Toast` y la regla de DOWN, y `DemoScript` (orden y
+  duración de los pasos, congelado con alerta, espera sin respuesta, cancelación y un
+  recorrido completo con `DetectorRig`: alertas en los pasos 3 y 5, fin a los 48 s).
