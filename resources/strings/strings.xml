@@ -42,6 +42,8 @@
     <string id="AlertVibrationSoft">soft vibration</string>
     <string id="AlertVibrationMedium">medium vibration</string>
     <string id="AlertVibrationMax">maximum vibration</string>
+    <!-- Con el ajuste "Vibración" apagado (o sin motor). -->
+    <string id="AlertVibrationOff">no vibration</string>
     <!-- Segunda línea de la alerta: $1$ nivel (AlertLevelN), $2$ vibración (AlertVibration*, en minúsculas porque va después del punto medio). -->
     <string id="AlertLevelLineFormat">$1$ · $2$</string>
     <string id="AlertCauseNod">Head nod / loss of muscle tone</string>

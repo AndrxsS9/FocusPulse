@@ -1,22 +1,31 @@
 import Toybox.Lang;
 
-//! Patrones de vibración de la alerta por nivel.
+//! Patrones de vibración de la alerta por nivel (1–3) y por ajuste de vibración.
 //!
 //! Los Forerunner ignoran la intensidad (dutyCycle) de Attention.VibeProfile: siempre
-//! vibran con la misma fuerza. Por eso los niveles se distinguen solo por la duración y
-//! la cantidad de pulsos y por cada cuánto se repiten:
+//! vibran con la misma fuerza. Por eso tanto los niveles de la alerta como el ajuste
+//! "Vibración" (Suave / Normal / Fuerte, fase 11) cambian solo la cantidad y la duración
+//! de los pulsos y las pausas; el periodo de repetición depende solo del nivel.
 //!
-//! | Nivel | Pulsos | Encendido | Pausa | Se repite cada | Ráfaga |
-//! |---|---|---|---|---|---|
-//! | 1 suave | 2 | 150 ms | 150 ms | 3 s | 450 ms |
-//! | 2 media | 3 | 300 ms | 200 ms | 2 s | 1 300 ms |
-//! | 3 máxima | 4 | 800 ms | 200 ms | 4 s | 3 800 ms (+ 200 ms de pausa al repetir: casi continuo) |
+//! | Ajuste | Nivel 1 (cada 3 s) | Nivel 2 (cada 2 s) | Nivel 3 (cada 4 s) |
+//! |---|---|---|---|
+//! | Suave | 1 × 150 ms | 2 × 250 ms, pausa 200 | 3 × 600 ms, pausa 250 |
+//! | **Normal** (fase 7) | 2 × 150 ms, pausa 150 | 3 × 300 ms, pausa 200 | 4 × 800 ms, pausa 200 |
+//! | Fuerte | 3 × 200 ms, pausa 150 | 4 × 350 ms, pausa 150 | 4 × 900 ms, pausa 100 |
+//!
+//! Con Normal el nivel 3 queda casi continuo: entre ráfagas, la misma pausa de 200 ms que
+//! entre pulsos. Tiempo encendido por ráfaga: Suave 150 / 500 / 1 800 ms, Normal 300 /
+//! 900 / 3 200, Fuerte 600 / 1 400 / 3 600: crece con el nivel y con el ajuste.
+//!
+//! Con la vibración **Apagada** se usan los tiempos de Normal: la luz y los tonos siguen
+//! ese ritmo, pero Haptics no enciende el motor y la alerta no se sacude.
 //!
 //! Un patrón es la lista de tramos de una ráfaga, en ms, alternando encendido y apagado
 //! y empezando y terminando encendido: [150, 150, 150] = pulso, pausa, pulso. Cada tramo
 //! se convierte en un VibeProfile (source/platform/Haptics.mc), así que la lista nunca
-//! pasa de MAX_SEGMENTS (el máximo de Attention.vibrate por llamada). La ráfaga cabe
-//! siempre dentro de su periodo: al repetirse no se solapa con la anterior.
+//! pasa de MAX_SEGMENTS (el máximo de Attention.vibrate por llamada): como mucho 4
+//! pulsos, 7 tramos. La ráfaga cabe siempre dentro de su periodo: al repetirse no se
+//! solapa con la anterior.
 //!
 //! Lógica pura (sin Attention): se prueba con Toybox.Test y la vista de la alerta la usa
 //! para sincronizar la "sacudida" con los pulsos (isOnAt).
@@ -25,79 +34,56 @@ module VibePatterns {
     //! Máximo de tramos (VibeProfile) por llamada a Attention.vibrate.
     const MAX_SEGMENTS = 8;
 
-    //! Nivel 1 (suave): 2 pulsos cortos cada 3 s.
-    const SOFT_PULSES = 2;
-    const SOFT_PULSE_MS = 150;
-    const SOFT_GAP_MS = 150;
-    const SOFT_PERIOD_MS = 3000;
+    //! Tablas [ajuste][nivel]: filas Suave, Normal, Fuerte; columnas nivel 1, 2, 3.
+    const PULSES = [[1, 2, 3], [2, 3, 4], [3, 4, 4]];
+    const PULSE_MS = [[150, 250, 600], [150, 300, 800], [200, 350, 900]];
+    const GAP_MS = [[150, 200, 250], [150, 200, 200], [150, 150, 100]];
 
-    //! Nivel 2 (media): 3 pulsos de 300 ms cada 2 s.
-    const MEDIUM_PULSES = 3;
-    const MEDIUM_PULSE_MS = 300;
-    const MEDIUM_GAP_MS = 200;
-    const MEDIUM_PERIOD_MS = 2000;
+    //! Cada cuánto se repite la ráfaga, por nivel (igual con cualquier ajuste).
+    const PERIOD_MS = [3000, 2000, 4000];
 
-    //! Nivel 3 (máxima): tramos de 800 ms con pausas de 200 ms, casi continuo. La
-    //! repetición deja la misma pausa de 200 ms entre ráfagas.
-    const MAX_PULSES = 4;
-    const MAX_PULSE_MS = 800;
-    const MAX_GAP_MS = 200;
-    const MAX_PERIOD_MS = 4000;
-
-    //! Número de pulsos encendidos del nivel (se recorta a 1–3).
-    function pulses(level as Number) as Number {
-        var clamped = AlertnessColors.clampAlertLevel(level);
-        if (clamped == 1) {
-            return SOFT_PULSES;
+    //! Fila de las tablas para el ajuste (Apagada usa la de Normal).
+    function row(vibration as VibrationLevel.Id) as Number {
+        if (vibration == VibrationLevel.SOFT) {
+            return 0;
         }
-        if (clamped == 2) {
-            return MEDIUM_PULSES;
+        if (vibration == VibrationLevel.STRONG) {
+            return 2;
         }
-        return MAX_PULSES;
+        return 1;
+    }
+
+    //! Columna de las tablas para el nivel (se recorta a 1–3).
+    function column(level as Number) as Number {
+        return AlertnessColors.clampAlertLevel(level) - 1;
+    }
+
+    //! Número de pulsos encendidos.
+    function pulses(level as Number, vibration as VibrationLevel.Id) as Number {
+        return ((PULSES as Array<Array<Number>>)[row(vibration)])[column(level)];
     }
 
     //! Duración de cada pulso encendido (ms).
-    function pulseMs(level as Number) as Number {
-        var clamped = AlertnessColors.clampAlertLevel(level);
-        if (clamped == 1) {
-            return SOFT_PULSE_MS;
-        }
-        if (clamped == 2) {
-            return MEDIUM_PULSE_MS;
-        }
-        return MAX_PULSE_MS;
+    function pulseMs(level as Number, vibration as VibrationLevel.Id) as Number {
+        return ((PULSE_MS as Array<Array<Number>>)[row(vibration)])[column(level)];
     }
 
     //! Pausa entre pulsos (ms).
-    function gapMs(level as Number) as Number {
-        var clamped = AlertnessColors.clampAlertLevel(level);
-        if (clamped == 1) {
-            return SOFT_GAP_MS;
-        }
-        if (clamped == 2) {
-            return MEDIUM_GAP_MS;
-        }
-        return MAX_GAP_MS;
+    function gapMs(level as Number, vibration as VibrationLevel.Id) as Number {
+        return ((GAP_MS as Array<Array<Number>>)[row(vibration)])[column(level)];
     }
 
     //! Cada cuánto se repite la ráfaga (ms).
     function periodMs(level as Number) as Number {
-        var clamped = AlertnessColors.clampAlertLevel(level);
-        if (clamped == 1) {
-            return SOFT_PERIOD_MS;
-        }
-        if (clamped == 2) {
-            return MEDIUM_PERIOD_MS;
-        }
-        return MAX_PERIOD_MS;
+        return (PERIOD_MS as Array<Number>)[column(level)];
     }
 
     //! Tramos de una ráfaga en ms: encendido, apagado, encendido… (índices pares
     //! encendidos). Devuelve un arreglo nuevo.
-    function segments(level as Number) as Array<Number> {
-        var count = pulses(level);
-        var on = pulseMs(level);
-        var off = gapMs(level);
+    function segments(level as Number, vibration as VibrationLevel.Id) as Array<Number> {
+        var count = pulses(level, vibration);
+        var on = pulseMs(level, vibration);
+        var off = gapMs(level, vibration);
         var result = new Array<Number>[2 * count - 1];
         for (var i = 0; i < result.size(); i++) {
             result[i] = i % 2 == 0 ? on : off;
@@ -106,22 +92,23 @@ module VibePatterns {
     }
 
     //! Duración de una ráfaga completa (ms).
-    function burstMs(level as Number) as Number {
-        var count = pulses(level);
-        return count * pulseMs(level) + (count - 1) * gapMs(level);
+    function burstMs(level as Number, vibration as VibrationLevel.Id) as Number {
+        var count = pulses(level, vibration);
+        return count * pulseMs(level, vibration) + (count - 1) * gapMs(level, vibration);
     }
 
-    //! true si el motor está encendido a cycleMs del inicio de la ráfaga. Se repite cada
-    //! periodMs, así que cycleMs puede ser el tiempo desde que empezó la alerta.
-    function isOnAt(level as Number, cycleMs as Number) as Boolean {
+    //! true si el patrón está en un pulso a cycleMs del inicio de la ráfaga. Se repite
+    //! cada periodMs, así que cycleMs puede ser el tiempo desde que empezó la alerta. Con
+    //! la vibración apagada sigue el patrón de Normal (quien llama decide si hay motor).
+    function isOnAt(level as Number, vibration as VibrationLevel.Id, cycleMs as Number) as Boolean {
         if (cycleMs < 0) {
             return false;
         }
         var t = cycleMs % periodMs(level);
-        var step = pulseMs(level) + gapMs(level);
-        if (t >= burstMs(level)) {
+        var step = pulseMs(level, vibration) + gapMs(level, vibration);
+        if (t >= burstMs(level, vibration)) {
             return false;
         }
-        return t % step < pulseMs(level);
+        return t % step < pulseMs(level, vibration);
     }
 }

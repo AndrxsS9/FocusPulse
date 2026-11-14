@@ -9,9 +9,10 @@ import Toybox.Lang;
 //!   saltos. El periodo es de 2,4 / 1,8 / 1,2 s según el nivel: **menos de 1 ciclo por
 //!   segundo**, muy por debajo del límite de 3 destellos por segundo para personas
 //!   fotosensibles (WCAG 2.3.1). PHOTOSENSITIVE_MIN_PERIOD_MS es ese límite.
-//! - **Sacudida**: mientras el motor está encendido (VibePatterns.isOnAt) el contenido
-//!   se desplaza ±SHAKE_PX (2 / 4 / 6 px según el nivel), cambiando de lado cada
-//!   SHAKE_STEP_MS. Con el motor apagado no se mueve.
+//! - **Sacudida**: mientras el motor está encendido (VibePatterns.isOnAt, con el patrón
+//!   del ajuste de vibración) el contenido se desplaza ±SHAKE_PX (2 / 4 / 6 px según el
+//!   nivel), cambiando de lado cada SHAKE_STEP_MS. En las pausas, o con la vibración
+//!   apagada, no se mueve.
 module AlertVisuals {
 
     //! Duración de la animación de entrada (ms).
@@ -83,9 +84,10 @@ module AlertVisuals {
     }
 
     //! Desplazamiento horizontal del contenido (px): ±amplitud mientras el motor está
-    //! encendido, 0 en las pausas.
-    function shakeOffset(level as Number, elapsedMs as Number) as Number {
-        if (!VibePatterns.isOnAt(level, elapsedMs)) {
+    //! encendido, 0 en las pausas y con la vibración apagada (sin motor no hay nada que
+    //! acompañar).
+    function shakeOffset(level as Number, vibration as VibrationLevel.Id, elapsedMs as Number) as Number {
+        if (vibration == VibrationLevel.OFF || !VibePatterns.isOnAt(level, vibration, elapsedMs)) {
             return 0;
         }
         var amplitude = shakeAmplitude(level);

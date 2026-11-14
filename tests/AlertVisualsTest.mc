@@ -127,20 +127,26 @@ function alertEntranceBouncesInto300Ms(logger as Logger) as Boolean {
 
 (:test)
 function alertShakeFollowsVibration(logger as Logger) as Boolean {
+    var normal = VibrationLevel.NORMAL;
     for (var level = 1; level <= 3; level++) {
         var amplitude = AlertVisuals.shakeAmplitude(level);
         Test.assertMessage(amplitude >= 2 && amplitude <= 6, "nivel " + level + ": " + amplitude + " px");
         // Al empezar el motor está encendido: se mueve.
-        var offset = AlertVisuals.shakeOffset(level, 10);
+        var offset = AlertVisuals.shakeOffset(level, normal, 10);
         Test.assertEqual(offset < 0 ? -offset : offset, amplitude);
         // Después de la ráfaga, quieto.
-        Test.assertEqual(AlertVisuals.shakeOffset(level, VibePatterns.burstMs(level) + 50), 0);
+        Test.assertEqual(AlertVisuals.shakeOffset(level, normal, VibePatterns.burstMs(level, normal) + 50), 0);
+        // Con la vibración apagada no se sacude nunca.
+        Test.assertEqual(AlertVisuals.shakeOffset(level, VibrationLevel.OFF, 10), 0);
     }
     Test.assert(AlertVisuals.shakeAmplitude(1) < AlertVisuals.shakeAmplitude(2));
     Test.assert(AlertVisuals.shakeAmplitude(2) < AlertVisuals.shakeAmplitude(3));
     // En la pausa entre pulsos del nivel 1 (150–300 ms) tampoco se mueve.
-    Test.assertEqual(AlertVisuals.shakeOffset(1, 200), 0);
+    Test.assertEqual(AlertVisuals.shakeOffset(1, normal, 200), 0);
+    // Con vibración suave el nivel 1 es un solo pulso: a los 350 ms ya está quieto.
+    Test.assertEqual(AlertVisuals.shakeOffset(1, VibrationLevel.SOFT, 350), 0);
+    Test.assert(AlertVisuals.shakeOffset(1, VibrationLevel.STRONG, 350) != 0);
     // Cambia de lado cada SHAKE_STEP_MS.
-    Test.assertEqual(AlertVisuals.shakeOffset(3, 10), -AlertVisuals.shakeOffset(3, 60));
+    Test.assertEqual(AlertVisuals.shakeOffset(3, normal, 10), -AlertVisuals.shakeOffset(3, normal, 60));
     return true;
 }

@@ -27,7 +27,9 @@ import Toybox.WatchUi;
 //!   - entrada de 300 ms: el color crece desde el centro y el botón rebota en escala;
 //!   - pulso de brillo del fondo, más lento que 1 ciclo por segundo (seguro para
 //!     personas fotosensibles); en el nivel 3 alterna rojo intenso y rojo oscuro;
-//!   - sacudida de 2/4/6 px mientras el motor vibra (VibePatterns.isOnAt).
+//!   - sacudida de 2/4/6 px mientras el motor vibra (VibePatterns.isOnAt con el patrón
+//!     del ajuste de vibración); con la vibración apagada no se sacude y la línea de
+//!     nivel dice "sin vibración".
 //!
 //! Escalamiento (fase 9): la vista lee el nivel de AlertController en cada cuadro. Si
 //! sube, sin cerrarse ni volver a abrirse cambia el color (el del nivel nuevo crece
@@ -75,6 +77,9 @@ class AlertView extends WatchUi.View {
     private var _alerts as AlertController;
     private var _onTick as Method() as Void;
 
+    //! Vibración efectiva de la alerta: la del ajuste, u OFF si el reloj no vibra.
+    private var _vibration as VibrationLevel.Id;
+
     //! Nivel con el que se formateó _levelLine (se rehace al subir).
     private var _shownLevel as Number = 0;
     private var _layout as RoundLayout?;
@@ -91,10 +96,13 @@ class AlertView extends WatchUi.View {
     private var _reasonY as Number = 0;
 
     //! onTick: se llama en cada cuadro antes de dibujar (GuardController.onAlertTick).
-    function initialize(alerts as AlertController, onTick as Method() as Void) {
+    //! vibration: la vibración que de verdad suena (OFF si está apagada o sin motor).
+    function initialize(alerts as AlertController, onTick as Method() as Void,
+            vibration as VibrationLevel.Id) {
         View.initialize();
         _alerts = alerts;
         _onTick = onTick;
+        _vibration = vibration;
     }
 
     function onLayout(dc as Dc) as Void {
@@ -177,7 +185,7 @@ class AlertView extends WatchUi.View {
         // Pulso de brillo lento (< 1 ciclo/s) y, en el nivel 3, rojo intenso ↔ rojo oscuro.
         var background = AlertnessColors.alertPulseColor(level, AlertVisuals.pulse(level, levelElapsed));
         var foreground = AlertnessColors.alertTextColor(level);
-        var dx = AlertVisuals.shakeOffset(level, levelElapsed);
+        var dx = AlertVisuals.shakeOffset(level, _vibration, levelElapsed);
 
         Draw.enableAntiAlias(dc);
         var progress = AlertVisuals.entranceProgress(elapsed);
@@ -286,6 +294,9 @@ class AlertView extends WatchUi.View {
     }
 
     private function vibrationText(level as Number) as String {
+        if (_vibration == VibrationLevel.OFF) {
+            return text(Rez.Strings.AlertVibrationOff);
+        }
         if (level <= 1) {
             return text(Rez.Strings.AlertVibrationSoft);
         }

@@ -5,11 +5,13 @@ import Toybox.Timer;
 
 //! Vibración, luz de pantalla y tono de la alerta (adaptador de Toybox.Attention).
 //!
-//! - start(nivel): convierte el patrón del nivel (VibePatterns.segments) en VibeProfile
-//!   (tramos pares encendidos al 100 %, impares apagados al 0 %) y lo repite cada
-//!   VibePatterns.periodMs con un Timer. La primera ráfaga sale enseguida.
-//! - **Vibración** solo si el reloj la tiene (`Attention has :vibrate`) y el usuario no
-//!   la apagó en el reloj (DeviceSettings.vibrateOn). Si no, la alerta es solo visual.
+//! - start(nivel): convierte el patrón del nivel y del ajuste de vibración
+//!   (VibePatterns.segments) en VibeProfile (tramos pares encendidos al 100 %, impares
+//!   apagados al 0 %) y lo repite cada VibePatterns.periodMs con un Timer. La primera
+//!   ráfaga sale enseguida.
+//! - **Vibración** solo si el reloj la tiene (`Attention has :vibrate`), el usuario no
+//!   la apagó en el reloj (DeviceSettings.vibrateOn) y el ajuste "Vibración" no está en
+//!   Apagada (setVibration). Si no, la alerta no vibra.
 //! - **Luz**: Attention.backlight(true) en cada ráfaga, para que la pantalla siga
 //!   encendida mientras dura la alerta. En AMOLED con protección contra quemado lanza
 //!   BacklightOnTooLongException si se mantiene demasiado tiempo: se atrapa y se sigue.
@@ -30,6 +32,9 @@ class Haptics {
 
     private var _timer as Timer.Timer? = null;
     private var _level as Number = 1;
+
+    //! Ajuste "Vibración": cuántos pulsos y de qué duración (VibePatterns).
+    private var _vibration as VibrationLevel.Id = VibrationLevel.NORMAL;
     private var _vibes as Array<Attention.VibeProfile>? = null;
     private var _tones as Array<Attention.ToneProfile>? = null;
 
@@ -40,6 +45,18 @@ class Haptics {
     private var _bursts as Number = 0;
 
     function initialize() {
+    }
+
+    //! Aplica el ajuste "Vibración". Si hay una alerta en marcha, el cambio se nota en su
+    //! próxima subida de nivel (o en la siguiente alerta).
+    function setVibration(vibration as VibrationLevel.Id) as Void {
+        _vibration = vibration;
+    }
+
+    //! Vibración que de verdad tendrá la alerta: la del ajuste, u OFF si el reloj no
+    //! puede vibrar o el usuario la apagó en el reloj.
+    function alertVibration() as VibrationLevel.Id {
+        return canVibrate() ? _vibration : VibrationLevel.OFF;
     }
 
     //! true si el reloj puede vibrar y el usuario tiene la vibración activada.
@@ -56,8 +73,8 @@ class Haptics {
     function start(level as Number) as Void {
         stopTimer();
         _level = AlertnessColors.clampAlertLevel(level);
-        _vibes = canVibrate() ? buildVibes(_level) : null;
-        _tones = canPlayTone() ? buildTones(_level) : null;
+        _vibes = alertVibration() != VibrationLevel.OFF ? buildVibes(_level, _vibration) : null;
+        _tones = canPlayTone() ? buildTones(_level, _vibration) : null;
         _running = true;
         _bursts = 0;
         logStart();
@@ -91,11 +108,11 @@ class Haptics {
             return;
         }
         lightUp();
-        if (!canVibrate()) {
+        if (alertVibration() == VibrationLevel.OFF) {
             return;
         }
         try {
-            Attention.vibrate(buildVibes(1));
+            Attention.vibrate(buildVibes(1, _vibration));
         } catch (e instanceof Lang.Exception) {
             // Sin permiso de Attention: queda el aviso en pantalla.
         }
@@ -170,8 +187,9 @@ class Haptics {
     }
 
     //! VibeProfile del nivel: tramos pares encendidos, impares apagados.
-    private static function buildVibes(level as Number) as Array<Attention.VibeProfile> {
-        var segments = VibePatterns.segments(level);
+    private static function buildVibes(level as Number, vibration as VibrationLevel.Id)
+            as Array<Attention.VibeProfile> {
+        var segments = VibePatterns.segments(level, vibration);
         var vibes = new Array<Attention.VibeProfile>[segments.size()];
         for (var i = 0; i < segments.size(); i++) {
             vibes[i] = new Attention.VibeProfile(i % 2 == 0 ? 100 : 0, segments[i]);
@@ -181,11 +199,12 @@ class Haptics {
 
     //! Un tono por pulso, con silencios (0 Hz) en las pausas. null si el reloj no tiene
     //! ToneProfile (se usa el tono predefinido).
-    private function buildTones(level as Number) as Array<Attention.ToneProfile>? {
+    private function buildTones(level as Number, vibration as VibrationLevel.Id)
+            as Array<Attention.ToneProfile>? {
         if (!(Attention has :ToneProfile)) {
             return null;
         }
-        var segments = VibePatterns.segments(level);
+        var segments = VibePatterns.segments(level, vibration);
         var tones = new Array<Attention.ToneProfile>[segments.size()];
         for (var i = 0; i < segments.size(); i++) {
             tones[i] = new Attention.ToneProfile(i % 2 == 0 ? TONE_HZ : 0, segments[i]);
@@ -197,8 +216,9 @@ class Haptics {
     (:debug)
     private function logStart() as Void {
         System.println("ALERTA nivel " + _level + ": vibración "
-            + (_vibes != null ? VibePatterns.segments(_level).toString() + " cada "
-                + VibePatterns.periodMs(_level) + " ms" : "no (sin motor o apagada en el reloj)")
+            + (_vibes != null ? VibePatterns.segments(_level, _vibration).toString() + " cada "
+                + VibePatterns.periodMs(_level) + " ms (ajuste " + (_vibration as Number) + ")"
+                : "no (apagada en el ajuste o en el reloj, o sin motor)")
             + ", tono " + (canPlayTone() ? (_tones != null ? "por pulso" : "predefinido") : "no")
             + ", luz " + ((Attention has :backlight) ? "sí" : "no"));
     }
