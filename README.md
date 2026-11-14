@@ -7,7 +7,7 @@ FocusPulse AI detecta **micro-sueños y cabeceos** a partir del acelerómetro de
 despierta al usuario con **vibraciones progresivas**. Incluye un **modo demo** para
 simular eventos sin necesidad de dormirse frente al reloj.
 
-> Estado: **Fase 10 — IA entrenada**. La pantalla inicial es la esfera de guardia: anillo de
+> Estado: **Fase 11 — Ajustes y confirmación por IA**. La pantalla inicial es la esfera de guardia: anillo de
 > nivel de alerta en el borde, batería, hora, fecha, porcentaje de alerta, píldora de estado
 > y botón grande "Iniciar guardia" (START o un toque en el botón). Detrás de la hora, un orbe
 > IA de 3 anillos orgánicos cambia de color con el puntaje y de velocidad con la actividad
@@ -20,10 +20,12 @@ simular eventos sin necesidad de dormirse frente al reloj.
 > entrenada en Python con datos sintéticos** y exportada a Monkey C (`ml/`, `scripts\train.ps1`,
 > [docs/IA.md](docs/IA.md)). Cada evento abre una **alerta a pantalla completa**
 > "¡DESPIERTA!" con vibración por pulsos, luz y tono, que solo se cierra con "Estoy despierto"
-> (botón o START; BACK no la cierra). **Mantener UP** abre el menú principal, también en
+> (botón o START; BACK no la cierra). Los cabeceos los **confirma el modelo** 2 s después
+> antes de abrir la alerta (descarta, por ejemplo, mirar la hora justo tras teclear).
+> **Mantener UP** abre el menú principal, también en
 > release: *Modo demo* (fuente simulada, calibración de 5 s e inactividad a 8 s; se
 > recuerda entre arranques), *Escenario*, *Guion automático* y *Probar alerta* (solo con el
-> modo demo), *Historial*, *Modelo IA* (versión y métricas del clasificador, "Entrenado
+> modo demo), *Ajustes*, *Historial*, *Modelo IA* (versión y métricas del clasificador, "Entrenado
 > con datos sintéticos") y *Acerca de*. Con el modo demo y la guardia activa, **DOWN** pasa
 > al siguiente escenario (normal, tecleo, cabeceo, inactividad, mirar la hora). Ver [docs/GUIA_DEMO.md](docs/GUIA_DEMO.md) (sustentación),
 > [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md), [docs/DETECTOR.md](docs/DETECTOR.md),
@@ -58,10 +60,10 @@ powershell -ExecutionPolicy Bypass -File scripts\build.ps1
 |---|---|---|
 | `setup.ps1` | Instala la extensión de VS Code y genera la llave si no existe (nunca la sobrescribe). Informa si faltan Java o el SDK. | Llave en `Downloads\FocusPulse-keys\` |
 | `build.ps1` | Compila para `fr165` con verificación de tipos estricta (`-l 3`). `-Release` compila en modo release (sin el código `(:debug)`), como el paquete de la tienda. | `bin\FocusPulse.prg` (`-Release`: `bin\FocusPulse-release.prg`) |
-| `run.ps1` | Compila, abre el simulador y ejecuta la app en `fr165`. `-NoBuild` omite la compilación; `-TargetDevice fr165m` usa el 165 Music; `-Release` ejecuta la compilación de release (la de la sustentación). | — |
+| `run.ps1` | Compila, abre el simulador y ejecuta la app en `fr165`. `-NoBuild` omite la compilación; `-TargetDevice fr165m` usa el 165 Music; `-Release` ejecuta la compilación de release (la de la sustentación). Copia al simulador la definición de los ajustes para su editor. | — |
 | `test.ps1` | Compila con pruebas (`-t`), las ejecuta en el simulador y termina con error si alguna falla. | `bin\FocusPulse-test.prg` |
 | `export.ps1` | Genera el paquete firmado en modo release para la tienda (`fr165` y `fr165m`). | `bin\FocusPulse.iq` |
-| `train.ps1` | Crea `ml\.venv` (Python 3.12), instala `ml\requirements.txt`, genera el dataset sintético, entrena, evalúa v1/v2 y exporta los pesos. `-Seed N` cambia la semilla; `-NoExport` no toca `source\` ni `tests\`. No usa el SDK. Ver [ml/README.md](ml/README.md). | `source\core\ClassifierWeights.mc`, `ml\reports\` |
+| `train.ps1` | Crea `ml\.venv` (Python 3.12), instala `ml\requirements.txt`, genera el dataset sintético, entrena, evalúa v1/v2, elige el umbral de la confirmación por IA y exporta los pesos. `-Seed N` cambia la semilla; `-NoExport` no toca `source\` ni `tests\`. No usa el SDK. Ver [ml/README.md](ml/README.md). | `source\core\ClassifierWeights.mc`, `ml\reports\` |
 | `icon.ps1` | Genera el ícono del launcher con los colores de `Palette.mc`. `-Size` cambia el tamaño. No necesita el SDK. | `resources\drawables\launcher_icon.png` |
 
 Primer uso:
@@ -80,8 +82,9 @@ compilación:
 2. **Mantén pulsado UP** en la esfera: menú principal → *Modo demo* (START). La esfera
    cambia la fecha por **"DEMO · Normal"**.
 3. START inicia la guardia (5 s de calibración). **DOWN** recorre *Movimiento normal →
-   Tecleo activo → Simular cabeceo → Inactividad prolongada* con un aviso de 1,5 s; el
-   cabeceo abre la alerta a los ~6 s y la inactividad a los ~8 s.
+   Tecleo activo → Simular cabeceo → Inactividad prolongada → Mirar la hora* con un aviso
+   de 1,5 s; el cabeceo abre la alerta a los ~8 s (6 s del detector + 2 s de la
+   confirmación) y la inactividad a los ~10 s.
 4. *Guion automático* recorre todo solo (normal 10 s → tecleo 10 s → cabeceo → normal 8 s →
    inactividad → inactividad sin respuesta) y espera a que se responda cada alerta salvo la
    última, que escala hasta el nivel 3; luego pausa la guardia y muestra su resumen. La
@@ -92,6 +95,25 @@ compilación:
    últimas guardias.
 
 Paso a paso, qué decir y qué hacer si algo falla: [docs/GUIA_DEMO.md](docs/GUIA_DEMO.md).
+
+## Ajustes
+
+Se cambian en el reloj (**mantener UP → *Ajustes***; cada ítem muestra su valor) y desde la
+app **Garmin Connect** (`resources/settings/`); se guardan en `Application.Properties` y se
+aplican sin reiniciar la guardia (`onSettingsChanged`).
+
+| Ajuste | Valores (por defecto en negrita) | Qué hace |
+|---|---|---|
+| Sensibilidad | Baja · **Media** · Alta | Umbrales del detector: sacudida 440 / 400 / 340 mg, inclinación 45 / 35 / 28°, inactividad 90 / 60 / 45 s (demo 12 / 8 / 6 s). |
+| Vibración | Apagada · Suave · **Normal** · Fuerte | Número y duración de los pulsos (el FR165 no cambia la fuerza del motor), hasta 4 pulsos por ráfaga. |
+| Sonido | **Activado** · Desactivado | Tonos de alerta. Solo aparece en el reloj si tiene `Attention.playTone`. |
+| Animaciones reducidas | Activado · **Desactivado** | Orbe sin partículas; alerta sin sacudida y con el pulso el doble de lento (mismo color y textos). |
+| Confirmación por IA | **Activado** · Desactivado | El modelo confirma cada cabeceo antes de la alerta ([docs/IA.md](docs/IA.md) §12). |
+| Grabar actividad | **Activado** · Desactivado | Graba la guardia como actividad para que sensores y vibración sigan con la app en segundo plano. |
+
+Si la vibración queda apagada y no hay sonido, la app avisa **"Alerta solo visual"** (en
+Ajustes y al iniciar la guardia). En el simulador, *File > Edit Persistent Storage > Edit
+Application.Properties data* hace de Garmin Connect cuando la app se cargó con `run.ps1`.
 
 ## Probar la telemetría en el simulador
 
@@ -128,9 +150,8 @@ Para la sustentación se usa el **modo demo**: es reproducible y cada escenario 
 firma (tabla en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)).
 
 Las actividades grabadas en el simulador se guardan en
-`%TEMP%\com.garmin.connectiq\GARMIN\Activities\`. El ajuste "Grabar guardia como
-actividad" se cambia en el simulador con *File > Edit Persistent Storage > Edit
-Application.Properties data* y en el reloj desde la app Garmin Connect.
+`%TEMP%\com.garmin.connectiq\GARMIN\Activities\`. El ajuste "Grabar actividad" se
+cambia en *Ajustes* (ver arriba).
 
 ## Estructura
 

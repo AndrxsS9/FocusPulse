@@ -7,7 +7,8 @@ reloj controlado. El detector emite eventos (se ven en la depuración, *Detector
 desde la fase 7, cada uno abre la alerta a pantalla completa con vibración
 ([DISENO.md](DISENO.md) §5.3). Desde la fase 9, los episodios alimentan el predictor de
 fatiga (§8). Desde la fase 10, el clasificador usa pesos **v2 entrenados** en Python con
-datos sintéticos ([IA.md](IA.md)).
+datos sintéticos ([IA.md](IA.md)). Desde la fase 11, la **sensibilidad** es un ajuste
+(§3.6) y el modelo **confirma los cabeceos** antes de abrir la alerta (§3.7).
 
 ## 1. Flujo por lote
 
@@ -31,6 +32,9 @@ El acelerómetro entrega un lote por segundo (25 muestras a 25 Hz). Con cada lot
         ▼
  StateClassifier (softmax, ClassifierWeights v2)
         │   p(Activo), p(Normal), p(Cabeceo), p(Inerte), suavizadas
+        ▼
+ NodConfirmation (fase 11) ─► evento que abre la alerta
+        │   CABECEO: espera 2 lotes y exige p(Normal) < 0,35 · INACTIVIDAD: directa
         ▼
  AlertnessScore ─► anillo y porcentaje          OrbModel.stateFor ─► orbe
 ```
@@ -123,17 +127,71 @@ iniciar la guardia, y nunca antes.
 
 Prioridad: evento > caída detectada > calibrando > vigilando.
 
-### 3.6 Umbrales
+### 3.6 Umbrales y sensibilidad (fase 11)
+
+El ajuste **Sensibilidad** (Baja / Media / Alta, en el reloj y en Garmin Connect) cambia
+tres umbrales; **Media son los valores de siempre** (fases 6–10). Los aplica
+`DetectorThresholds` en el detector en el lote siguiente, sin reiniciar la guardia.
+
+| Umbral | Baja | **Media** | Alta | Dónde |
+|---|---|---|---|---|
+| Sacudida que abre la caída | 440 mg | **400 mg** | 340 mg | `DetectorThresholds.NOD_JERK_MIN` |
+| Inclinación de la caída | 45° | **35°** | 28° | `NOD_TILT_MIN` |
+| Inactividad prolongada | 90 s | **60 s** | 45 s | `INACTIVITY_MS` |
+| Inactividad en modo demo | 12 s | **8 s** | 6 s | `INACTIVITY_DEMO_MS` |
+
+- La inactividad escala ×1,5 en Baja y ×0,75 en Alta, también en demo.
+- Baja queda por debajo del pico del cabeceo simulado (≈ 460 mg): la demo da su cabeceo con
+  cualquier sensibilidad (`sensitivityKeepsSimulatedNodAtEveryLevel`).
+- Alta baja de los 366 mg del giro de *mirar la hora* del simulador: con esa sensibilidad
+  la regla sí ve un cabeceo al mirar la hora y lo filtra la confirmación (§3.7; visto en el
+  simulador).
+- No cambian con la sensibilidad (son de medición, no de criterio):
 
 | Constante | Valor | Dónde |
 |---|---|---|
-| Sacudida de caída | 400 mg | `DrowsinessDetector.NOD_JERK_MIN` |
-| Sacudida "calmada" | 50 mg | `NOD_CALM_JERK` |
+| Sacudida "calmada" | 50 mg | `DrowsinessDetector.NOD_CALM_JERK` |
 | Quietud tras la caída | antes de 5 s | `NOD_STILL_WITHIN_MS` |
-| Inclinación de caída | 35° | `NOD_TILT_MIN` |
-| Inactividad | 60 s · 8 s demo | `INACTIVITY_MS`, `INACTIVITY_DEMO_MS` |
 | Refractario | 10 s | `REFRACTORY_MS` |
 | Umbral de quietud | 25–100 mg² (§4) | `Baseline.stillThreshold()` |
+
+Efecto en el dataset sintético (prueba, `ml/reports/confirmation.md`; con confirmación):
+
+| Sensibilidad | Cabeceos reales con alerta | Falsos cabeceos al mirar la hora | Otros falsos |
+|---|---|---|---|
+| Baja | 17 de 36 | 2 de 24 (13 sin confirmación) | 0 |
+| Media | 22 de 36 | 3 de 24 (15 sin confirmación) | 0 |
+| Alta | 30 de 36 | 4 de 24 (17 sin confirmación) | 0 |
+
+### 3.7 Confirmación del cabeceo por el modelo (fase 11)
+
+Con el ajuste **Confirmación por IA** (activado por defecto), un evento CABECEO del
+detector no abre la alerta en el acto. `NodConfirmation` lo retiene **2 lotes (2 s)** y
+lo confirma solo si entonces la probabilidad **suavizada de Normal** del clasificador es
+**menor que 0,35**; si no, lo descarta (en depuración la consola escribe "CABECEO
+confirmado/descartado por el modelo … p(Normal)"). La **inactividad no pasa por el
+modelo**. Con el ajuste desactivado se vuelve al comportamiento de las fases 6–10.
+
+Por qué funciona: en el instante del evento, una mirada a la hora tras teclear y un
+cabeceo tienen casi la misma p(Cabeceo) (0,4–0,7 los dos); dos segundos después, el brazo
+dormido ya es Inerte (p(Normal) ≤ 0,26 en todos los cabeceos de prueba) y el que lee la
+hora vuelve a Normal (mediana 0,67). Retardo y umbral los eligió `ml/confirmation.py` con
+los usuarios de entrenamiento: retardo ≤ 2 s y el menor umbral que no pierde ningún
+cabeceo de entrenamiento. Detalle en [IA.md](IA.md) §12.
+
+| Conjunto de prueba sintético (12 usuarios no vistos) | Regla sola (fases 6–10) | Regla + confirmación (fase 11) |
+|---|---|---|
+| Falsos cabeceos en *mirar la hora* (secuencias con alerta de cabeceo) | **15 de 24** (62,5 %) | **3 de 24** (12,5 %) |
+| Recall de cabeceos reales (secuencias de cabeceo con alerta) | **22 de 36** (61,1 %) | **22 de 36** (61,1 %) |
+| Falsos cabeceos en el resto (apoyar el brazo, mixtas, tecleo → normal, inactividad) | 0 | 0 |
+| Retraso de la alerta de cabeceo | — | + 2 s |
+
+El recall de cabeceos no baja: la confirmación no pierde ninguno de los que ve la regla. El
+compromiso es el **retraso de 2 s** de la alerta de cabeceo (en el simulador: evento a los
+6 s → alerta a los 8 s del escenario). La regla sigue sin ver las caídas lentas (61 %).
+
+Qué no cambia: el detector (sus eventos, su estado y su refractario; un cabeceo descartado
+también abre el refractario de 10 s) y, por tanto, las características del clasificador.
 
 ## 4. Línea base adaptativa (`Baseline`)
 
@@ -227,12 +285,15 @@ contiene) e Inerte después (el usuario quedó dormido).
 
 | Real \ Predicha | Activo | Normal | Cabeceo | Inerte | Acierto |
 |---|---|---|---|---|---|
-| **Activo** | **241** | 4 | 0 | 0 | 98,4 % |
+| **Activo** | **243** | 2 | 0 | 0 | 99,2 % |
 | **Normal** | 3 | **472** | 0 | 0 | 99,4 % |
 | **Cabeceo** | 0 | 0 | **10** | 0 | 100 % |
-| **Inerte** | 0 | 5 | 5 | **310** | 96,9 % |
+| **Inerte** | 0 | 8 | 5 | **307** | 95,9 % |
 
-**Exactitud global: 1 033 de 1 050 lotes = 98,4 %** (v1: 978 de 1 050 = 93,1 %).
+**Exactitud global: 1 032 de 1 050 lotes = 98,3 %** (v1: 978 de 1 050 = 93,1 %). Desde la
+fase 11 la fuente simulada cambia de postura en 1,5 s (§7): en la guardia mixta, el paso a
+inactividad tarda algo más en ser Inerte (8 lotes Normal en lugar de 5) y el de tecleo a
+normal algo menos (antes 1 033 de 1 050).
 
 La diferencia con v1 está en *mirar la hora*: v1 toma 59 lotes de lectura por Inerte; v2,
 ninguno. Ninguno de los dos da Cabeceo al mirar la hora ni al dejar de teclear. Los errores de
@@ -259,6 +320,9 @@ sintéticos variados están en [IA.md](IA.md) §8.
 | Clasificador | gana la clase del escenario (> 90 %); Cabeceo durante la caída pendiente |
 | Mirar la hora 2 min (modo demo, fase 10) | 0 eventos; el giro llega a 366 mg (no abre caída candidata); leyendo: varianza 43 mg², inclinación 80° |
 | Python ↔ reloj (fase 10) | los 64 eventos y las características de 62 ventanas coinciden (máx. 8 × 10⁻⁶ grados) |
+| Sensibilidad (fase 11) | Media = umbrales de siempre; inactividad demo a los 12 / 8 / 6 s; el cabeceo simulado sale con las tres; una caída de 420 mg y 40° es cabeceo en Media y Alta, no en Baja |
+| Confirmación (fase 11) | cabeceo simulado: evento a los 6 s y alerta a los 8 s (5 semillas); mirar la hora justo tras teclear: la regla da 1 cabeceo y el modelo lo descarta (5 semillas, p(Normal) ≈ 0,6); con el ajuste desactivado ambos alertan; la inactividad no pasa por el modelo |
+| Cambio de escenario (fase 11) | cabeceo → inactividad: sacudida < 100 mg (antes ≈ 1 228), ningún cabeceo de más; ciclo completo de DOWN: un solo cabeceo; mirar la hora → normal sin lotes Cabeceo |
 
 ### 6.3 Simulador (fr165, español)
 
@@ -284,23 +348,24 @@ Recorrido en *Detector en vivo* con la fuente simulada:
   [PENDIENTES.md](PENDIENTES.md) e [IA.md](IA.md) §10).
 - Un cabeceo sin cambio de postura del brazo (la cabeza cae pero la muñeca sigue apoyada)
   no da cabeceo; si el usuario queda inmóvil, lo cubre la inactividad.
-- **Mirar la hora y quedarse leyendo: medido con datos sintéticos (fase 10).** El escenario
-  de referencia del simulador no dispara (el giro da 366 mg, por debajo de 400). Pero en el
-  dataset sintético el detector da un evento CABECEO en el **62,5 %** de las secuencias de
-  mirar la hora de la prueba (15 de 24), casi todas mirando la hora **justo después de
-  teclear**: la sacudida del tecleo deja abierta una caída candidata de 5 s, el brazo
-  sostenido cuenta como quieto y el giro supera los 35°. El clasificador v2 reduce el
-  problema en su propia salida (12 de 48 episodios difíciles con algún lote Cabeceo, frente a
-  16 de v1), pero no decide la alerta. Salidas posibles: exigir la dirección de la caída, que
-  la candidata del tecleo no sirva para una quietud con temblor, o que el detector pida
-  confirmación al modelo ([IA.md](IA.md) §10). Hay que confirmarlo con datos reales.
+- **Mirar la hora y quedarse leyendo.** El escenario de referencia del simulador no
+  dispara con la sensibilidad media (el giro da 366 mg, por debajo de 400). En el dataset
+  sintético la regla da un evento CABECEO en 15 de 24 secuencias de mirar la hora de la
+  prueba, casi todas mirando la hora **justo después de teclear** (la sacudida del tecleo deja
+  abierta una caída candidata, el brazo sostenido cuenta como quieto y el giro supera los
+  35°). **Desde la fase 11 la confirmación del modelo (§3.7) deja 3 de 24** sin perder
+  cabeceos; esos 3 son lecturas con el brazo casi inmóvil, que el modelo ve como Inerte.
+  Hay que confirmarlo con datos reales.
 - El detector por reglas solo detecta el 61 % de los cabeceos sintéticos de la prueba (22 de
   36): las caídas lentas no llegan a 400 mg de sacudida. Si el usuario queda inmóvil, lo
   cubre la inactividad.
-- **Cambio de escenario en el simulador.** Pasar con DOWN de *cabeceo* (brazo colgando) a
-  *inactividad* salta de postura en una sola muestra (≈ 1 200 mg y 75°) y, con la quietud
-  que sigue, el detector da un cabeceo a los ≈ 4 s. Es un artefacto de la fuente simulada,
-  que cambia de postura sin transición, no del detector.
+- **Cambio de escenario en el simulador (resuelto en la fase 11).** Antes, pasar con DOWN
+  de *cabeceo* a *inactividad* saltaba de postura en una sola muestra (≈ 1 200 mg y 75°) y el
+  detector daba un cabeceo de más a los ≈ 4 s. Ahora `SimulatedAccelSource` desliza la
+  gravedad hasta la postura del escenario nuevo en 38 muestras (≈ 1,5 s), conservando el
+  ruido del escenario nuevo: cada muestra se mueve ≈ 30–40 mg y no hay sacudida. Como el
+  brazo se mueve durante la transición, la inactividad tras DOWN llega a los ≈ 10 s en lugar
+  de 8.
 - El acelerómetro del simulador (*Activity Data*) entrega vectores de 1 g en direcciones
   al azar: varianza de la magnitud ≈ 0, sacudidas enormes e inclinaciones grandes. Con esa
   fuente el detector daría cabeceos sin parar; para probar se usa la fuente simulada.

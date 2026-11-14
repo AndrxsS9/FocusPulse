@@ -52,6 +52,8 @@ detector está explicado en [DETECTOR.md](DETECTOR.md) y la alerta en [DISENO.md
                                                    ▼
                          StateClassifier (fase 6; pesos v2 entrenados, fase 10) → p(Activo, Normal, Cabeceo, Inerte)
                                                    ▼
+                         NodConfirmation (fase 11) → el CABECEO espera 2 s y abre la alerta solo si p(Normal) < 0,35
+                                                   ▼
                          AlertnessScore → anillo y porcentaje · OrbModel → orbe
                          AlertController (fase 7) → AlertView + Haptics → AlertLog
                            escala 1 → 2 → 3 sin respuesta (fase 9)        │ episodios
@@ -68,6 +70,26 @@ detector está explicado en [DETECTOR.md](DETECTOR.md) y la alerta en [DISENO.md
 - `GuardController` arranca la fuente al iniciar la guardia y, si el ajuste
   `recordActivity` está activo (por defecto), la grabación. Al pausar o salir detiene
   ambas y guarda la actividad.
+- **Ajustes (fase 11).** `AppSettings` (source/app) es el único que lee y escribe
+  `Application.Properties`; devuelve un `Settings` (source/core) ya validado.
+  `GuardController.applySettings` lo reparte: sensibilidad → `DrowsinessDetector`
+  (`DetectorThresholds`), confirmación → `NodConfirmation`, vibración y sonido → `Haptics`;
+  las vistas leen `settings()` (animaciones reducidas). Se aplica al abrir la app, al
+  cambiar algo en *Ajustes* y en `onSettingsChanged` (Garmin Connect), sin reiniciar la
+  guardia.
+
+```
+ Garmin Connect / editor del simulador ─┐        menú Ajustes (SettingsMenu)
+              onSettingsChanged         │                 │ AppSettings.save
+                                        ▼                 ▼
+                          Application.Properties (properties.xml)
+                                        │ AppSettings.load → Settings (core)
+                                        ▼
+                          GuardController.applySettings
+          ┌──────────────────┬──────────────────┬───────────────────┬──────────────────┐
+  DetectorThresholds   NodConfirmation    Haptics (vibración,     MainView / AlertView
+  (sensibilidad)       (confirmación IA)  sonido)                 (animaciones reducidas)
+```
 
 ### Características de la ventana (fase 3)
 
@@ -99,6 +121,12 @@ Medidas con `tests/SimulatedAccelSourceTest.mc` y en la telemetría en vivo del 
 | Cabeceo | 3 s de movimiento normal en (0, 0, 980); caída de 12 muestras (≈0,5 s, con un tramo brusco de 5) hasta (−240, −940, 240); reposo ± 4 | alta → ≈ 6 mg² | pico ≈ 466 en la caída | sí, ≈2 s después |
 | Manual | X/Y/Z fijos (por defecto 0, 0, 1000) ± 4 | ≈ 5 mg² | < 15 | sí |
 | Mirar la hora (fase 10) | Ciclo de 12 s: 4 s normal, giro de 80° en 0,32 s (módulo constante + ±300 mg de subir el brazo), 6 s leyendo en (14, 930, 346) ± 16 triangular, bajada de 0,6 s | ≈ 600 → ≈ 43 mg² leyendo | 366 en el giro | sí al leer, con 80° de inclinación |
+
+**Cambio de escenario (fase 11).** Con la fuente en marcha, `setScenario` desliza la
+gravedad desde la postura actual (media móvil de las muestras) hasta la postura base del
+escenario nuevo en `TRANSITION_SAMPLES` = 38 muestras (≈ 1,5 s), conservando su ruido. Sin
+transición, pasar de cabeceo a inactividad era un salto de ≈ 1 200 mg y 75° que el detector
+tomaba por otro cabeceo.
 
 El ruido sale de un generador congruencial con semilla (no de `Math.rand`), así que las
 pruebas son reproducibles.
@@ -156,8 +184,17 @@ pruebas son reproducibles.
 | `source/app` | `DemoStore`, `AppInfo` | `DemoConfig` en `Application.Storage` (se recuerda entre arranques); versión visible. | 8 ✅ |
 | `source/app` | `GuardController` (modo demo) | Aplica `DemoConfig`, reinicia la guardia activa al cambiar de modo sin cortar la grabación, corre el guion con los lotes y las alertas, y atiende DOWN. | 8 ✅ |
 | `source/views` | `MainMenu`, `ScenarioMenu`, `TestAlertMenu`, `AboutView`, `DemoText` | Menú principal (mantener UP, también en release): modo demo, escenario, guion automático, probar alerta (niveles 1–3), historial, modelo IA, acerca de y, solo en depuración, el menú de depuración. | 8 ✅, 10 ✅ |
-| `resources/settings` | `properties.xml`, `settings.xml` | Sensibilidad, intensidad de vibración (junto a `recordActivity`). El modo demo ya está en el menú del reloj. | 9 |
-| `ml/` + `source/core` | `ClassifierWeights` | Captura de datos **reales** con `SensorLogging`, reentrenamiento con `import_real.py` y detector que pide confirmación al modelo. | 12 |
+| `source/core` | `Settings`, `SensitivityLevel`, `VibrationLevel` | Ajustes de usuario validados (valores por defecto, rangos) y el aviso de alerta solo visual. Lógica pura. | 11 ✅ |
+| `source/core` | `DetectorThresholds` | Sacudida, inclinación e inactividad por sensibilidad (Baja / Media / Alta); Media = valores de las fases 6–10. Ver [DETECTOR.md](DETECTOR.md) §3.6. | 11 ✅ |
+| `source/core` | `NodConfirmation` | El modelo confirma los cabeceos: espera 2 lotes y exige p(Normal) suavizada < 0,35; la inactividad pasa directa. Umbral elegido con `ml/confirmation.py`. Ver [DETECTOR.md](DETECTOR.md) §3.7 e [IA.md](IA.md) §12. | 11 ✅ |
+| `source/core` | `VibePatterns` (ajuste) | Patrón por nivel **y** por ajuste de vibración (Suave / Normal / Fuerte), solo con número y duración de pulsos, máximo 4 pulsos (7 tramos). | 11 ✅ |
+| `source/core` | `AlertVisuals` (reducidas) | Con animaciones reducidas: sin sacudida y pulso el doble de lento. | 11 ✅ |
+| `source/app` | `AppSettings` | Único lector y escritor de `Application.Properties` (load / save). `FocusPulseApp.onSettingsChanged` aplica los cambios de Garmin Connect en caliente. | 3 ✅, 11 ✅ |
+| `source/platform` | `Haptics` (ajustes) | Vibración según el ajuste (Apagada no enciende el motor), tonos solo con el ajuste Sonido y `Attention has :playTone`. | 11 ✅ |
+| `source/views` | `SettingsMenu`, `NoFeedbackView` | Pantalla *Ajustes* del menú principal (Menu2: submenús de sensibilidad y vibración, interruptores) y aviso "Alerta solo visual". | 11 ✅ |
+| `resources/settings` | `properties.xml`, `settings.xml` | Sensibilidad, vibración, sonido, animaciones reducidas, confirmación por IA y grabar actividad, editables desde Garmin Connect. | 3 ✅, 11 ✅ |
+| `ml/` | `confirmation.py` | Reproduce la regla y la confirmación sobre el dataset sintético, elige retardo y umbral con el entrenamiento y mide el efecto (también por sensibilidad). | 11 ✅ |
+| `ml/` + `source/core` | `ClassifierWeights` | Captura de datos **reales** con `SensorLogging`, reentrenamiento con `import_real.py` y decisión del evento entrenada. | 12 |
 
 `source/platform/` es la carpeta de adaptadores de hardware (sensores, grabación,
 vibración), creada en la fase 3. Igual que las vistas, puede importar `Toybox.Sensor`,
@@ -177,7 +214,7 @@ los módulos de las fases siguientes:
 | Restricción | Consecuencia |
 |---|---|
 | Acelerómetro hasta 100 Hz, lotes de hasta 4 s, valores en mili‑g. **Sin giroscopio.** | `RealAccelSource` pide 25 Hz (menos batería que 100 Hz) y solo baja si `getMaxSampleRateForSensorType(:accelerometer)` da menos; si da 0, la fuente no está disponible. `FeatureExtractor` solo usa el acelerómetro: la inclinación sale de la gravedad, no de la velocidad angular. |
-| Los Forerunner **ignoran el `dutyCycle`** de `VibeProfile`: la vibración siempre tiene la misma fuerza. Hay de 1 a 8 perfiles por llamada. | `Haptics` distingue los niveles 1–3 por duración, número de pulsos y pausas, no por intensidad. El ajuste "intensidad de vibración" (fase 11) cambiaría el patrón, no la fuerza. |
+| Los Forerunner **ignoran el `dutyCycle`** de `VibeProfile`: la vibración siempre tiene la misma fuerza. Hay de 1 a 8 perfiles por llamada. | `Haptics` distingue los niveles 1–3 por duración, número de pulsos y pausas, no por intensidad. El ajuste "Vibración" (fase 11) cambia el patrón (Suave / Normal / Fuerte), no la fuerza. |
 | Si la app pasa a **inactiva** sin grabar una actividad, los sensores bajan a 10 Hz o fallan y la vibración queda denegada. | **Decidido en la fase 3:** la guardia graba una actividad (`SessionRecorder`, permiso `Fit`) por defecto, y el ajuste `recordActivity` lo desactiva. `TelemetryEngine` mide los Hz efectivos para detectar la bajada a 10 Hz. |
 | El simulador 9.3.0 **se cierra con un error** si la app termina con una sesión de `ActivityRecording` todavía grabando, aunque `onStop` la guarde. | `MainDelegate.onBack` detiene y guarda la guardia antes de que la app empiece a cerrarse; `onStop` lo repite como respaldo. |
 | fr165 y fr165m comparten pantalla, teclas, sensores y API 5.2.0. | Un solo código para ambos productos; `scripts\build.ps1` compila para `fr165` y `export.ps1` para los dos. |
@@ -196,7 +233,7 @@ los módulos de las fases siguientes:
 | 8 | Modo demo oficial (también en release): menú principal, escenarios con DOWN, guion automático, probar alerta y acerca de; guía de la sustentación. ✅ |
 | 9 | Escalamiento de la alerta, predictor de fatiga por reglas, descanso guiado, resumen de la guardia e historial persistente; guion con escalamiento. ✅ |
 | 10 | IA entrenada: dataset sintético, entrenamiento en Python (regresión logística), exportación de pesos v2, métricas v1/v2, pantalla *Modelo IA* y escenario *mirar la hora*. ✅ |
-| 11 | Ajustes de usuario (sensibilidad, intensidad). |
+| 11 | Ajustes de usuario (sensibilidad, vibración por pulsos, sonido, animaciones reducidas, confirmación por IA, grabar actividad) en el reloj y en Garmin Connect; confirmación de los cabeceos por el modelo; transición suave entre escenarios de la demo. ✅ |
 | 12 | Captura de datos reales, reentrenamiento y detector basado en modelo. |
 | 13 | Rendimiento, memoria, batería y pruebas en dispositivo real. |
 | 14 | Preparación para la Connect IQ Store: íconos finales, capturas, textos de tienda es/en, export. |
@@ -246,3 +283,11 @@ pasan a la 11 y los datos reales a la 12.
   `classifierMatchesPythonProbabilities`, con vectores generados en `ml/`), la firma del
   escenario *mirar la hora* y que no da eventos, y el formato de la pantalla *Modelo IA*. La
   matriz de confusión compara v1 y v2 en el reloj. Ver [IA.md](IA.md) §11.
+- Fase 11: 194 pruebas. Las nuevas cubren `Settings` (valores por defecto, valores
+  inválidos, alerta solo visual), `AppSettings` con el `Application.Properties` del
+  simulador, `DetectorThresholds` (Media = valores de siempre, orden, inactividad 12/8/6 s,
+  el cabeceo simulado con las tres sensibilidades), `VibePatterns` por ajuste, animaciones
+  reducidas, el aviso de 3 s, `NodConfirmation` (sola y en la cadena: cabeceo real con
+  alerta, mirar la hora tras teclear descartado, desactivada como antes, inactividad sin
+  modelo) y el cambio de escenario sin cabeceo de más. El recorrido del guion con
+  `DetectorRig` pasa ya por la confirmación.

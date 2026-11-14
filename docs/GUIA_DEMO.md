@@ -4,7 +4,7 @@ Paso a paso para presentar FocusPulse AI en el simulador del **Forerunner 165** 
 **compilación de release** (la misma app que se publica, sin menú de depuración). Todo lo
 que aparece aquí se probó en el simulador del SDK 9.3.0, en español y en inglés, el
 2026-11-13 (fase 8) y el 2026-11-14 (fase 9: escalamiento, fatiga, descanso, resumen e
-historial).
+historial; fase 11: ajustes, confirmación por IA y transición entre escenarios).
 
 Duración recomendada: **10–12 minutos** (unos 6 de demo en vivo y el resto de explicación).
 
@@ -52,6 +52,9 @@ No se verificó ningún atajo de teclado: no dependas de ellos.
 - [ ] El modo demo se recuerda entre arranques. Si en la esfera ya se ve "DEMO · …" en el
       sitio de la fecha, está activo; si se ve la fecha, está apagado. Para la demo
       conviene empezar **apagado** y encenderlo delante del profesor (paso 2).
+- [ ] *Ajustes* (mantener UP → *Ajustes*): **Sensibilidad Media, Vibración Normal,
+      Confirmar IA activado**, Animaciones *Completas*. Son los valores con que se midió
+      esta guía; con otra sensibilidad cambian los tiempos de la inactividad.
 - [ ] *Historial* (mantener UP): si tiene guardias de ensayos que no quieres enseñar,
       bórralo ahora (*Borrar historial* → *Confirmar*). Las guardias de la demo se irán
       guardando solas.
@@ -89,13 +92,14 @@ real. El modo queda guardado aunque cierre la app."
    escaneo da vueltas por dentro del anillo.
 2. **DOWN** → aviso "Escenario / Tecleo activo" y la línea "DEMO · Tecleo activo". Esperar
    ~10 s: el puntaje sube y el orbe gira al doble.
-3. **DOWN** → "Simular cabeceo". A los **~6 s** aparece la alerta naranja "¡DESPIERTA!
-   Nivel 1 de 3 · vibración suave — Cabeceo / pérdida de tono muscular". Responder con
-   **START** ("Estoy despierto").
-4. **DOWN** → "Inactividad prolongada". A los **~8 s** de quietud, alerta "Inactividad
-   prolongada". Responder con **START**. Si llega antes una alerta de **cabeceo** (≈ 4 s
-   después de pulsar DOWN), es el salto de postura del simulador al pasar del brazo
-   colgando a la postura inerte: respóndela y espera la de inactividad.
+3. **DOWN** → "Simular cabeceo". A los **~8 s** aparece la alerta naranja "¡DESPIERTA!
+   Nivel 1 de 3 · vibración suave — Cabeceo / pérdida de tono muscular" (el detector ve la
+   caída a los ~6 s y el modelo la confirma 2 s después). Responder con **START** ("Estoy
+   despierto").
+4. **DOWN** → "Inactividad prolongada". A los **~10 s** (1,5 s en que el brazo pasa de
+   colgar a la postura inerte y 8 s de quietud), alerta "Inactividad prolongada".
+   Responder con **START**. Desde la fase 11 ya **no** llega un cabeceo de más al cambiar:
+   la fuente simulada desliza la postura en vez de saltar.
 5. **DOWN** → "Mirar la hora". Cada 12 s la muñeca gira rápido y se queda 6 s leyendo con el
    brazo sostenido. Esperar un ciclo o dos: **no llega ninguna alerta** y la guardia sigue
    en "Guardia activa".
@@ -107,15 +111,18 @@ real. El modo queda guardado aunque cierre la app."
   detector no lo confunde con un cabeceo y el clasificador lo ve como Activo."
 - *Cabeceo:* "El cabeceo necesita tres señales a la vez: una sacudida de más de 400 mg, la
   quietud antes de 5 segundos y que el brazo haya cambiado de postura más de 35 grados.
-  Cada señal descarta un falso positivo distinto." (Detalle en [DETECTOR.md](DETECTOR.md).)
+  Cada señal descarta un falso positivo distinto. Además, el modelo entrenado lo confirma:
+  dos segundos después, si todavía ve movimiento normal, no despierta a nadie." (Detalle en
+  [DETECTOR.md](DETECTOR.md) §3.7.)
 - *Alerta:* "La alerta ocupa toda la pantalla, vibra por pulsos, enciende la luz y suena.
   Solo se cierra respondiendo: BACK no la cierra, para no apagarla dormido. El tiempo de
   respuesta queda registrado."
 - *Inactividad:* "Si el brazo queda inmóvil el tiempo configurado, también alerta. En la
   vida real son 60 segundos."
 - *Mirar la hora:* "Este es el caso difícil: un giro rápido y luego el brazo quieto con la
-  muñeca inclinada se parece a un cabeceo. El clasificador entrenado lo ve como movimiento
-  normal; el de la versión anterior lo tomaba por inactividad." (Ver [IA.md](IA.md).)
+  muñeca inclinada se parece a un cabeceo. En los datos de prueba, justo después de
+  teclear, las reglas solas lo tomaban por cabeceo 15 de 24 veces; con la confirmación del
+  modelo, 3 de 24, sin perder ningún cabeceo real." (Ver [IA.md](IA.md) §12.)
 
 Al terminar, **START** para pausar la guardia.
 
@@ -129,15 +136,16 @@ línea de la esfera muestra el paso:
 |---|---|---|---|
 | 1/6 | Guion 1/6 · Normal | 10 s | Calibra los primeros 5 s. |
 | 2/6 | Guion 2/6 · Tecleo activo | 10 s | El puntaje sube. |
-| 3/6 | Guion 3/6 · Cabeceo | hasta responder | Alerta de cabeceo a los ~6 s. **El guion espera**: responde con START cuando termines de explicar. |
+| 3/6 | Guion 3/6 · Cabeceo | hasta responder | Alerta de cabeceo a los ~8 s (6 s del detector + 2 s de la confirmación). **El guion espera**: responde con START cuando termines de explicar. |
 | 4/6 | Guion 4/6 · Normal | 8 s | Empieza al responder. |
-| 5/6 | Guion 5/6 · Inactividad | hasta responder | Alerta de inactividad a los ~8 s. Responde con START. |
+| 5/6 | Guion 5/6 · Inactividad | hasta responder | Alerta de inactividad a los ~10 s. Responde con START. |
 | 6/6 | Guion 6/6 · Inactividad | ≈ 26 s | **No respondas.** Alerta a los ~10 s; sube al **nivel 2** a los 6 s (naranja intenso, "Nivel 2 de 3 · vibración media") y al **nivel 3** a los 12 s (rojo, "vibración máxima"), sin cerrarse. 4 s después el guion termina. |
 | fin | **Resumen de la guardia** | — | La guardia se pausa sola y se abre el resumen: ≈ 1 min 11 s, 3 episodios, respuesta media, nivel máximo **3 de 3**, fatiga **Alto**, DEMO. START vuelve a la esfera. |
 
-En total ≈ **75 s** más lo que tardes en responder las dos primeras alertas (medido: 1 min
-11 s respondiendo cada una en ≈ 2 s). Si nadie responde en los pasos 3 y 5, el guion no
-avanza solo.
+En total ≈ **75 s** más lo que tardes en responder las dos primeras alertas (medido en la
+fase 11: 1 min 15 s en español y 1 min 14 s en inglés respondiendo cada una en ≈ 2,3 s;
+alertas a los 28, 48 y 58 s). Si nadie responde en los pasos 3 y 5, el guion no avanza
+solo.
 
 **Qué decir:**
 
@@ -217,6 +225,24 @@ escala si no se responde, aunque la guardia esté en pausa.
 > se ve: la sacudida de la propia alerta, que sigue el mismo patrón que el motor, y el
 > indicador de luz de la barra de estado, que pasa de "☀ Off" a "☀ Default".
 
+### Paso 7 bis — Ajustes (1 min, opcional)
+
+**Qué hacer:** mantener **UP** → *Ajustes* (subtítulo "Sensibilidad: Media"). Cada ítem
+muestra su valor: *Sensibilidad* y *Vibración* abren una lista con el valor actual
+marcado; *Sonido*, *Animaciones*, *Confirmar IA* y *Grabar actividad* son interruptores.
+Para enseñar el aviso de seguridad: *Vibración* → *Apagada* y apagar *Sonido*: se abre
+**"Alerta solo visual"** y el subtítulo pasa a "Apagada · solo visual". **Después vuelve a
+dejar Vibración Normal y Sonido activado.**
+
+**Qué decir:** "Los mismos ajustes se cambian desde la app Garmin Connect del teléfono y se
+aplican sin reiniciar la guardia. La sensibilidad cambia los umbrales del detector; la
+vibración, el número y la duración de los pulsos, porque el motor del Forerunner no cambia
+de fuerza. Si la alerta quedara sin vibración ni sonido, la app lo avisa: dormido nadie
+mira la pantalla."
+
+> En el simulador, *File > Edit Persistent Storage > Edit Application.Properties data* abre
+> el editor de ajustes (el equivalente a Garmin Connect) si la app se cargó con `run.ps1`.
+
 ### Paso 8 — Modelo IA y Acerca de (45 s)
 
 **Qué hacer:** mantener **UP** → **DOWN** hasta *Modelo IA* (subtítulo "v2", el penúltimo) →
@@ -232,7 +258,7 @@ prueba para no hacer trampa. Estos porcentajes comparan versiones con datos simu
 son la precisión en una muñeca real, que se medirá con datos del reloj." (Detalle en
 [IA.md](IA.md).)
 
-**Qué decir (Acerca de):** nombre, versión 0.10.0 y la frase de la app.
+**Qué decir (Acerca de):** nombre, versión 0.11.0 y la frase de la app.
 
 ### Paso 9 — Volver al sensor real (30 s)
 
@@ -253,7 +279,9 @@ Para terminar, **START** (pausar) y **BACK** (salir).
 |---|---|
 | Mantener UP no abre el menú | Mantén el clic más tiempo (~1,5 s) **sobre el botón UP**, no sobre el rótulo. Asegúrate de estar en la esfera (no en una alerta). Si la ventana no tenía el foco, el primer clic solo la activa: repite. |
 | DOWN no cambia de escenario | Solo funciona con el **modo demo activo y la guardia en marcha**. En pausa no hace nada (a propósito). |
-| El cabeceo no dispara la alerta | Espera ~6 s desde que se eligió. Si había otra alerta hace menos de 10 s, el refractario la bloquea: espera o vuelve a elegir *Escenario > Simular cabeceo* (repite el cabeceo desde el principio). |
+| El cabeceo no dispara la alerta | Espera ~8 s desde que se eligió (la confirmación del modelo añade 2 s). Si había otra alerta hace menos de 10 s, el refractario la bloquea: espera o vuelve a elegir *Escenario > Simular cabeceo* (repite el cabeceo desde el principio). Si *Confirmar IA* está activado y la sensibilidad es Alta, revisa que no sea *Mirar la hora*: ahí el modelo descarta el cabeceo a propósito. |
+| La alerta no vibra ni suena, o dice "sin vibración" | *Ajustes*: *Vibración* en *Apagada* o *Sonido* apagado (y "Alerta solo visual" al iniciar la guardia). Vuelve a Normal / activado. |
+| El editor de ajustes del simulador dice "No settings file found" | Carga la app con `scripts\run.ps1` (copia la definición de los ajustes al simulador) y vuelve a abrir el editor. |
 | El guion "se queda" en el paso 3 o 5 | Está esperando a que respondas la alerta: pulsa START. Si no hay alerta en pantalla, espera ~10 s (refractario) o cancélalo desde el menú y vuelve a iniciarlo. |
 | En el paso 6 respondí la alerta sin querer | No pasa nada: el guion termina igual y muestra el resumen, pero sin el nivel 3. Repite el guion para enseñar el escalamiento. |
 | No aparece el resumen al pausar | La guardia duró menos de 1 min y no tuvo episodios: a propósito no se muestra ni se guarda. |

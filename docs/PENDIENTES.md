@@ -1,7 +1,7 @@
 # Pendientes de verificar
 
 Las fases 1 y 2 se compilaron, probaron y revisaron en el simulador con el **Connect IQ SDK
-9.3.0** (2026-11-12), las fases 3 a 8 el 2026-11-13 y las fases 9 y 10 el 2026-11-14. La primera sección resume lo que quedó confirmado; el resto del
+9.3.0** (2026-11-12), las fases 3 a 8 el 2026-11-13 y las fases 9, 10 y 11 el 2026-11-14. La primera sección resume lo que quedó confirmado; el resto del
 documento lista **solo lo que sigue abierto**. Al cerrar un punto, muévelo a la sección de
 datos confirmados o bórralo, y corrige el código si algo no coincide.
 
@@ -335,6 +335,59 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
   ratón. Para el recorrido, un cambio temporal y no versionado hacía que DOWN en pausa
   abriera el menú.
 
+### Ajustes, confirmación por IA y transición de la demo (fase 11, Python y simulador)
+
+- Las **194 pruebas** pasan (22 nuevas). `build.ps1`, `build.ps1 -Release` y `export.ps1`
+  (fr165 y fr165m) sin advertencias con `-l 3`. Release: `FocusPulse-release.prg` 87,0 kB,
+  `FocusPulse.iq` 201,5 kB. `scripts\train.ps1` sigue siendo reproducible (pesos, vectores e
+  informes idénticos) y ahora corre también `ml\confirmation.py`.
+- **Confirmación por IA, Python** ([IA.md](IA.md) §12): esperar 2 lotes y exigir p(Normal)
+  suavizada < 0,35 (elegido con el entrenamiento). Prueba: falsos cabeceos al mirar la hora
+  **15 → 3 de 24**, cabeceos reales **22 → 22 de 36**, otros falsos 0 → 0; la alerta de
+  cabeceo llega 2 s más tarde.
+- **Transición de la demo**: cambiar de cabeceo a inactividad ya no da sacudida (≈ 38 mg
+  frente a 1 228) ni cabeceo de más. La matriz de confusión del reloj (v2) queda en 1 032 de
+  1 050 (98,3 %; antes 1 033).
+- Recorrido en el simulador (fr165), sin usar el ratón ni el teclado reales: botones y
+  toques con `PostMessage` a la ventana del simulador, menús con `WM_COMMAND`, capturas con
+  `PrintWindow`, y un cambio **temporal y no versionado** para que DOWN en pausa abriera el
+  menú (mantener UP no funciona por mensajes):
+  - **Ajustes** (depuración, español): el menú principal muestra "Ajustes · Sensibilidad:
+    Media"; los submenús abren con el foco en el valor actual y el subtítulo se actualiza.
+    Cada cambio llega a la consola ("AJUSTES sensibilidad 2, vibración 0, …") y **se
+    conserva al volver a abrir la app** (Kill App y `run.ps1 -NoBuild`).
+  - Las etiquetas "Animaciones reducidas" y "Confirmación por IA" se cortaban con "…" junto
+    al interruptor y el texto del aviso "Alerta solo visual" también: se acortaron
+    ("Animaciones: Reducidas/Completas", "Confirmar IA") y se subió el bloque del aviso.
+    Revisado en español e inglés ("Animations", "AI confirm", "Record activity").
+  - **Aviso de alerta solo visual**: Vibración Apagada + Sonido apagado abre la pantalla
+    de aviso y el subtítulo dice "Apagada · solo visual"; al iniciar la guardia sale el
+    aviso de 3 s "Alerta solo visual / Sin vibración ni sonido". La alerta dice "Nivel 1 de 3
+    · sin vibración" y la consola "vibración no (apagada en el ajuste …), tono no (ajuste
+    Sonido apagado)".
+  - **Editor de ajustes del simulador** (*File > Edit Persistent Storage > Edit
+    Application.Properties data*, el equivalente a Garmin Connect): al principio decía "No
+    settings file found for this app"; busca `GARMIN\Settings\<NOMBRE>-settings.json`,
+    con NOMBRE = **FOCUSPULSE-TEST** (el simulador conserva el nombre del primer .prg
+    instalado con este id), y `monkeydo /a` solo envía un archivo. `run.ps1` ahora copia el
+    JSON con los tres nombres. Con él, el editor mostró los 6 ajustes con sus valores;
+    desactivar *AI confirmation* y **Save** con la guardia abierta llegó a
+    `onSettingsChanged` y se aplicó en el acto (consola "confirmación IA false"), y
+    volver a activarlo también.
+  - **Animaciones reducidas**: orbe sin partículas. Alerta de nivel 3 con vibración
+    Fuerte: el título no se mueve (x = 177 px en 8 cuadros seguidos) frente a ±6 px con
+    animaciones completas (171 ↔ 183). Mismo rojo y mismos textos.
+  - **Confirmación**: con la sensibilidad media, cabeceo → evento a los 43,0 s, "CABECEO
+    confirmado por el modelo a los 45,0 s: p(Normal) 0,14" y alerta. Con sensibilidad
+    **Alta** (el giro de 366 mg ya abre la caída), *mirar la hora* dio eventos CABECEO
+    **descartados** (p(Normal) 0,70 y 0,59) y **ninguna alerta**; con la confirmación
+    desactivada desde el editor, alerta a los 7 s.
+  - **Cabeceo → inactividad con DOWN**: solo la alerta de inactividad, ningún cabeceo.
+  - **Guion automático completo (release)**, español e inglés: alertas en los pasos 3
+    (≈ 28 s) y 5 (≈ 48 s), paso 6 sin responder hasta el nivel 3 y resumen automático
+    (1 min 15 s / 1 min 14 s, 3 episodios, nivel máximo 3 de 3, fatiga Alto / High).
+  - Al terminar, el simulador quedó en español con los ajustes por defecto.
+
 ## 1. Entorno
 
 - [ ] **Hacer copia de seguridad de la llave** `%USERPROFILE%\Downloads\FocusPulse-keys\`
@@ -380,8 +433,14 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
       atrapa; comprobar en el reloj que la alerta sigue visible y que no se apaga la pantalla.
 - [ ] **Tono en el fr165**: si el reloj suena de verdad (tiene `playTone` según el SDK), con
       qué volumen, y si el `ToneProfile` con silencios de 0 Hz se acepta (si lanza
-      `InvalidOptionsException`, `Haptics` pasa a `TONE_ALERT_HI`). Valorar el ajuste
-      "Sonido" de la fase 11 (ajustes) antes de usarlo en una oficina.
+      `InvalidOptionsException`, `Haptics` pasa a `TONE_ALERT_HI`). El ajuste "Sonido"
+      (fase 11) permite apagarlo; el sonido del simulador no se escuchó.
+- [ ] **Niveles del ajuste "Vibración" en el reloj** (fase 11): que Suave, Normal y Fuerte
+      se distinguen y que Suave nivel 1 (un pulso de 150 ms cada 3 s) todavía despierta. Si
+      no, subir Suave a 2 pulsos.
+- [ ] **"Sonido" en otros relojes**: `settings.xml` muestra siempre el ajuste porque los dos
+      productos (fr165, fr165m) tienen `playTone`; el menú del reloj lo esconde si no hay
+      altavoz. Si se añade un producto sin `playTone`, usar un `settings.xml` por producto.
 - [ ] La sacudida de la vista se calcula desde el inicio de la alerta y la vibración desde
       el `Timer` de `Haptics`: en una alerta larga podrían desfasarse unas decenas de ms.
       Mirarlo en el reloj; si se nota, que la vista lea el ciclo de `Haptics`.
@@ -402,13 +461,15 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 - [ ] **Ruido del acelerómetro del fr165 en reposo**: el umbral adaptativo no baja de
       25 mg² (σ = 5 mg). Si el ruido real de un brazo inerte supera eso, la quietud nunca
       llegaría para quien calibró moviéndose poco.
-- [ ] **Falso cabeceo del detector al mirar la hora justo después de teclear** (medido con
-      datos sintéticos en la fase 10): el detector por reglas da un evento CABECEO en 15 de
-      24 secuencias de prueba de *mirar la hora*; la sacudida del tecleo deja abierta la
-      caída candidata y el brazo sostenido cuenta como quieto. El clasificador v2 no decide
-      la alerta. Probarlo en el reloj; opciones: que la candidata del tecleo no valga para
-      una quietud con temblor, exigir la dirección de la caída o pedir confirmación al
-      modelo ([DETECTOR.md](DETECTOR.md) §7, [IA.md](IA.md) §10).
+- [ ] **Confirmación por IA con datos reales** (fase 11): con datos sintéticos baja los
+      falsos cabeceos al mirar la hora de 15 a 3 de 24 sin perder cabeceos, a cambio de 2 s
+      de retraso. Revisar en el reloj el retardo (2 lotes) y el umbral (p(Normal) < 0,35):
+      si un brazo dormido real tarda más en parecer Inerte, se perderían alertas de
+      cabeceo (la inactividad las cubriría a los 60 s). Los 3 falsos que quedan son lecturas
+      con el brazo casi inmóvil ([IA.md](IA.md) §12).
+- [ ] **Sensibilidad Baja / Alta** (fase 11): los valores (440/340 mg, 45/28°, ×1,5/×0,75)
+      salen de criterio y del dataset sintético (recall 17 / 22 / 30 de 36). Validarlos con
+      datos reales.
 - [ ] **Mirar la hora en el clasificador v2**: todavía 12 de 48 episodios difíciles (todos de
       mirar la hora) tienen algún lote Cabeceo, y al leer p(Inerte) sube hasta ≈ 0,4. Con
       datos reales, valorar características nuevas (dirección final de la gravedad).
@@ -421,13 +482,16 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 
 ## 3. Interfaz
 
-- [ ] **Cambiar de escenario con DOWN de *cabeceo* a *inactividad* da un cabeceo de más** (≈ 4 s
-      después): la fuente simulada salta del brazo colgando a la postura inerte en una sola
-      muestra (≈ 1 200 mg, 75°) y luego queda quieta. Visto en el recorrido de la fase 10; es
-      un artefacto de la fuente, no del detector. Para la demo, responder la alerta; si
-      molesta, que `SimulatedAccelSource` haga una transición de ~1 s al cambiar de
-      escenario. Lo mismo, sin evento, al pasar de *mirar la hora* (leyendo) a *normal*: un
-      lote Cabeceo en el clasificador.
+- [ ] **Menú Ajustes en el reloj real** (fase 11): que las etiquetas cortas caben igual que
+      en el simulador (Menu2 corta a unos 13 caracteres junto al interruptor) y que el
+      subtítulo "Apagada · solo visual" se lee entero.
+- [ ] **Editor de ajustes del simulador**: depende del nombre con que el simulador registró
+      la app (FOCUSPULSE-TEST en este equipo). Si tras *Reset All App Data* vuelve a decir
+      "No settings file found", ejecutar `run.ps1` otra vez (copia el JSON con los tres
+      nombres) o ver el nombre del `.SET` en `%TEMP%\com.garmin.connectiq\GARMIN\APPS\SETTINGS`.
+- [ ] **Animaciones reducidas y batería**: el ajuste quita partículas y la sacudida, pero el
+      orbe sigue a ≈ 12 cuadros/s. Si la medición de batería de la fase 13 lo pide, que
+      también baje la tasa de redibujo.
 
 - [ ] **Decidir si la hora necesita una fuente personalizada** para acercarse a la demo web,
       y si su costo en memoria es aceptable dentro de los 768 KB.
@@ -501,7 +565,7 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
       larga con el orbe a ≈12 cuadros/s frente a `ANIMATIONS_ENABLED = false` (1 cuadro/s),
       además del de grabar la actividad (25 Hz + FIT). Según el resultado, bajar la tasa con
       la pantalla atenuada, apagar la animación tras unos minutos sin mirar el reloj o
-      ofrecer el ajuste "Animaciones reducidas".
+      hacer que "Animaciones reducidas" (fase 11) también baje la tasa.
 - [ ] Tiempo de dibujo **en el reloj real**: el simulador corre en el PC y no refleja la CPU
       del fr165. Si un cuadro supera unos 60 ms, reducir `OrbModel.POINTS` (36 → 24) o la
       tasa, o dibujar la capa fija (pista del anillo, partículas en pausa) en un
@@ -529,7 +593,7 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 
 ## 6. Ícono y tienda (fase 13)
 
-- [ ] `AppInfo.VERSION` ("0.10.0", visible en *Acerca de*) debe coincidir con la versión que
+- [ ] `AppInfo.VERSION` ("0.11.0", visible en *Acerca de*) debe coincidir con la versión que
       se escriba al subir el paquete: el manifest de Connect IQ no lleva versión.
 
 - [ ] Ver el ícono de 54×54 en el menú de apps del simulador y del reloj: que el pulso se

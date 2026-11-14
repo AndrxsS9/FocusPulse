@@ -19,8 +19,9 @@ Inerte), qué tan bien funcionan y, sobre todo, qué **no** dicen sus números.
 | Cálculo en el reloj | x' = (x − media) / escala; z = coef · x' + b | z = COEF · x + INTERCEPT (estandarización plegada) |
 
 Lo demás no cambia: las mismas 5 características, la misma softmax, la misma EMA (0,6) y
-el mismo detector por reglas, que sigue siendo quien abre las alertas
-([DETECTOR.md](DETECTOR.md)). El clasificador mueve el orbe y el puntaje de alerta.
+el mismo detector por reglas, que sigue siendo quien detecta los eventos
+([DETECTOR.md](DETECTOR.md)). El clasificador mueve el orbe y el puntaje de alerta y, desde
+la fase 11, **confirma los cabeceos** del detector antes de abrir la alerta (§12).
 
 ## 2. Pipeline
 
@@ -213,7 +214,7 @@ semillas) y una guardia mixta, con v1 plegado y con v2:
 
 | | v1 | v2 |
 |---|---|---|
-| Exactitud | 978 de 1 050 = 93,1 % | **1 033 de 1 050 = 98,4 %** |
+| Exactitud | 978 de 1 050 = 93,1 % | **1 032 de 1 050 = 98,3 %** (98,4 % antes de la transición de postura de la fase 11) |
 | Normal (incluye mirar la hora) | 412 de 475 (59 lotes de lectura tomados por Inerte) | 472 de 475 |
 | Lotes de *mirar la hora* tomados por Cabeceo | 0 de 175 | 0 de 175 |
 | Cabeceo al pasar de tecleo a normal | 0 | 0 |
@@ -242,12 +243,11 @@ nunca Activo con Inerte. Además, 0 cabeceos al mirar la hora y al dejar de tecl
 - **Las mismas 5 características de v1.** Son las que el reloj ya calcula; un modelo lineal
   sobre ellas no puede separar del todo mirar la hora de un cabeceo (el 50 % de esos
   episodios todavía da algún lote Cabeceo).
-- **El clasificador no decide las alertas.** Las abre el detector por reglas, que no cambia
-  con v2. En el dataset sintético, ese detector dispara un evento CABECEO en el **62,5 %** de
-  las secuencias de *mirar la hora* de la prueba (15 de 24; casi todas, mirar la hora justo
-  después de teclear, cuando la sacudida del tecleo deja abierta una caída candidata) y solo
-  detecta el 61 % de los cabeceos sintéticos (22 de 36), los de caída lenta no llegan a 400 mg.
-  El escenario de referencia del simulador (mirar la hora tras movimiento normal) no dispara.
+- **El clasificador filtra, pero no detecta.** Los eventos los da el detector por reglas.
+  Desde la fase 11 el modelo confirma cada cabeceo (§12) y los falsos al mirar la hora bajan
+  de 15 a 3 de 24, pero no puede añadir cabeceos que la regla no ve: el recall sigue en el
+  61 % (22 de 36), porque los de caída lenta no llegan a 400 mg. La confirmación también
+  retrasa 2 s la alerta de cabeceo.
 - **Pocas ventanas de Cabeceo** (345 en total, 83 en la prueba): las métricas de esa clase
   tienen mucha incertidumbre.
 - Las etiquetas son exactas porque el generador las conoce; con datos reales habrá ruido de
@@ -259,9 +259,9 @@ nunca Activo con Inerte. Además, 0 cabeceos al mirar la hora y al dejar de tecl
    o un pulsador del observador para etiquetar), importarlo con `ml/import_real.py` (CSV ya
    implementado; FIT documentado) y repetir el pipeline sin cambios. Mantener la división por
    usuario y la prueba de equivalencia.
-2. **Que el detector pida confirmación al modelo** antes de abrir una alerta de cabeceo (o
-   entrenar directamente el disparo del evento), para atacar el 62,5 % de falsos eventos al
-   mirar la hora tras teclear. Exige rehacer las etiquetas en el instante de la decisión.
+2. ~~Que el detector pida confirmación al modelo~~ — hecho en la fase 11 (§12). Siguiente
+   paso: entrenar directamente la decisión del evento (con las etiquetas en el instante de
+   la decisión) para ganar también recall de cabeceos y quitar el retraso de 2 s.
 3. **Características nuevas** (dirección final de la gravedad, energía por eje, varianza de la
    inclinación) y modelos un poco más grandes, solo con datos reales y midiendo en el reloj el
    costo en memoria y CPU.
@@ -279,3 +279,60 @@ nunca Activo con Inerte. Además, 0 cabeceos al mirar la hora y al dejar de tecl
 | `classifierConfusionMatrixOnSimulatedScenarios` | Matriz v1 y v2 en el reloj (§8.2). |
 | `simulatedGlanceTurnsTheWristAndHoldsIt`, `detectorGlanceAtWatchTwoMinutesHasNoNod` | Firma del escenario *mirar la hora* y 0 eventos en 2 min. |
 | `modelInfoShowsPercentWithOneDecimal` | Formato de la pantalla *Modelo IA* en los dos idiomas. |
+| `nodConfirmation*` (fase 11) | Confirmación: retardo y umbral, desactivada, cabeceo real con alerta a los 8 s, mirar la hora tras teclear descartado, inactividad sin modelo. |
+
+## 12. Confirmación del cabeceo por el modelo (fase 11)
+
+**Regla.** Un evento CABECEO del detector abre la alerta solo si, **2 lotes (2 s)
+después**, la probabilidad **suavizada de Normal** es **menor que 0,35**
+(`NodConfirmation.DELAY_BATCHES`, `NORMAL_MAX`). Es la forma "Normal no es la clase
+dominante" de la idea: el brazo que cayó dormido pasa a Inerte en un par de segundos; el
+que mira la hora vuelve a Normal. La inactividad no pasa por el modelo. Se puede
+desactivar (ajuste *Confirmación por IA*).
+
+**Cómo se eligió** (`ml/confirmation.py`, lo corre `scripts\train.ps1`). Reproduce sobre
+el dataset sintético la regla del detector y la confirmación con las mismas ventanas,
+eventos y EMA que el reloj, y elige con los **36 usuarios de entrenamiento**, sin mirar la
+prueba:
+
+1. retardo de 2 s como máximo (más espera retrasa una alerta que tiene que ser rápida);
+2. para cada retardo, el **menor** umbral de la rejilla 0,20–0,60 que confirma **todos** los
+   cabeceos de entrenamiento que ve la regla;
+3. gana el que menos falsos deja al mirar la hora y, si empatan, el de mayor AUC.
+
+| Retardo | Umbral | Falsos en mirar la hora (entrenamiento, de 72) | AUC p(Normal) cabeceo / mirar la hora |
+|---|---|---|---|
+| 0 s | 0,55 | 23 | 0,900 |
+| 1 s | 0,40 | 5 | 0,954 |
+| **2 s** | **0,35** | **5** | **0,964** |
+
+**Resultado en los 12 usuarios de prueba** ([ml/reports/confirmation.md](../ml/reports/confirmation.md)):
+
+| Conjunto de prueba sintético (12 usuarios no vistos) | Regla sola (fases 6–10) | Regla + confirmación (fase 11) |
+|---|---|---|
+| Falsos cabeceos en *mirar la hora* (secuencias con alerta de cabeceo) | **15 de 24** (62,5 %) | **3 de 24** (12,5 %) |
+| Recall de cabeceos reales (secuencias de cabeceo con alerta) | **22 de 36** (61,1 %) | **22 de 36** (61,1 %) |
+| Falsos cabeceos en el resto (apoyar el brazo, mixtas, tecleo → normal, inactividad) | 0 | 0 |
+| Retraso de la alerta de cabeceo | — | + 2 s |
+
+**Compromiso.** No se pierde recall de cabeceos (los 22 que la regla ve se confirman todos),
+a cambio de **2 s más** hasta la alerta de cabeceo. Con un umbral más bajo (0,30) quedarían
+2 de 24 falsos con el mismo recall en la prueba, pero en entrenamiento se perdía un
+cabeceo, así que no se elige: el criterio no puede mirar la prueba.
+
+**Alternativa descartada: p(Cabeceo) máxima ≥ θ en la ventana del evento.** En el
+instante del evento las dos situaciones tienen casi la misma p(Cabeceo): con θ = 0,5 quedan
+10 de 24 falsos, pero el recall cae a 16 de 36; con 0,3, 15 de 24 falsos y 21 de 36.
+
+**En el reloj.** `nodConfirmationRejectsGlanceAfterTyping` reproduce la mirada a la hora
+justo tras teclear con la fuente simulada: la regla da un cabeceo en las 5 semillas y el
+modelo lo descarta (p(Normal) ≈ 0,6); `nodConfirmationAlertsOnRealNod`: el cabeceo
+simulado se confirma (alerta a los 8 s). En el simulador, con sensibilidad Alta (el giro de
+366 mg ya abre la caída), *mirar la hora* dio eventos CABECEO descartados con p(Normal) 0,70
+y 0,59 y ninguna alerta; con la confirmación desactivada, alerta. Con la sensibilidad media,
+el cabeceo se confirmó con p(Normal) 0,14. El guion automático sigue dando alertas en los
+pasos 3 y 5 y nivel 3 en el 6.
+
+**Límites.** Datos sintéticos; el retraso de 2 s y el umbral se revisarán con datos
+reales (fase 12). Los 3 falsos que quedan son lecturas con el brazo casi inmóvil, que el
+modelo ve como Inerte.
