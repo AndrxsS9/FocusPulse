@@ -16,7 +16,7 @@ import Toybox.WatchUi;
 //!   - el motivo: "Cabeceo / pérdida de tono muscular" o "Inactividad prolongada"
 //!     (LABEL, partido en dos líneas si no cabe);
 //!   - botón grande blanco "Estoy despierto" con texto oscuro
-//!     (RoundLayout.alertButtonRect, 278×64 px; su área táctil es mayor).
+//!     (RoundLayout.alertButtonRect, 258×64 px; su área táctil, 280×86).
 //!
 //! Colores por nivel: AlertnessColors.alertBackgroundColor / alertTextColor (naranja,
 //! naranja intenso y rojo intenso con texto blanco puro). Es la única pantalla con un

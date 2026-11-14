@@ -71,7 +71,7 @@ class RoundLayout {
     var buttonTouchRect as Rect;
 
     //! Botón "Estoy despierto" de la alerta y su área táctil. Más alto y más ancho que
-    //! el de la esfera (la alerta no tiene píldora ni marca debajo): fr165 278×64 px.
+    //! el de la esfera (la alerta no tiene píldora ni marca debajo): fr165 258×64 px (área táctil 280×86).
     var alertButtonRect as Rect;
     var alertButtonTouchRect as Rect;
 
