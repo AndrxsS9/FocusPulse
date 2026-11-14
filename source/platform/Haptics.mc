@@ -16,7 +16,8 @@ import Toybox.Timer;
 //!   encendida mientras dura la alerta. En AMOLED con protección contra quemado lanza
 //!   BacklightOnTooLongException si se mantiene demasiado tiempo: se atrapa y se sigue.
 //! - **Tono**: un tono por pulso (ToneProfile con silencios en las pausas) si existe
-//!   Attention.playTone y los tonos están activados (DeviceSettings.tonesOn). Si el
+//!   Attention.playTone (hasToneHardware), los tonos están activados en el reloj
+//!   (DeviceSettings.tonesOn) y el ajuste "Sonido" está activado (setSound). Si el
 //!   reloj no tiene ToneProfile, un TONE_ALERT_HI por ráfaga. Si no, nada.
 //! - stop(): detiene el timer y corta la ráfaga en curso con un VibeProfile nulo.
 //! - notify(): un aviso suave y único (dos pulsos cortos del nivel 1, sin tono ni
@@ -35,6 +36,9 @@ class Haptics {
 
     //! Ajuste "Vibración": cuántos pulsos y de qué duración (VibePatterns).
     private var _vibration as VibrationLevel.Id = VibrationLevel.NORMAL;
+
+    //! Ajuste "Sonido": tonos de alerta (solo en relojes con playTone).
+    private var _sound as Boolean = true;
     private var _vibes as Array<Attention.VibeProfile>? = null;
     private var _tones as Array<Attention.ToneProfile>? = null;
 
@@ -59,6 +63,28 @@ class Haptics {
         return canVibrate() ? _vibration : VibrationLevel.OFF;
     }
 
+    //! Aplica el ajuste "Sonido". Si hay una alerta en marcha, se nota desde la próxima
+    //! ráfaga.
+    function setSound(enabled as Boolean) as Void {
+        _sound = enabled;
+        if (!enabled) {
+            _tones = null;
+        } else if (_running && _tones == null && canPlayTone()) {
+            _tones = buildTones(_level, _vibration);
+        }
+    }
+
+    //! true si la alerta sonará: el ajuste está activado y el reloj puede sonar.
+    function alertSounds() as Boolean {
+        return _sound && canPlayTone();
+    }
+
+    //! true si el reloj tiene altavoz o zumbador (Attention.playTone). Sin él, la app
+    //! esconde el ajuste "Sonido".
+    static function hasToneHardware() as Boolean {
+        return Attention has :playTone;
+    }
+
     //! true si el reloj puede vibrar y el usuario tiene la vibración activada.
     static function canVibrate() as Boolean {
         return (Attention has :vibrate) && System.getDeviceSettings().vibrateOn;
@@ -74,7 +100,7 @@ class Haptics {
         stopTimer();
         _level = AlertnessColors.clampAlertLevel(level);
         _vibes = alertVibration() != VibrationLevel.OFF ? buildVibes(_level, _vibration) : null;
-        _tones = canPlayTone() ? buildTones(_level, _vibration) : null;
+        _tones = alertSounds() ? buildTones(_level, _vibration) : null;
         _running = true;
         _bursts = 0;
         logStart();
@@ -170,7 +196,7 @@ class Haptics {
     }
 
     private function playTones() as Void {
-        if (!canPlayTone()) {
+        if (!alertSounds()) {
             return;
         }
         try {
@@ -219,7 +245,8 @@ class Haptics {
             + (_vibes != null ? VibePatterns.segments(_level, _vibration).toString() + " cada "
                 + VibePatterns.periodMs(_level) + " ms (ajuste " + (_vibration as Number) + ")"
                 : "no (apagada en el ajuste o en el reloj, o sin motor)")
-            + ", tono " + (canPlayTone() ? (_tones != null ? "por pulso" : "predefinido") : "no")
+            + ", tono " + (alertSounds() ? (_tones != null ? "por pulso" : "predefinido")
+                : (_sound ? "no (el reloj no suena)" : "no (ajuste Sonido apagado)"))
             + ", luz " + ((Attention has :backlight) ? "sí" : "no"));
     }
 
