@@ -25,6 +25,11 @@ import Toybox.WatchUi;
 //! la vibración, sube el puntaje a SCORE_AFTER_ALERT y guarda la alerta en AlertLog con
 //! su tiempo de respuesta. Pausar la guardia (o cerrar la app) la cierra sin respuesta.
 //!
+//! Escalamiento (fase 9): sin respuesta, AlertController sube la alerta un nivel cada
+//! 10 s (6 s en modo demo) hasta el 3. Lo avanzan los lotes (onBatch) y el reloj de la
+//! propia alerta (onAlertTick); al subir, Haptics cambia al patrón del nivel nuevo. Se
+//! guarda el nivel máximo alcanzado junto al tiempo de respuesta.
+//!
 //! Modo demo (fase 8): DemoConfig decide la fuente y los tiempos; se guarda en Storage
 //! (DemoStore) con cada cambio. Cambiar de modo con la guardia activa la reinicia sin
 //! pausarla (restartGuard): otra fuente, motor, puntaje y detector desde cero, y la
@@ -97,6 +102,7 @@ class GuardController {
         _realSource.setListener(method(:onBatch));
         _demoSource.setListener(method(:onBatch));
         _alerts = new AlertController();
+        _alerts.setEscalationMs(_demo.alertEscalationMs());
         _haptics = new Haptics();
         _alertLog = new AlertLog();
     }
@@ -210,6 +216,7 @@ class GuardController {
                 showAlert();
             }
         }
+        updateAlert();
         if (_script.update(timestampMs, _alerts.isActive())) {
             onScriptStep();
         }
@@ -239,6 +246,31 @@ class GuardController {
         WatchUi.pushView(new AlertView(_alerts), new AlertDelegate(method(:dismissAlert)),
             WatchUi.SLIDE_IMMEDIATE);
         _haptics.start(_alerts.level());
+    }
+
+    //! Reloj de la alerta abierta (lo llama la vista de la alerta en cada cuadro): la
+    //! escala aunque la guardia esté en pausa (alertas de prueba) y sin esperar al lote.
+    function onAlertTick() as Void {
+        updateAlert();
+    }
+
+    //! Sube la alerta de nivel si lleva escalationMs sin respuesta y, si subió, cambia la
+    //! vibración al patrón del nivel nuevo. La vista lee el nivel en cada cuadro.
+    private function updateAlert() as Void {
+        if (_alerts.update(System.getTimer())) {
+            _haptics.start(_alerts.level());
+            logEscalation();
+        }
+    }
+
+    (:debug)
+    private function logEscalation() as Void {
+        System.println("ALERTA sube al nivel " + _alerts.level() + " a los "
+            + _alerts.elapsedMs(System.getTimer()) + " ms sin respuesta");
+    }
+
+    (:release)
+    private function logEscalation() as Void {
     }
 
     //! "Estoy despierto" (botón o START): detiene la vibración, sube el puntaje a un
@@ -286,7 +318,8 @@ class GuardController {
 
     (:debug)
     private function logDismiss(responseMs as Number) as Void {
-        System.println("ALERTA descartada en " + responseMs + " ms (" + _haptics.bursts()
+        System.println("ALERTA descartada en " + responseMs + " ms, nivel máximo "
+            + _alerts.level() + " (" + _haptics.bursts()
             + " ráfagas); alertas respondidas: " + _alertLog.size() + ", media "
             + _alertLog.averageResponseMs() + " ms; puntaje " + _score.value());
     }
@@ -397,6 +430,7 @@ class GuardController {
     function loadDemoConfig(config as DemoConfig) as Void {
         _demo = config;
         _demoSource.setScenario(config.scenario());
+        _alerts.setEscalationMs(_demo.alertEscalationMs());
     }
 
     //! Activa o desactiva el modo demo y lo guarda. Con la guardia activa la reinicia
@@ -410,6 +444,7 @@ class GuardController {
         }
         _demo.setEnabled(enabled);
         DemoStore.save(_demo);
+        _alerts.setEscalationMs(_demo.alertEscalationMs());
         restartGuard();
     }
 

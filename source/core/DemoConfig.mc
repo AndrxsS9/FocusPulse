@@ -7,9 +7,11 @@ import Toybox.Lang;
 //! | Fuente | simulada (SimulatedAccelSource) | acelerómetro real |
 //! | Calibración de la línea base | 5 s | 30 s |
 //! | Inactividad prolongada | 8 s de quietud | 60 s de quietud |
+//! | Escalamiento de una alerta sin respuesta | cada 6 s | cada 10 s |
 //!
-//! Los tiempos son los mismos que usan Baseline y DrowsinessDetector cuando arrancan en
-//! modo demo; esta clase es el único sitio donde se decide en qué modo está la guardia.
+//! Los tiempos son los mismos que usan Baseline, DrowsinessDetector y AlertController
+//! en cada modo; esta clase es el único sitio donde se decide en qué modo está la
+//! guardia.
 //!
 //! El escenario se recuerda aunque el modo demo esté apagado, para volver a él al
 //! encenderlo. Los cuatro escenarios de la demo se recorren en orden con
@@ -63,6 +65,11 @@ class DemoConfig {
     //! Quietud continua que dispara la inactividad prolongada (ms).
     function inactivityMs() as Number {
         return _enabled ? DrowsinessDetector.INACTIVITY_DEMO_MS : DrowsinessDetector.INACTIVITY_MS;
+    }
+
+    //! Tiempo sin respuesta antes de que la alerta suba de nivel (ms).
+    function alertEscalationMs() as Number {
+        return AlertController.escalationMsFor(_enabled);
     }
 
     // --- Escenario --------------------------------------------------------------

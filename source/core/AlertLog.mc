@@ -1,10 +1,13 @@
 import Toybox.Lang;
 
-//! Una alerta respondida: motivo, nivel, inicio y tiempo de respuesta.
+//! Una alerta respondida: motivo, nivel máximo alcanzado, inicio y tiempo de respuesta.
 class AlertRecord {
 
     var reason as DrowsinessEvent.Id;
-    var level as Number;
+
+    //! Nivel más alto al que llegó la alerta antes de la respuesta (1–3): con el
+    //! escalamiento, una alerta que abrió en el 1 y se respondió en el 3 guarda 3.
+    var maxLevel as Number;
 
     //! Inicio de la alerta (ms, System.getTimer() en la app).
     var startMs as Number;
@@ -12,10 +15,10 @@ class AlertRecord {
     //! Tiempo hasta "Estoy despierto" (ms).
     var responseMs as Number;
 
-    function initialize(reason as DrowsinessEvent.Id, level as Number, startMs as Number,
+    function initialize(reason as DrowsinessEvent.Id, maxLevel as Number, startMs as Number,
             responseMs as Number) {
         self.reason = reason;
-        self.level = level;
+        self.maxLevel = maxLevel;
         self.startMs = startMs;
         self.responseMs = responseMs;
     }
@@ -69,6 +72,17 @@ class AlertLog {
             total += _records[i].responseMs;
         }
         return total / _records.size();
+    }
+
+    //! Nivel más alto que alcanzó alguna alerta del registro (0 si no hay alertas).
+    function maxLevel() as Number {
+        var max = 0;
+        for (var i = 0; i < _records.size(); i++) {
+            if (_records[i].maxLevel > max) {
+                max = _records[i].maxLevel;
+            }
+        }
+        return max;
     }
 
     function clear() as Void {
