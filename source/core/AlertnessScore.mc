@@ -92,6 +92,17 @@ class AlertnessScore {
         return value();
     }
 
+    //! Sube el puntaje hasta minimum si está por debajo (nunca lo baja). Se usa al
+    //! descartar una alerta: quien acaba de confirmar que está despierto vuelve, como
+    //! mínimo, a la banda alta. Funciona también en pausa.
+    function raiseTo(minimum as Float) as Number {
+        var floor = minimum > MAX ? MAX : minimum;
+        if (_value < floor) {
+            _value = floor;
+        }
+        return value();
+    }
+
     //! Puntaje actual redondeado (0–100).
     function value() as Number {
         return (_value + 0.5f).toNumber();
