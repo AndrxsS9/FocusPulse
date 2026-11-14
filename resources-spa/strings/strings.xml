@@ -61,6 +61,14 @@
     <string id="DemoNormalMovement">Movimiento normal</string>
     <string id="DemoManual">Manual (X/Y/Z fijos)</string>
 
+    <!-- Menú principal (mantener UP). El título del menú es AppName. -->
+    <string id="MenuDemoOn">Datos simulados</string>
+    <string id="MenuDemoOff">Sensor real</string>
+    <string id="MenuAbout">Acerca de</string>
+    <!-- Acerca de: $1$ es la versión (AppInfo.VERSION). -->
+    <string id="AboutVersionFormat">Versión $1$</string>
+    <string id="AboutDescription">Detecta micro-sueños y te despierta con vibraciones progresivas.</string>
+
     <!-- Ajustes -->
     <string id="SettingsTitle">Ajustes</string>
     <string id="SettingSensitivity">Sensibilidad</string>

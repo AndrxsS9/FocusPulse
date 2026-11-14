@@ -63,6 +63,14 @@
     <string id="DemoNormalMovement">Normal movement</string>
     <string id="DemoManual">Manual (fixed X/Y/Z)</string>
 
+    <!-- Menú principal (mantener UP). El título del menú es AppName. -->
+    <string id="MenuDemoOn">Simulated data</string>
+    <string id="MenuDemoOff">Real sensor</string>
+    <string id="MenuAbout">About</string>
+    <!-- Acerca de: $1$ es la versión (AppInfo.VERSION). -->
+    <string id="AboutVersionFormat">Version $1$</string>
+    <string id="AboutDescription">Detects micro-sleeps and wakes you up with progressive vibrations.</string>
+
     <!-- Ajustes -->
     <string id="SettingsTitle">Settings</string>
     <string id="SettingSensitivity">Sensitivity</string>

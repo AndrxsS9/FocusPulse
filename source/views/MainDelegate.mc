@@ -9,7 +9,7 @@ import Toybox.WatchUi;
 //!   que START/STOP. Un toque fuera del botón no hace nada.
 //! - BACK: sale de la app; si la guardia está activa, antes la detiene y guarda
 //!   la actividad (ver onBack).
-//! - Menú (pulsación larga de UP), solo en depuración: menú de depuración.
+//! - Menú (pulsación larga de UP): menú principal (MainMenu), también en release.
 //!
 //! Verificado en el simulador del fr165: START y cualquier toque disparan primero el
 //! comportamiento onSelect; solo si devuelve false llegan onKey (KEY_ENTER) u onTap
@@ -65,13 +65,10 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
         return false;
     }
 
-    //! Pulsación larga del botón de menú (UP en el fr165): abre el menú de
-    //! depuración (fuente de datos, guía de estilo). Solo existe en compilaciones de
-    //! depuración; en release (scripts/export.ps1, -r) la anotación (:debug) la
-    //! excluye y el botón conserva su comportamiento por defecto.
-    (:debug)
+    //! Pulsación larga del botón de menú (UP en el fr165): abre el menú principal
+    //! (modo demo, acerca de; en depuración, también el menú de depuración).
     function onMenu() as Boolean {
-        DebugMenu.open(_guard);
+        MainMenu.open(_guard);
         return true;
     }
 }
