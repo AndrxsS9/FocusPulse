@@ -11,6 +11,18 @@ import Toybox.Timer;
 //!
 //! El ruido es uniforme y sale de un generador congruencial propio con semilla, no de
 //! Math.rand(), para que las pruebas sean reproducibles.
+//!
+//! **Transición entre escenarios (fase 11).** Al cambiar de escenario con la fuente ya
+//! en marcha (DOWN, el menú o el guion), las primeras TRANSITION_SAMPLES muestras (1,5 s)
+//! llevan la postura del brazo (la gravedad) desde donde estaba hasta la postura base del
+//! escenario nuevo, con un desfase que baja en línea recta. El ruido y el movimiento son
+//! los del escenario nuevo desde la primera muestra: solo se desplaza la gravedad, así
+//! la transición no inventa una quietud. Antes la postura saltaba en una sola
+//! muestra: de cabeceo (brazo colgando) a inactividad eran ≈ 1 200 mg y 75°, una
+//! sacudida seguida de quietud con giro, y el detector daba un cabeceo de más ≈ 4 s
+//! después. Ahora cada muestra se mueve unos 30 mg, lejos de cualquier sacudida de caída
+//! (340 mg con la sensibilidad alta). La postura de partida es una media móvil de las
+//! últimas muestras (sin el ruido).
 class SimulatedAccelSource extends AccelSource {
 
     //! Periodo de entrega de lotes (ms), igual que RealAccelSource.PERIOD_SECONDS.
@@ -75,6 +87,12 @@ class SimulatedAccelSource extends AccelSource {
     static const GLANCE_LOWER_Y = [952, 984, 984, 941, 854, 730, 582, 428, 283, 157, 53, -31, -99, -148, -174];
     static const GLANCE_LOWER_Z = [374, 445, 540, 646, 747, 827, 877, 894, 886, 866, 847, 842, 856, 891, 944];
 
+    //! Muestras de la transición al cambiar de escenario (≈ 1,5 s a 25 Hz).
+    static const TRANSITION_SAMPLES = 38;
+
+    //! Peso de cada muestra nueva en la media móvil de la postura (1/POSTURE_EMA_DIV).
+    static const POSTURE_EMA_DIV = 8;
+
     //! Valores iniciales del escenario manual.
     static const MANUAL_DEFAULT_X = 0;
     static const MANUAL_DEFAULT_Y = 0;
@@ -92,6 +110,18 @@ class SimulatedAccelSource extends AccelSource {
     private var _manualY as Number = MANUAL_DEFAULT_Y;
     private var _manualZ as Number = MANUAL_DEFAULT_Z;
 
+    //! Postura actual: media móvil de las muestras entregadas (válida si _hasPosture).
+    private var _hasPosture as Boolean = false;
+    private var _postureX as Number = 0;
+    private var _postureY as Number = 0;
+    private var _postureZ as Number = 0;
+
+    //! Transición en curso: postura de partida y muestras que faltan (0: sin transición).
+    private var _fromX as Number = 0;
+    private var _fromY as Number = 0;
+    private var _fromZ as Number = 0;
+    private var _transitionLeft as Number = 0;
+
     //! seed: semilla del ruido. La app usa System.getTimer(); las pruebas, un valor fijo.
     function initialize(scenario as AccelScenario.Id, seed as Number) {
         AccelSource.initialize();
@@ -103,6 +133,9 @@ class SimulatedAccelSource extends AccelSource {
         if (_running) {
             return true;
         }
+        // Guardia nueva: empieza en la postura del escenario, sin transición.
+        _hasPosture = false;
+        _transitionLeft = 0;
         var timer = new Timer.Timer();
         timer.start(method(:onTimer), PERIOD_MS, true);
         _timer = timer;
@@ -128,10 +161,22 @@ class SimulatedAccelSource extends AccelSource {
     }
 
     //! Cambia de escenario y lo empieza desde el principio (el cabeceo se repite al
-    //! volver a elegirlo).
+    //! volver a elegirlo). Si ya se generaron muestras, el brazo pasa de su postura a la
+    //! del escenario nuevo en TRANSITION_SAMPLES muestras.
     function setScenario(scenario as AccelScenario.Id) as Void {
         _scenario = scenario;
         _sampleIndex = 0;
+        if (_hasPosture) {
+            _fromX = _postureX;
+            _fromY = _postureY;
+            _fromZ = _postureZ;
+            _transitionLeft = TRANSITION_SAMPLES;
+        }
+    }
+
+    //! true mientras dura la transición a un escenario nuevo.
+    function isInTransition() as Boolean {
+        return _transitionLeft > 0;
     }
 
     //! Fija los ejes del escenario manual (mg).
@@ -154,9 +199,59 @@ class SimulatedAccelSource extends AccelSource {
         var zs = new Array<Number>[count];
         for (var i = 0; i < count; i++) {
             nextSample(xs, ys, zs, i);
+            blendTransition(xs, ys, zs, i);
+            followPosture(xs[i], ys[i], zs[i]);
             _sampleIndex += 1;
         }
         return [xs, ys, zs] as Array<Array<Number>>;
+    }
+
+    //! Durante la transición suma a la muestra del escenario nuevo el desfase entre la
+    //! postura de partida y la base del escenario, con un peso (milésimas) que baja de
+    //! TRANSITION_SAMPLES / (N + 1) a 1 / (N + 1).
+    private function blendTransition(xs as Array<Number>, ys as Array<Number>, zs as Array<Number>,
+            i as Number) as Void {
+        if (_transitionLeft <= 0) {
+            return;
+        }
+        var base = basePosture();
+        var w = _transitionLeft * 1000 / (TRANSITION_SAMPLES + 1);
+        xs[i] += (_fromX - base[0]) * w / 1000;
+        ys[i] += (_fromY - base[1]) * w / 1000;
+        zs[i] += (_fromZ - base[2]) * w / 1000;
+        _transitionLeft -= 1;
+    }
+
+    //! Postura con que empieza el escenario actual (mg): la gravedad de sus primeras
+    //! muestras, sin el ruido.
+    private function basePosture() as Array<Number> {
+        switch (_scenario) {
+            case AccelScenario.TYPING:
+                return [0, 0, TYPING_Z] as Array<Number>;
+            case AccelScenario.NOD:
+                return [NOD_FROM_X, NOD_FROM_Y, NOD_FROM_Z] as Array<Number>;
+            case AccelScenario.INACTIVITY:
+                return [INERT_X, INERT_Y, INERT_Z] as Array<Number>;
+            case AccelScenario.MANUAL:
+                return [_manualX, _manualY, _manualZ] as Array<Number>;
+            default:
+                // Normal, y mirar la hora, que empieza con 4 s de movimiento normal.
+                return [NORMAL_X, NORMAL_Y, NORMAL_Z] as Array<Number>;
+        }
+    }
+
+    //! Media móvil de la postura (la gravedad sin el ruido), para la próxima transición.
+    private function followPosture(x as Number, y as Number, z as Number) as Void {
+        if (!_hasPosture) {
+            _postureX = x;
+            _postureY = y;
+            _postureZ = z;
+            _hasPosture = true;
+            return;
+        }
+        _postureX += (x - _postureX) / POSTURE_EMA_DIV;
+        _postureY += (y - _postureY) / POSTURE_EMA_DIV;
+        _postureZ += (z - _postureZ) / POSTURE_EMA_DIV;
     }
 
     //! Escribe en la posición i la muestra número _sampleIndex del escenario.

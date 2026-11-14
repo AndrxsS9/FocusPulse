@@ -143,10 +143,13 @@ function simulatedNodHasJerkThenStillness(logger as Logger) as Boolean {
     Test.assert(within(after.y, SimulatedAccelSource.NOD_TO_Y, SimulatedAccelSource.INERT_NOISE));
     Test.assert(within(after.z, SimulatedAccelSource.NOD_TO_Z, SimulatedAccelSource.INERT_NOISE));
 
-    // Elegirlo otra vez repite el cabeceo desde la postura despierta.
+    // Elegirlo otra vez repite el cabeceo desde la postura despierta, tras la transición
+    // desde el brazo colgando.
     source.setScenario(AccelScenario.NOD);
-    var again = source.nextBatch(1);
-    Test.assert(within(again[2][0], SimulatedAccelSource.NOD_FROM_Z, SimulatedAccelSource.NORMAL_NOISE));
+    var again = source.nextBatch(SimulatedAccelSource.TRANSITION_SAMPLES + 1);
+    Test.assert(within(again[2][0], SimulatedAccelSource.NOD_TO_Z, 2 * SimulatedAccelSource.NORMAL_NOISE));
+    Test.assert(within(again[2][SimulatedAccelSource.TRANSITION_SAMPLES],
+        SimulatedAccelSource.NOD_FROM_Z, SimulatedAccelSource.NORMAL_NOISE));
     return true;
 }
 
