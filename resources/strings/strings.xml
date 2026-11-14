@@ -152,6 +152,13 @@
     <string id="SettingValueOn">On</string>
     <string id="SettingValueOff">Off</string>
     <string id="SettingRecordActivity">Record guard as activity</string>
+    <!-- Valores del ajuste "Vibración" (Garmin Connect y menú del reloj). -->
+    <string id="SettingVibrationOff">Off</string>
+    <string id="SettingVibrationSoft">Soft</string>
+    <string id="SettingVibrationNormal">Normal</string>
+    <string id="SettingVibrationStrong">Strong</string>
+    <string id="SettingReducedAnimations">Reduced animations</string>
+    <string id="SettingAiConfirmation">AI confirmation</string>
 
     <!-- Clases del modelo IA -->
     <string id="AiClassActive">Active</string>

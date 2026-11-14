@@ -22,10 +22,19 @@ class FocusPulseApp extends Application.AppBase {
 
     //! Se llama al iniciar la app, antes de mostrar la vista inicial.
     function onStart(state as Dictionary?) as Void {
+        // Ajustes de usuario (Application.Properties, editables desde Garmin Connect).
+        _guard.applySettings(AppSettings.load());
         // El modo demo y su escenario se recuerdan entre arranques (DemoStore).
         _guard.loadDemoConfig(DemoStore.load());
         // Las últimas 10 guardias (HistoryStore).
         _guard.loadHistory(HistoryStore.load());
+    }
+
+    //! Llega al guardar los ajustes en la app Garmin Connect (o en el editor de ajustes
+    //! del simulador) con la app abierta: se aplican sin reiniciar la guardia.
+    function onSettingsChanged() as Void {
+        _guard.applySettings(AppSettings.load());
+        WatchUi.requestUpdate();
     }
 
     //! Se llama al cerrar la app (BACK, cierre del sistema): si la guardia sigue

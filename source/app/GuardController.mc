@@ -8,8 +8,11 @@ import Toybox.WatchUi;
 //!
 //! - start(): reinicia el motor y el puntaje de alerta (88), arranca la fuente (real, o
 //!   simulada con el modo demo activo), el detector (que empieza calibrando, con los
-//!   tiempos del modo: DemoConfig) y, si el ajuste recordActivity está activo, la
+//!   tiempos del modo: DemoConfig) y, si el ajuste "Grabar actividad" está activo, la
 //!   grabación.
+//!
+//! Ajustes (fase 11): applySettings recibe los ajustes ya validados (AppSettings.load) y
+//! los reparte (detector, vibración, sonido); las vistas los leen con settings().
 //! - pause(): detiene la fuente, guarda la actividad, congela el puntaje y reinicia el
 //!   detector y el clasificador.
 //! - shutdown(): lo mismo, al cerrar la app con la guardia activa.
@@ -162,6 +165,33 @@ class GuardController {
         return _settings;
     }
 
+    //! Aplica los ajustes al abrir la app, al cambiarlos en el menú del reloj o al llegar
+    //! de Garmin Connect (onSettingsChanged), sin reiniciar la guardia:
+    //! - sensibilidad: el detector usa los umbrales nuevos desde el lote siguiente;
+    //! - vibración y sonido: desde la próxima alerta (o la próxima subida de nivel);
+    //! - animaciones reducidas: desde el próximo cuadro de la esfera y la próxima alerta;
+    //! - grabar actividad: desde la próxima guardia (la grabación en curso sigue).
+    function applySettings(settings as Settings) as Void {
+        _settings = settings;
+        _detector.setSensitivity(settings.sensitivity);
+        _haptics.setVibration(settings.vibration);
+        _haptics.setSound(settings.sound);
+        logSettings();
+        WatchUi.requestUpdate();
+    }
+
+    (:debug)
+    private function logSettings() as Void {
+        System.println("AJUSTES sensibilidad " + (_settings.sensitivity as Number) + ", vibración "
+            + (_settings.vibration as Number) + ", sonido " + _settings.sound + ", animaciones reducidas "
+            + _settings.reducedAnimations + ", confirmación IA " + _settings.aiConfirmation
+            + ", grabar actividad " + _settings.recordActivity);
+    }
+
+    (:release)
+    private function logSettings() as Void {
+    }
+
     // --- Guardia ----------------------------------------------------------------
 
     function isActive() as Boolean {
@@ -195,7 +225,7 @@ class GuardController {
         _score.reset();
         startDetection();
         _lastBatchMs = null;
-        if (AppSettings.recordActivity()) {
+        if (_settings.recordActivity) {
             _recorder.start();
         }
         // Guardia nueva: sin episodios y con la fatiga en Bajo.

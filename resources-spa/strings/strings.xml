@@ -150,6 +150,13 @@
     <string id="SettingValueOn">Activado</string>
     <string id="SettingValueOff">Desactivado</string>
     <string id="SettingRecordActivity">Grabar guardia como actividad</string>
+    <!-- Valores del ajuste "Vibración" (Garmin Connect y menú del reloj). -->
+    <string id="SettingVibrationOff">Apagada</string>
+    <string id="SettingVibrationSoft">Suave</string>
+    <string id="SettingVibrationNormal">Normal</string>
+    <string id="SettingVibrationStrong">Fuerte</string>
+    <string id="SettingReducedAnimations">Animaciones reducidas</string>
+    <string id="SettingAiConfirmation">Confirmación por IA</string>
 
     <!-- Clases del modelo IA -->
     <string id="AiClassActive">Activo</string>

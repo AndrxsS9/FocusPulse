@@ -1,7 +1,19 @@
-<!-- Propiedades persistentes de la app. Las que tienen un ajuste en settings.xml se
-     pueden editar desde la app Garmin Connect (en el simulador: File > Edit Persistent
-     Storage > Edit Application.Properties data). Se leen con source/app/AppSettings.mc. -->
+<!-- Propiedades persistentes de la app (ajustes de usuario). Todas tienen un ajuste en
+     settings.xml, así que se pueden editar desde la app Garmin Connect (en el simulador:
+     File > Edit Persistent Storage > Edit Application.Properties data) y desde el menú
+     del reloj (Ajustes). Solo las lee y escribe source/app/AppSettings.mc; los valores
+     por defecto son los de source/core/Settings.mc y deben coincidir. -->
 <properties>
+    <!-- Sensibilidad del detector: 0 baja, 1 media, 2 alta (DetectorThresholds). -->
+    <property id="sensitivity" type="number">1</property>
+    <!-- Vibración de la alerta: 0 apagada, 1 suave, 2 normal, 3 fuerte (VibePatterns). -->
+    <property id="vibration" type="number">2</property>
+    <!-- Tonos de alerta (solo en relojes con Attention.playTone). -->
+    <property id="sound" type="boolean">true</property>
+    <!-- Orbe sin partículas, alerta sin sacudida y con el pulso más lento. -->
+    <property id="reducedAnimations" type="boolean">false</property>
+    <!-- El modelo confirma los cabeceos del detector antes de abrir la alerta. -->
+    <property id="aiConfirmation" type="boolean">true</property>
     <!-- true: al iniciar la guardia se graba una actividad para que el acelerómetro y la
          vibración sigan funcionando si la app pasa a segundo plano. -->
     <property id="recordActivity" type="boolean">true</property>

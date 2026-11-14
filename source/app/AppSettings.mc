@@ -1,31 +1,61 @@
 import Toybox.Application;
 import Toybox.Lang;
 
-//! Lectura tipada de los ajustes de usuario (resources/settings/properties.xml).
+//! Único sitio que lee y escribe los ajustes de usuario en Application.Properties
+//! (resources/settings/properties.xml). El resto de la app usa el objeto Settings
+//! (source/core/Settings.mc) que devuelve load(): nadie más lee propiedades sueltas.
 //!
-//! Los ajustes se cambian desde la app Garmin Connect mientras la app está cerrada o
-//! abierta; se leen cada vez que hacen falta (p. ej. al iniciar la guardia), así que no
-//! hace falta reaccionar a onSettingsChanged().
+//! - load(): al abrir la app (FocusPulseApp.onStart) y cada vez que llegan cambios de la
+//!   app Garmin Connect (onSettingsChanged). Un valor ausente, de otro tipo o fuera de
+//!   rango se cambia por el de por defecto (Settings.*From).
+//! - save(): desde el menú Ajustes del reloj, con cada cambio.
 module AppSettings {
 
-    //! Clave de la propiedad "Grabar guardia como actividad".
+    //! Claves de las propiedades (ids de properties.xml).
+    const SENSITIVITY = "sensitivity";
+    const VIBRATION = "vibration";
+    const SOUND = "sound";
+    const REDUCED_ANIMATIONS = "reducedAnimations";
+    const AI_CONFIRMATION = "aiConfirmation";
     const RECORD_ACTIVITY = "recordActivity";
 
-    //! true si la guardia debe grabarse como actividad (por defecto true).
-    function recordActivity() as Boolean {
-        return readBoolean(RECORD_ACTIVITY, true);
+    //! Ajustes guardados, validados.
+    function load() as Settings {
+        var settings = new Settings();
+        settings.sensitivity = Settings.sensitivityFrom(read(SENSITIVITY));
+        settings.vibration = Settings.vibrationFrom(read(VIBRATION));
+        settings.sound = Settings.booleanFrom(read(SOUND), Settings.DEFAULT_SOUND);
+        settings.reducedAnimations = Settings.booleanFrom(read(REDUCED_ANIMATIONS),
+            Settings.DEFAULT_REDUCED_ANIMATIONS);
+        settings.aiConfirmation = Settings.booleanFrom(read(AI_CONFIRMATION),
+            Settings.DEFAULT_AI_CONFIRMATION);
+        settings.recordActivity = Settings.booleanFrom(read(RECORD_ACTIVITY),
+            Settings.DEFAULT_RECORD_ACTIVITY);
+        return settings;
     }
 
-    //! Lee una propiedad booleana; si falta o tiene otro tipo devuelve fallback.
-    function readBoolean(key as String, fallback as Boolean) as Boolean {
+    //! Guarda todos los ajustes. Si no se puede escribir, el cambio dura hasta cerrar la
+    //! app.
+    function save(settings as Settings) as Void {
         try {
-            var value = Application.Properties.getValue(key);
-            if (value instanceof Boolean) {
-                return value;
-            }
+            Application.Properties.setValue(SENSITIVITY, settings.sensitivity as Number);
+            Application.Properties.setValue(VIBRATION, settings.vibration as Number);
+            Application.Properties.setValue(SOUND, settings.sound);
+            Application.Properties.setValue(REDUCED_ANIMATIONS, settings.reducedAnimations);
+            Application.Properties.setValue(AI_CONFIRMATION, settings.aiConfirmation);
+            Application.Properties.setValue(RECORD_ACTIVITY, settings.recordActivity);
         } catch (e instanceof Lang.Exception) {
-            // Propiedad inexistente (InvalidKeyException): se usa el valor por defecto.
+            // Propiedad inexistente o de otro tipo: se sigue con los ajustes en memoria.
         }
-        return fallback;
+    }
+
+    //! Valor de una propiedad, o null si no existe.
+    function read(key as String) as Object? {
+        try {
+            return Application.Properties.getValue(key);
+        } catch (e instanceof Lang.Exception) {
+            // InvalidKeyException: propiedad de una versión que aún no la tenía.
+            return null;
+        }
     }
 }

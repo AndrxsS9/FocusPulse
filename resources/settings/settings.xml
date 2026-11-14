@@ -1,6 +1,35 @@
-<!-- Ajustes editables desde la app Garmin Connect. Los títulos son textos de
-     resources/strings (inglés) y resources-spa/strings (español). -->
+<!-- Ajustes editables desde la app Garmin Connect (y desde Ajustes en el reloj). Los
+     títulos y los valores son textos de resources/strings (inglés) y
+     resources-spa/strings (español). Al guardarlos con la app abierta llega
+     onSettingsChanged y se aplican sin reiniciar (FocusPulseApp).
+
+     "Sonido": los dos productos (fr165 y fr165m) tienen Attention.playTone, así que se
+     muestra siempre aquí; el menú del reloj lo esconde si el reloj no puede sonar. -->
 <settings>
+    <setting propertyKey="@Properties.sensitivity" title="@Strings.SettingSensitivity">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.SettingValueLow</listEntry>
+            <listEntry value="1">@Strings.SettingValueMedium</listEntry>
+            <listEntry value="2">@Strings.SettingValueHigh</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.vibration" title="@Strings.SettingVibration">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.SettingVibrationOff</listEntry>
+            <listEntry value="1">@Strings.SettingVibrationSoft</listEntry>
+            <listEntry value="2">@Strings.SettingVibrationNormal</listEntry>
+            <listEntry value="3">@Strings.SettingVibrationStrong</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.sound" title="@Strings.SettingSound">
+        <settingConfig type="boolean"/>
+    </setting>
+    <setting propertyKey="@Properties.reducedAnimations" title="@Strings.SettingReducedAnimations">
+        <settingConfig type="boolean"/>
+    </setting>
+    <setting propertyKey="@Properties.aiConfirmation" title="@Strings.SettingAiConfirmation">
+        <settingConfig type="boolean"/>
+    </setting>
     <setting propertyKey="@Properties.recordActivity" title="@Strings.SettingRecordActivity">
         <settingConfig type="boolean"/>
     </setting>
