@@ -7,11 +7,14 @@ module ToastKind {
         //! Sin aviso.
         NONE = 0,
         //! Cambio de escenario con DOWN; el valor es el AccelScenario.Id nuevo.
-        SCENARIO = 1
+        SCENARIO = 1,
+        //! Guardia iniciada con la alerta solo visual (sin vibración ni sonido).
+        VISUAL_ONLY = 2
     }
 }
 
-//! Aviso breve que se ve DURATION_MS sobre la esfera ("Escenario: Tecleo activo").
+//! Aviso breve que se ve DURATION_MS sobre la esfera ("Escenario: Tecleo activo"), o
+//! WARNING_DURATION_MS si es un aviso de seguridad ("Alerta solo visual").
 //!
 //! Guarda solo el tipo, un valor y el instante en que se mostró; la vista pone el texto
 //! localizado. Un aviso nuevo reemplaza al anterior y vuelve a contar desde cero. El
@@ -21,6 +24,14 @@ class Toast {
 
     //! Tiempo visible (ms).
     static const DURATION_MS = 1500;
+
+    //! Los avisos de seguridad se quedan más, para que dé tiempo a leerlos.
+    static const WARNING_DURATION_MS = 3000;
+
+    //! Tiempo visible (ms) de un aviso de ese tipo.
+    static function durationMs(kind as ToastKind.Id) as Number {
+        return kind == ToastKind.VISUAL_ONLY ? WARNING_DURATION_MS : DURATION_MS;
+    }
 
     private var _kind as ToastKind.Id = ToastKind.NONE;
     private var _value as Number = 0;
@@ -41,13 +52,13 @@ class Toast {
         _kind = ToastKind.NONE;
     }
 
-    //! true durante DURATION_MS desde show(), y nunca antes de ese instante.
+    //! true durante durationMs(tipo) desde show(), y nunca antes de ese instante.
     function isVisible(nowMs as Number) as Boolean {
         if (_kind == ToastKind.NONE) {
             return false;
         }
         var elapsed = nowMs - _shownAtMs;
-        return elapsed >= 0 && elapsed < DURATION_MS;
+        return elapsed >= 0 && elapsed < durationMs(_kind);
     }
 
     function kind() as ToastKind.Id {

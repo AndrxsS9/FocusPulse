@@ -558,6 +558,9 @@ class MainView extends WatchUi.View {
         if (toast.kind() == ToastKind.SCENARIO) {
             _toastTitle = _toastScenarioTitle;
             _toastText = DemoText.scenarioName(toast.value() as AccelScenario.Id);
+        } else if (toast.kind() == ToastKind.VISUAL_ONLY) {
+            _toastTitle = DemoText.text(Rez.Strings.WarningVisualOnlyTitle);
+            _toastText = DemoText.text(Rez.Strings.WarningVisualOnlyShort);
         } else {
             return false;
         }

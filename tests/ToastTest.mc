@@ -20,6 +20,17 @@ function toastIsVisibleForItsDuration(logger as Logger) as Boolean {
 }
 
 (:test)
+function toastWarningStaysLonger(logger as Logger) as Boolean {
+    var toast = new Toast();
+    toast.show(ToastKind.VISUAL_ONLY, 0, 0);
+    Test.assertMessage(toast.isVisible(Toast.DURATION_MS), "sigue a los 1,5 s");
+    Test.assertMessage(toast.isVisible(Toast.WARNING_DURATION_MS - 1), "se ve 3 s");
+    Test.assertMessage(!toast.isVisible(Toast.WARNING_DURATION_MS), "y luego desaparece");
+    Test.assertEqual(Toast.durationMs(ToastKind.SCENARIO), 1500);
+    return true;
+}
+
+(:test)
 function toastReplacedRestartsTimer(logger as Logger) as Boolean {
     var toast = new Toast();
     toast.show(ToastKind.SCENARIO, AccelScenario.TYPING as Number, 0);

@@ -236,8 +236,18 @@ class GuardController {
         _fatigueSinceMs = 0;
         _fatigue = FatigueLevel.LOW;
         _state.start();
+        // Aviso de seguridad: sin vibración ni sonido la alerta solo se vería.
+        if (isVisualOnlyAlert()) {
+            _toast.show(ToastKind.VISUAL_ONLY, 0, System.getTimer());
+        }
         WatchUi.requestUpdate();
         return true;
+    }
+
+    //! true si una alerta no vibraría ni sonaría: vibración apagada (en Ajustes o en el
+    //! reloj) y sonido apagado o sin altavoz. Ajustes y la esfera lo avisan.
+    function isVisualOnlyAlert() as Boolean {
+        return _settings.isVisualOnly(Haptics.canVibrate(), Haptics.canPlayTone());
     }
 
     //! Pausa la guardia: detiene la fuente, guarda la actividad, si se grababa, y guarda

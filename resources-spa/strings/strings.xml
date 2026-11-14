@@ -162,6 +162,16 @@
     <!-- Versión corta de SettingRecordActivity para el menú del reloj. -->
     <string id="SettingRecordActivityShort">Grabar actividad</string>
 
+    <!-- Aviso de seguridad: vibración apagada y sin sonido (Ajustes, esfera al iniciar la
+         guardia y pantalla de aviso). WarningVisualOnlyBody va en varias líneas. -->
+    <string id="WarningVisualOnlyTitle">Alerta solo visual</string>
+    <string id="WarningVisualOnlyShort">Sin vibración ni sonido</string>
+    <string id="WarningVisualOnlyBody">La vibración y el sonido están apagados: la alerta solo se verá en la pantalla. Activa uno en Ajustes.</string>
+
+    <!-- Subtítulo de Vibración en Ajustes con la alerta solo visual: $1$ valor, $2$ WarningVisualOnlyTag. -->
+    <string id="WarningSubFormat">$1$ · $2$</string>
+    <string id="WarningVisualOnlyTag">solo visual</string>
+
     <!-- Clases del modelo IA -->
     <string id="AiClassActive">Activo</string>
     <string id="AiClassNormal">Normal</string>
