@@ -152,7 +152,8 @@ function demoScriptCancels(logger as Logger) as Boolean {
 }
 
 //! Recorrido completo con el detector, en el orden de GuardController.onBatch: cada
-//! lote pasa por el detector; un evento abre la alerta (AlertController) y se avisa al
+//! lote pasa por el detector y la confirmación del modelo (activada, como por defecto); un
+//! evento confirmado abre la alerta (AlertController) y se avisa al
 //! guion; la alerta escala con los tiempos del modo demo; "Estoy despierto" llega 3 s
 //! después de abrirse, salvo en el último paso, que la deja sin respuesta. Comprueba
 //! que cada alerta cae en su paso, con el motivo correcto, y que el guion termina con
@@ -168,7 +169,8 @@ function demoScriptRunsFullDemoWithDetector(logger as Logger) as Boolean {
     var steps = [] as Array<Number>;
 
     for (var i = 0; i < 180 && !script.isFinished(); i++) {
-        var event = rig.step();
+        rig.step();
+        var event = rig.alertEvent;
         if (event != DrowsinessEvent.NONE && alerts.onEvent(event, rig.timeMs)) {
             reasons.add(event);
             steps.add(script.stepNumber());

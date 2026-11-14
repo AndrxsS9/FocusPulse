@@ -1,7 +1,9 @@
 import Toybox.Lang;
 
 //! Banco de pruebas del detector: fuente simulada → TelemetryEngine → DrowsinessDetector
-//! → StateClassifier → AlertnessScore, en el mismo orden que GuardController.onBatch. Un paso es un lote de 1 s; la guardia
+//! → StateClassifier → NodConfirmation → AlertnessScore, en el mismo orden que
+//! GuardController.onBatch. nods/inactivities cuentan los eventos del detector; alertNods,
+//! los cabeceos que abrirían la alerta (tras la confirmación, activada por defecto). Un paso es un lote de 1 s; la guardia
 //! empieza en t = 0 y el lote i termina en i × 1000 ms, así que el tiempo está controlado.
 (:test)
 class DetectorRig {
@@ -10,6 +12,12 @@ class DetectorRig {
     var engine as TelemetryEngine;
     var detector as DrowsinessDetector;
     var classifier as StateClassifier;
+    var confirmation as NodConfirmation;
+
+    //! Evento que abriría la alerta en el último lote (tras la confirmación).
+    var alertEvent as DrowsinessEvent.Id = DrowsinessEvent.NONE;
+    var alertNods as Number = 0;
+    var firstAlertNodMs as Number? = null;
 
     //! Puntaje de alerta, ya iniciado (88). Se puede reemplazar para partir de otro valor.
     var score as AlertnessScore;
@@ -35,6 +43,7 @@ class DetectorRig {
         detector = new DrowsinessDetector();
         detector.start(0, demo);
         classifier = new StateClassifier();
+        confirmation = new NodConfirmation();
         score = new AlertnessScore();
         score.reset();
         eventTimes = [] as Array<Number>;
@@ -54,6 +63,13 @@ class DetectorRig {
         }
         var event = detector.update(snapshot, timeMs);
         classifier.update(snapshot, detector);
+        alertEvent = confirmation.update(event, classifier.probability(DrowsinessClass.NORMAL));
+        if (alertEvent == DrowsinessEvent.NOD) {
+            alertNods += 1;
+            if (firstAlertNodMs == null) {
+                firstAlertNodMs = timeMs;
+            }
+        }
         score.update(classifier.isReady() ? classifier.probabilities() : null, 1.0f);
         if (event == DrowsinessEvent.NOD) {
             nods += 1;

@@ -18,7 +18,9 @@ import Toybox.WatchUi;
 //! - shutdown(): lo mismo, al cerrar la app con la guardia activa.
 //!
 //! Con cada lote (onBatch), en este orden: motor → snapshot → detector → clasificador →
-//! puntaje (que sigue las probabilidades del clasificador). Todo se actualiza con los lotes de telemetría, no con el redibujo de la
+//! confirmación del cabeceo (NodConfirmation, fase 11: con el ajuste activado un CABECEO
+//! espera 2 lotes y solo abre la alerta si el modelo ya no ve Normal; la inactividad pasa
+//! directa) → alerta → puntaje (que sigue las probabilidades del clasificador). Todo se actualiza con los lotes de telemetría, no con el redibujo de la
 //! vista. El último evento del detector se guarda con su hora para las vistas. Las vistas
 //! leen el estado, el puntaje y el snapshot; los delegados llaman a toggle().
 //!
@@ -69,6 +71,9 @@ class GuardController {
     private var _score as AlertnessScore;
     private var _detector as DrowsinessDetector;
     private var _classifier as StateClassifier;
+
+    //! El modelo confirma (o descarta) los cabeceos del detector antes de la alerta.
+    private var _confirmation as NodConfirmation;
 
     //! Último evento del detector y su hora (se conservan al pausar).
     private var _lastEvent as DrowsinessEvent.Id = DrowsinessEvent.NONE;
@@ -142,6 +147,7 @@ class GuardController {
         _score = new AlertnessScore();
         _detector = new DrowsinessDetector();
         _classifier = new StateClassifier();
+        _confirmation = new NodConfirmation();
         _snapshot = _engine.snapshot();
         _recorder = new SessionRecorder(sessionName);
         _realSource = new RealAccelSource();
@@ -174,6 +180,7 @@ class GuardController {
     function applySettings(settings as Settings) as Void {
         _settings = settings;
         _detector.setSensitivity(settings.sensitivity);
+        _confirmation.setEnabled(settings.aiConfirmation);
         _haptics.setVibration(settings.vibration);
         _haptics.setSound(settings.sound);
         logSettings();
@@ -344,6 +351,7 @@ class GuardController {
         _score.setActive(false);
         _detector.reset();
         _classifier.reset();
+        _confirmation.reset();
         _realSource.stop();
         _demoSource.stop();
     }
@@ -442,12 +450,22 @@ class GuardController {
         _lastBatchMs = timestampMs;
         _snapshot = _engine.snapshot();
 
-        var event = _detector.update(_snapshot, timestampMs);
+        var detected = _detector.update(_snapshot, timestampMs);
         _classifier.update(_snapshot, _detector);
+        if (detected != DrowsinessEvent.NONE) {
+            logEvent(detected, timestampMs);
+        }
+        // El evento que abre la alerta: un CABECEO puede llegar 2 lotes después o no
+        // llegar (descartado por el modelo).
+        var rejectedBefore = _confirmation.rejectedCount();
+        var event = _confirmation.update(detected,
+            _classifier.probability(DrowsinessClass.NORMAL));
+        if (_confirmation.rejectedCount() != rejectedBefore) {
+            logRejected(timestampMs);
+        }
         if (event != DrowsinessEvent.NONE) {
             _lastEvent = event;
             _lastEventMoment = Time.now();
-            logEvent(event, timestampMs);
             // Con una alerta ya abierta, AlertController ignora el evento.
             if (_alerts.onEvent(event, System.getTimer())) {
                 // Solo las alertas del detector cuentan para los pasos de espera del
@@ -624,11 +642,28 @@ class GuardController {
         return _alerts.isActive();
     }
 
-    //! Arranca el detector (calibrando) y el clasificador desde cero.
+    //! Arranca el detector (calibrando), el clasificador y la confirmación desde cero.
     private function startDetection() as Void {
         _detectionStartMs = System.getTimer();
         _detector.start(_detectionStartMs, _demo.isEnabled());
         _classifier.reset();
+        _confirmation.reset();
+    }
+
+    //! Confirmación de cabeceos (solo lectura para las vistas de depuración).
+    function confirmation() as NodConfirmation {
+        return _confirmation;
+    }
+
+    (:debug)
+    private function logRejected(timestampMs as Number) as Void {
+        System.println("CABECEO descartado por el modelo a los "
+            + ((timestampMs - _detectionStartMs) / 1000.0f).format("%.1f") + " s: p(Normal) "
+            + _confirmation.lastNormal().format("%.2f") + " >= " + NodConfirmation.NORMAL_MAX.format("%.2f"));
+    }
+
+    (:release)
+    private function logRejected(timestampMs as Number) as Void {
     }
 
     //! En depuración, cada evento queda en la consola del simulador.
