@@ -66,6 +66,10 @@
     <!-- Menú principal (mantener UP). El título del menú es AppName. -->
     <string id="MenuDemoOn">Simulated data</string>
     <string id="MenuDemoOff">Real sensor</string>
+    <string id="MenuScenario">Scenario</string>
+    <!-- Probar alerta: los ítems reutilizan AlertLevel1..3 y AlertVibration*. -->
+    <string id="MenuTestAlert">Test alert</string>
+
     <string id="MenuAbout">About</string>
     <!-- Acerca de: $1$ es la versión (AppInfo.VERSION). -->
     <string id="AboutVersionFormat">Version $1$</string>

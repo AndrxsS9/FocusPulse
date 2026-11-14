@@ -6,6 +6,9 @@ import Toybox.WatchUi;
 //!
 //! - Modo demo (ToggleMenuItem): activa la fuente simulada y los tiempos cortos; se
 //!   guarda en Storage (GuardController.setDemoMode → DemoStore).
+//! - Escenario (solo con el modo demo): submenú con los 4 escenarios de la demo.
+//! - Probar alerta (solo con el modo demo): submenú nivel 1 / 2 / 3; cierra los menús y
+//!   abre la alerta sobre la esfera, como una alerta real.
 //! - Acerca de: nombre, versión y qué hace la app.
 //! - Depuración (solo en compilaciones de depuración): el menú de depuración de siempre.
 //!
@@ -14,6 +17,8 @@ import Toybox.WatchUi;
 module MainMenu {
 
     const ITEM_DEMO = :demo;
+    const ITEM_SCENARIO = :scenario;
+    const ITEM_TEST_ALERT = :testAlert;
     const ITEM_ABOUT = :about;
     const ITEM_DEBUG = :debug;
 
@@ -39,6 +44,12 @@ module MainMenu {
                 :disabled => DemoText.text(Rez.Strings.MenuDemoOff)
             },
             ITEM_DEMO, demo, {}));
+        if (demo) {
+            items.add(new WatchUi.MenuItem(DemoText.text(Rez.Strings.MenuScenario),
+                DemoText.scenarioName(guard.demoScenario()), ITEM_SCENARIO, {}));
+            items.add(new WatchUi.MenuItem(DemoText.text(Rez.Strings.MenuTestAlert), null,
+                ITEM_TEST_ALERT, {}));
+        }
         items.add(new WatchUi.MenuItem(DemoText.text(Rez.Strings.MenuAbout), null, ITEM_ABOUT, {}));
         addDebugItem(items);
 
@@ -70,6 +81,81 @@ module MainMenu {
     }
 }
 
+//! Submenú "Escenario": los escenarios de la demo, con el foco en el actual.
+module ScenarioMenu {
+
+    function open(guard as GuardController, parentItem as WatchUi.MenuItem) as Void {
+        var scenarios = DemoConfig.SCENARIOS as Array<AccelScenario.Id>;
+        var focus = scenarios.indexOf(guard.demoScenario());
+        var menu = new WatchUi.Menu2({
+            :title => DemoText.text(Rez.Strings.MenuScenario),
+            :focus => focus < 0 ? 0 : focus
+        });
+        for (var i = 0; i < scenarios.size(); i++) {
+            menu.addItem(new WatchUi.MenuItem(DemoText.scenarioName(scenarios[i]), null,
+                scenarios[i] as Number, {}));
+        }
+        WatchUi.pushView(menu, new ScenarioMenuDelegate(guard, parentItem), WatchUi.SLIDE_LEFT);
+    }
+}
+
+//! Elige el escenario, actualiza el subtítulo del ítem del menú principal y vuelve.
+class ScenarioMenuDelegate extends WatchUi.Menu2InputDelegate {
+
+    private var _guard as GuardController;
+    private var _parentItem as WatchUi.MenuItem;
+
+    function initialize(guard as GuardController, parentItem as WatchUi.MenuItem) {
+        Menu2InputDelegate.initialize();
+        _guard = guard;
+        _parentItem = parentItem;
+    }
+
+    function onSelect(item as MenuItem) as Void {
+        _guard.setDemoScenario(item.getId() as AccelScenario.Id);
+        _parentItem.setSubLabel(DemoText.scenarioName(_guard.demoScenario()));
+        WatchUi.popView(WatchUi.SLIDE_RIGHT);
+    }
+}
+
+//! Submenú "Probar alerta": nivel 1, 2 y 3 con su tipo de vibración.
+module TestAlertMenu {
+
+    const LEVEL_NAMES = [Rez.Strings.AlertLevel1, Rez.Strings.AlertLevel2, Rez.Strings.AlertLevel3];
+    const VIBRATION_NAMES = [Rez.Strings.AlertVibrationSoft, Rez.Strings.AlertVibrationMedium,
+        Rez.Strings.AlertVibrationMax];
+
+    function open(guard as GuardController) as Void {
+        var menu = new WatchUi.Menu2({ :title => DemoText.text(Rez.Strings.MenuTestAlert) });
+        var levels = LEVEL_NAMES as Array<ResourceId>;
+        var vibrations = VIBRATION_NAMES as Array<ResourceId>;
+        for (var i = 0; i < levels.size(); i++) {
+            menu.addItem(new WatchUi.MenuItem(DemoText.text(levels[i]),
+                DemoText.text(vibrations[i]), i + 1, {}));
+        }
+        WatchUi.pushView(menu, new TestAlertMenuDelegate(guard), WatchUi.SLIDE_LEFT);
+    }
+}
+
+//! Cierra el submenú y el menú principal y abre la alerta del nivel elegido sobre la
+//! esfera: al responder "Estoy despierto" se vuelve a la esfera, como con una alerta
+//! real. El motivo es el cabeceo (el texto más largo).
+class TestAlertMenuDelegate extends WatchUi.Menu2InputDelegate {
+
+    private var _guard as GuardController;
+
+    function initialize(guard as GuardController) {
+        Menu2InputDelegate.initialize();
+        _guard = guard;
+    }
+
+    function onSelect(item as MenuItem) as Void {
+        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+        _guard.triggerAlert(item.getId() as Number, DrowsinessEvent.NOD);
+    }
+}
+
 //! Entrada del menú principal.
 class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
 
@@ -86,6 +172,10 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
             // El ToggleMenuItem ya cambió de estado al tocarlo.
             _guard.setDemoMode((item as WatchUi.ToggleMenuItem).isEnabled());
             MainMenu.rebuild(_guard, MainMenu.ITEM_DEMO);
+        } else if (id == MainMenu.ITEM_SCENARIO) {
+            ScenarioMenu.open(_guard, item);
+        } else if (id == MainMenu.ITEM_TEST_ALERT) {
+            TestAlertMenu.open(_guard);
         } else if (id == MainMenu.ITEM_ABOUT) {
             WatchUi.pushView(new AboutView(), new WatchUi.BehaviorDelegate(), WatchUi.SLIDE_LEFT);
         } else {
