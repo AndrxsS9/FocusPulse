@@ -37,6 +37,12 @@ import Toybox.WatchUi;
 //! y cada episodio nuevo, FatiguePredictor recalcula la fatiga; en Alto la esfera
 //! muestra el aviso de descanso.
 //!
+//! Descanso guiado: startBreak (toque en el aviso o "Tomar descanso" en el menú)
+//! suspende la detección (fuente, detector, guion) sin terminar la guardia: la
+//! grabación sigue y los episodios se conservan. Al llegar a cero vibra suave y la
+//! fatiga vuelve a contar desde ese instante; endBreak ("Reanudar guardia" o BACK)
+//! reanuda la detección, que vuelve a calibrar.
+//!
 //! Modo demo (fase 8): DemoConfig decide la fuente y los tiempos; se guarda en Storage
 //! (DemoStore) con cada cambio. Cambiar de modo con la guardia activa la reinicia sin
 //! pausarla (restartGuard): otra fuente, motor, puntaje y detector desde cero, y la
@@ -105,6 +111,9 @@ class GuardController {
     private var _fatigueSinceMs as Number = 0;
     private var _fatigue as FatigueLevel.Id = FatigueLevel.LOW;
 
+    //! Descanso guiado en curso (la guardia está suspendida mientras corre).
+    private var _break as BreakTimer;
+
     //! sessionName: nombre de la actividad grabada (texto localizado).
     function initialize(state as MonitorState, sessionName as String, demoSeed as Number) {
         _state = state;
@@ -125,6 +134,7 @@ class GuardController {
         _alerts.setEscalationMs(_demo.alertEscalationMs());
         _haptics = new Haptics();
         _episodes = new AlertLog();
+        _break = new BreakTimer();
     }
 
     // --- Guardia ----------------------------------------------------------------
@@ -193,18 +203,99 @@ class GuardController {
     //! los cierres del sistema. La segunda llamada no hace nada.
     function shutdown() as Void {
         cancelAlert();
+        _break.cancel();
         stopAll();
         _state.pause();
     }
 
+    //! Detiene la detección y guarda la actividad: fin de la guardia.
     private function stopAll() as Void {
+        stopDetection();
+        _recorder.stop(true);
+    }
+
+    //! Detiene la fuente, el detector, el clasificador y el guion, sin tocar la
+    //! grabación (pausa o descanso).
+    private function stopDetection() as Void {
         _script.cancel();
         _score.setActive(false);
         _detector.reset();
         _classifier.reset();
         _realSource.stop();
         _demoSource.stop();
-        _recorder.stop(true);
+    }
+
+    // --- Descanso guiado ----------------------------------------------------------
+
+    //! true si se puede empezar un descanso: guardia activa y sin alerta abierta.
+    function canTakeBreak() as Boolean {
+        return _state.isActive() && !_alerts.isActive();
+    }
+
+    //! Empieza el descanso guiado (15 min, 30 s en demo) y abre su vista. La guardia
+    //! queda suspendida: sin detección ni alertas, pero sin terminar (la actividad se
+    //! sigue grabando y los episodios se conservan). Devuelve false si no se puede.
+    function startBreak() as Boolean {
+        if (!canTakeBreak()) {
+            return false;
+        }
+        stopDetection();
+        _state.pause();
+        _break.start(System.getTimer(), _demo.breakMs());
+        WatchUi.pushView(new BreakView(self), new BreakDelegate(self), WatchUi.SLIDE_UP);
+        return true;
+    }
+
+    //! Reloj del descanso (lo llama su vista cada segundo). Al llegar a cero vibra suave
+    //! una vez y la fatiga vuelve a contar desde ahora: el descanso se completó.
+    function onBreakTick() as Void {
+        if (_break.update(System.getTimer())) {
+            _fatigueSinceMs = guardElapsedMs();
+            _fatigue = FatigueLevel.LOW;
+            _haptics.notify();
+        }
+    }
+
+    //! "Reanudar guardia" (al terminar) o BACK (en cualquier momento): cierra la vista
+    //! del descanso y reanuda la detección. Si se canceló antes de tiempo, la fatiga no
+    //! se reinicia.
+    function endBreak() as Void {
+        if (!_break.isRunning()) {
+            return;
+        }
+        _break.cancel();
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
+        resumeAfterBreak();
+    }
+
+    function isOnBreak() as Boolean {
+        return _break.isRunning();
+    }
+
+    //! Cuenta regresiva del descanso (solo lectura para su vista).
+    function breakTimer() as BreakTimer {
+        return _break;
+    }
+
+    //! Vuelve a vigilar tras el descanso, con la misma guardia: fuente, motor, puntaje
+    //! y detector desde cero (vuelve a calibrar). Si la fuente no arranca, la guardia
+    //! termina.
+    private function resumeAfterBreak() as Void {
+        _engine.reset();
+        _snapshot = _engine.snapshot();
+        _lastBatchMs = null;
+        if (!currentSource().start()) {
+            _sensorUnavailable = true;
+            stopAll();
+            WatchUi.requestUpdate();
+            return;
+        }
+        _sensorUnavailable = false;
+        _score.reset();
+        startDetection();
+        _state.start();
+        updateFatigue();
+        WatchUi.requestUpdate();
     }
 
     // --- Datos ------------------------------------------------------------------

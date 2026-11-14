@@ -58,6 +58,13 @@
     <string id="FatigueModerate">Moderate</string>
     <string id="FatigueHigh">High</string>
 
+    <!-- Descanso guiado (fatiga alta): título, fin, ayuda de BACK, botón y entrada del menú. -->
+    <string id="BreakTitle">Break</string>
+    <string id="BreakDone">Break over</string>
+    <string id="BreakHint">BACK · cancel</string>
+    <string id="ButtonResumeGuard">Resume guard</string>
+    <string id="MenuTakeBreak">Take a break</string>
+
     <!-- Modo demo -->
     <string id="DemoTitle">Demo mode</string>
     <string id="DemoSimulateNod">Simulate nod</string>

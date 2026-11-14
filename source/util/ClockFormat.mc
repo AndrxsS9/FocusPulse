@@ -26,6 +26,12 @@ module ClockFormat {
         return hoursMinutes(hour, minute, is24Hour) + ":" + second.format("%02d");
     }
 
+    //! Cuenta regresiva en minutos y segundos: "15:00", "0:05". Negativos como 0.
+    function countdown(seconds as Number) as String {
+        var s = seconds < 0 ? 0 : seconds;
+        return (s / 60).format("%d") + ":" + (s % 60).format("%02d");
+    }
+
     //! Nivel de batería (0–100, Float de System.Stats) redondeado y recortado.
     function batteryPercent(battery as Float) as Number {
         var value = (battery + 0.5f).toNumber();

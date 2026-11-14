@@ -11,6 +11,8 @@ import Toybox.WatchUi;
 //!   pausa) o, si ya corre, lo detiene. Cierra el menú en ambos casos.
 //! - Probar alerta (solo con el modo demo): submenú nivel 1 / 2 / 3; cierra los menús y
 //!   abre la alerta sobre la esfera, como una alerta real.
+//! - Tomar descanso (solo con la guardia activa): cierra el menú y abre el descanso
+//!   guiado, igual que tocar el aviso de fatiga de la esfera.
 //! - Acerca de: nombre, versión y qué hace la app.
 //! - Depuración (solo en compilaciones de depuración): el menú de depuración de siempre.
 //!
@@ -22,6 +24,7 @@ module MainMenu {
     const ITEM_SCENARIO = :scenario;
     const ITEM_SCRIPT = :script;
     const ITEM_TEST_ALERT = :testAlert;
+    const ITEM_BREAK = :takeBreak;
     const ITEM_ABOUT = :about;
     const ITEM_DEBUG = :debug;
 
@@ -54,6 +57,10 @@ module MainMenu {
                 scriptSubLabel(guard.demoScript()), ITEM_SCRIPT, {}));
             items.add(new WatchUi.MenuItem(DemoText.text(Rez.Strings.MenuTestAlert), null,
                 ITEM_TEST_ALERT, {}));
+        }
+        if (guard.canTakeBreak()) {
+            items.add(new WatchUi.MenuItem(DemoText.text(Rez.Strings.MenuTakeBreak), null,
+                ITEM_BREAK, {}));
         }
         items.add(new WatchUi.MenuItem(DemoText.text(Rez.Strings.MenuAbout), null, ITEM_ABOUT, {}));
         addDebugItem(items);
@@ -198,6 +205,10 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
             }
         } else if (id == MainMenu.ITEM_TEST_ALERT) {
             TestAlertMenu.open(_guard);
+        } else if (id == MainMenu.ITEM_BREAK) {
+            // El descanso se abre sobre la esfera, no sobre el menú.
+            WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+            _guard.startBreak();
         } else if (id == MainMenu.ITEM_ABOUT) {
             WatchUi.pushView(new AboutView(), new WatchUi.BehaviorDelegate(), WatchUi.SLIDE_LEFT);
         } else {

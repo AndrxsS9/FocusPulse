@@ -17,6 +17,8 @@ import Toybox.Timer;
 //!   Attention.playTone y los tonos están activados (DeviceSettings.tonesOn). Si el
 //!   reloj no tiene ToneProfile, un TONE_ALERT_HI por ráfaga. Si no, nada.
 //! - stop(): detiene el timer y corta la ráfaga en curso con un VibeProfile nulo.
+//! - notify(): un aviso suave y único (dos pulsos cortos del nivel 1, sin tono ni
+//!   repetición), p. ej. al terminar el descanso guiado.
 //!
 //! Attention puede quedar denegada (app inactiva sin grabar actividad): cada llamada va
 //! dentro de try/catch para que la alerta visual nunca se caiga por el hardware.
@@ -80,6 +82,23 @@ class Haptics {
         }
         _vibes = null;
         _tones = null;
+    }
+
+    //! Aviso suave de una sola ráfaga (patrón del nivel 1) y luz. No interfiere con una
+    //! alerta en marcha: si hay una, no hace nada.
+    function notify() as Void {
+        if (_running) {
+            return;
+        }
+        lightUp();
+        if (!canVibrate()) {
+            return;
+        }
+        try {
+            Attention.vibrate(buildVibes(1));
+        } catch (e instanceof Lang.Exception) {
+            // Sin permiso de Attention: queda el aviso en pantalla.
+        }
     }
 
     function isRunning() as Boolean {

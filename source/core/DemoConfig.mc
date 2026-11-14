@@ -9,6 +9,7 @@ import Toybox.Lang;
 //! | Inactividad prolongada | 8 s de quietud | 60 s de quietud |
 //! | Escalamiento de una alerta sin respuesta | cada 6 s | cada 10 s |
 //! | Ventana del predictor de fatiga | 5 min | 30 min |
+//! | Descanso guiado | 30 s | 15 min |
 //!
 //! Los tiempos son los mismos que usan Baseline, DrowsinessDetector y AlertController
 //! en cada modo; esta clase es el único sitio donde se decide en qué modo está la
@@ -76,6 +77,11 @@ class DemoConfig {
     //! Ventana de episodios recientes del predictor de fatiga (ms).
     function fatigueWindowMs() as Number {
         return FatiguePredictor.windowMsFor(_enabled);
+    }
+
+    //! Duración del descanso guiado (ms).
+    function breakMs() as Number {
+        return BreakTimer.durationMsFor(_enabled);
     }
 
     // --- Escenario --------------------------------------------------------------

@@ -6,7 +6,8 @@ import Toybox.WatchUi;
 //!
 //! - Botón START/STOP (onKey, KEY_ENTER): inicia o pausa la guardia.
 //! - Toque en el botón grande (su área táctil, RoundLayout.buttonTouchRect): lo mismo
-//!   que START/STOP. Un toque fuera del botón no hace nada.
+//!   que START/STOP. Con la fatiga en Alto, un toque en el aviso "Micro-sueños
+//!   repetidos" abre el descanso guiado. Un toque en otra parte no hace nada.
 //! - BACK: sale de la app; si la guardia está activa, antes la detiene y guarda
 //!   la actividad (ver onBack).
 //! - Menú (pulsación larga de UP): menú principal (MainMenu), también en release.
@@ -47,13 +48,16 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
         return false;
     }
 
-    //! Toque en la pantalla: solo actúa dentro del área táctil del botón grande. Se
-    //! consume siempre, también fuera del botón, para que un toque en cualquier parte
-    //! no tenga otro efecto.
+    //! Toque en la pantalla: el botón grande (su área táctil) inicia o pausa la
+    //! guardia; el aviso de fatiga, si se ve, abre el descanso guiado. Se consume
+    //! siempre, también fuera de ambos, para que un toque en cualquier parte no tenga
+    //! otro efecto.
     function onTap(clickEvent as ClickEvent) as Boolean {
         var point = clickEvent.getCoordinates();
         if (_layout.hitsButton(point[0], point[1])) {
             _guard.toggle();
+        } else if (_guard.showsFatigueWarning() && _layout.hitsFatigueBanner(point[0], point[1])) {
+            _guard.startBreak();
         }
         return true;
     }
