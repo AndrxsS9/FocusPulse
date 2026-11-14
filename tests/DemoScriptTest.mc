@@ -2,7 +2,8 @@ import Toybox.Lang;
 import Toybox.Test;
 
 //! Pruebas del guion automático (DemoScript): orden de los pasos, tiempos, espera a la
-//! alerta, cancelación y el recorrido completo con el detector.
+//! alerta, el paso final sin respuesta hasta el nivel 3, cancelación y el recorrido
+//! completo con el detector y el escalamiento.
 
 (:test)
 function demoScriptStepsInOrder(logger as Logger) as Boolean {
@@ -12,8 +13,9 @@ function demoScriptStepsInOrder(logger as Logger) as Boolean {
     Test.assertEqualMessage(script.scenario(), AccelScenario.NORMAL, "sin guion: normal");
 
     var scenarios = [AccelScenario.NORMAL, AccelScenario.TYPING, AccelScenario.NOD,
-        AccelScenario.NORMAL, AccelScenario.INACTIVITY] as Array<AccelScenario.Id>;
-    var waits = [false, false, true, false, true] as Array<Boolean>;
+        AccelScenario.NORMAL, AccelScenario.INACTIVITY, AccelScenario.INACTIVITY]
+        as Array<AccelScenario.Id>;
+    var waits = [false, false, true, false, true, true] as Array<Boolean>;
     Test.assertEqual(script.stepCount(), scenarios.size());
 
     script.start(0);
@@ -22,8 +24,14 @@ function demoScriptStepsInOrder(logger as Logger) as Boolean {
         Test.assertEqualMessage(script.stepNumber(), i + 1, "paso " + (i + 1));
         Test.assertEqual(script.scenario(), scenarios[i]);
         Test.assertEqual(script.isWaitingForAlert(), waits[i]);
-        // Pasa el paso: por tiempo o con una alerta respondida.
-        if (waits[i]) {
+        // Pasa el paso: por tiempo, con una alerta respondida o, el último, con la alerta
+        // sin responder 4 s en el nivel 3.
+        if (script.isEscalationStep()) {
+            script.onAlertOpened();
+            script.onAlertLevel(3, now);
+            now += DemoScript.MAX_LEVEL_HOLD_MS;
+            Test.assertMessage(script.update(now, true), "termina con la alerta abierta");
+        } else if (waits[i]) {
             script.onAlertOpened();
             Test.assertMessage(script.onAlertDismissed(now), "la respuesta termina la espera");
         } else {
@@ -31,7 +39,7 @@ function demoScriptStepsInOrder(logger as Logger) as Boolean {
             Test.assertMessage(script.update(now, false), "termina a su tiempo");
         }
     }
-    Test.assertMessage(script.isFinished(), "fin tras el paso 5");
+    Test.assertMessage(script.isFinished(), "fin tras el paso 6");
     Test.assertEqual(script.stepNumber(), 0);
     Test.assertEqualMessage(script.scenario(), AccelScenario.NORMAL, "al terminar: normal");
     return true;
@@ -145,28 +153,36 @@ function demoScriptCancels(logger as Logger) as Boolean {
 
 //! Recorrido completo con el detector, en el orden de GuardController.onBatch: cada
 //! lote pasa por el detector; un evento abre la alerta (AlertController) y se avisa al
-//! guion; "Estoy despierto" llega 3 s después de abrirse. Comprueba que cada alerta
-//! cae en su paso de espera, con el motivo correcto, y que el guion termina.
+//! guion; la alerta escala con los tiempos del modo demo; "Estoy despierto" llega 3 s
+//! después de abrirse, salvo en el último paso, que la deja sin respuesta. Comprueba
+//! que cada alerta cae en su paso, con el motivo correcto, y que el guion termina con
+//! la última alerta abierta en el nivel 3.
 (:test)
 function demoScriptRunsFullDemoWithDetector(logger as Logger) as Boolean {
     var rig = new DetectorRig(AccelScenario.NORMAL, 20261113, true);
     var alerts = new AlertController();
+    alerts.setEscalationMs(AlertController.ESCALATION_DEMO_MS);
     var script = new DemoScript();
     script.start(rig.timeMs);
     var reasons = [] as Array<DrowsinessEvent.Id>;
     var steps = [] as Array<Number>;
 
-    for (var i = 0; i < 120 && !script.isFinished(); i++) {
+    for (var i = 0; i < 180 && !script.isFinished(); i++) {
         var event = rig.step();
         if (event != DrowsinessEvent.NONE && alerts.onEvent(event, rig.timeMs)) {
             reasons.add(event);
             steps.add(script.stepNumber());
             script.onAlertOpened();
         }
+        if (alerts.update(rig.timeMs)) {
+            script.onAlertLevel(alerts.level(), rig.timeMs);
+        }
         if (script.update(rig.timeMs, alerts.isActive())) {
             rig.source.setScenario(script.scenario());
         }
-        if (alerts.isActive() && rig.timeMs - alerts.startMs() >= 3000) {
+        // El presentador responde a los 3 s, salvo en el paso sin respuesta.
+        if (alerts.isActive() && script.isRunning() && !script.isEscalationStep()
+                && rig.timeMs - alerts.startMs() >= 3000) {
             alerts.dismiss(rig.timeMs);
             if (script.onAlertDismissed(rig.timeMs)) {
                 rig.source.setScenario(script.scenario());
@@ -175,11 +191,62 @@ function demoScriptRunsFullDemoWithDetector(logger as Logger) as Boolean {
     }
     logger.debug("guion completo en " + rig.timeMs + " ms; alertas en los pasos " + steps);
 
-    Test.assertMessage(script.isFinished(), "el guion termina en menos de 2 minutos");
-    Test.assertEqualMessage(reasons.size(), 2, "una alerta por paso de espera, ninguna más");
+    Test.assertMessage(script.isFinished(), "el guion termina en menos de 3 minutos");
+    Test.assertEqualMessage(reasons.size(), 3, "una alerta por paso de espera, ninguna más");
     Test.assertEqual(reasons[0], DrowsinessEvent.NOD);
     Test.assertEqual(steps[0], 3);
     Test.assertEqual(reasons[1], DrowsinessEvent.INACTIVITY);
     Test.assertEqual(steps[1], 5);
+    Test.assertEqual(reasons[2], DrowsinessEvent.INACTIVITY);
+    Test.assertEqual(steps[2], 6);
+    Test.assertMessage(alerts.isActive(), "la última alerta sigue sin respuesta");
+    Test.assertEqualMessage(alerts.level(), 3, "llegó al nivel 3");
+    Test.assertEqualMessage(rig.timeMs - alerts.startMs(), 16000,
+        "6 + 6 s hasta el nivel 3 y 4 s en él");
     return true;
+}
+
+//! Paso 6: espera su alerta, ignora un nivel 3 anterior a ella y termina 4 s después de
+//! que su alerta llega al nivel 3, aunque siga abierta. Responder antes también termina.
+(:test)
+function demoScriptEscalationStepEndsAtLevelThree(logger as Logger) as Boolean {
+    var script = demoScriptAtLastStep();
+    Test.assertEqual(script.stepNumber(), 6);
+    Test.assertMessage(script.isEscalationStep(), "último paso: sin respuesta");
+    Test.assertMessage(script.isWaitingForAlert(), "espera su alerta");
+    Test.assertEqual(script.scenario(), AccelScenario.INACTIVITY);
+    Test.assertEqual(script.remainingMs(), 0);
+
+    // Un nivel 3 antes de que se abra su alerta no cuenta.
+    script.onAlertLevel(3, 41000);
+    Test.assertMessage(!script.update(60000, true), "sin su alerta no termina");
+
+    script.onAlertOpened();
+    script.onAlertLevel(2, 66000);
+    Test.assertMessage(!script.update(80000, true), "el nivel 2 no basta");
+    script.onAlertLevel(3, 82000);
+    Test.assertMessage(!script.update(85999, true), "aún no pasaron 4 s en el nivel 3");
+    Test.assertMessage(script.update(86000, true), "4 s en el nivel 3: termina");
+    Test.assertMessage(script.isFinished(), "guion completo");
+
+    // Si el presentador responde antes de llegar al 3, también termina.
+    var answered = demoScriptAtLastStep();
+    answered.onAlertOpened();
+    Test.assertMessage(answered.onAlertDismissed(55000), "respuesta en el paso 6");
+    Test.assert(answered.isFinished());
+    return true;
+}
+
+//! Guion recorrido hasta el comienzo del paso 6 (a los 40 s).
+function demoScriptAtLastStep() as DemoScript {
+    var script = new DemoScript();
+    script.start(0);
+    script.update(10000, false);
+    script.update(20000, false);
+    script.onAlertOpened();
+    script.onAlertDismissed(25000);
+    script.update(33000, false);
+    script.onAlertOpened();
+    script.onAlertDismissed(40000);
+    return script;
 }

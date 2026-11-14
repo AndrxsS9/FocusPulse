@@ -21,13 +21,19 @@ module DemoScriptState {
 //!     paso 3  Simular cabeceo         espera la alerta y "Estoy despierto"
 //!     paso 4  Movimiento normal        8 s
 //!     paso 5  Inactividad prolongada  espera la alerta y "Estoy despierto"
-//!     fin
+//!     paso 6  Inactividad sin respuesta: la alerta sube 1 → 2 → 3 y, 4 s después de
+//!             llegar al 3, termina
+//!     fin     (la app pausa la guardia y muestra su resumen)
 //!
 //! - Los pasos con duración avanzan con update(): cuentan solo el tiempo sin alerta
 //!   abierta (con una alerta abierta el guion se congela).
 //! - Los pasos de espera avanzan cuando se responde una alerta que se abrió durante ese
 //!   paso (onAlertOpened y luego onAlertDismissed). Si nadie responde, el guion espera:
 //!   no avanza solo.
+//! - El paso de escalamiento (WAIT_FOR_ESCALATION) espera su alerta, se entera de cada
+//!   subida de nivel (onAlertLevel) y termina MAX_LEVEL_HOLD_MS después de llegar al
+//!   nivel 3, con la alerta todavía abierta (update avanza aunque haya alerta). Si el
+//!   presentador responde antes, también termina.
 //! - cancel() lo detiene en cualquier punto (menú, pausa de la guardia, DOWN, apagar el
 //!   modo demo).
 //!
@@ -39,18 +45,27 @@ class DemoScript {
     //! Duración que marca un paso de espera (no termina por tiempo).
     static const WAIT_FOR_ALERT = -1;
 
+    //! Duración que marca el paso que deja la alerta sin respuesta hasta el nivel 3.
+    static const WAIT_FOR_ESCALATION = -2;
+
+    //! Tiempo en el nivel 3 antes de terminar el paso de escalamiento (ms): da tiempo a
+    //! ver el rojo y oír la vibración máxima.
+    static const MAX_LEVEL_HOLD_MS = 4000;
+
     //! Pasos: escenario y duración (ms) o WAIT_FOR_ALERT.
     static const STEP_SCENARIOS = [
         AccelScenario.NORMAL,
         AccelScenario.TYPING,
         AccelScenario.NOD,
         AccelScenario.NORMAL,
+        AccelScenario.INACTIVITY,
         AccelScenario.INACTIVITY
     ];
-    static const STEP_DURATIONS_MS = [10000, 10000, WAIT_FOR_ALERT, 8000, WAIT_FOR_ALERT];
+    static const STEP_DURATIONS_MS = [10000, 10000, WAIT_FOR_ALERT, 8000, WAIT_FOR_ALERT,
+        WAIT_FOR_ESCALATION];
 
     //! Número de pasos.
-    static const STEP_COUNT = 5;
+    static const STEP_COUNT = 6;
 
     private var _state as DemoScriptState.Id = DemoScriptState.IDLE;
 
@@ -63,6 +78,9 @@ class DemoScript {
 
     //! true si en el paso de espera actual ya se abrió una alerta.
     private var _alertSeen as Boolean = false;
+
+    //! Instante en que la alerta del paso de escalamiento llegó al nivel 3 (null: aún no).
+    private var _maxLevelMs as Number? = null;
 
     function initialize() {
     }
@@ -79,6 +97,7 @@ class DemoScript {
         _state = DemoScriptState.IDLE;
         _step = 0;
         _alertSeen = false;
+        _maxLevelMs = null;
         return wasRunning;
     }
 
@@ -91,6 +110,15 @@ class DemoScript {
         var dt = nowMs - _lastMs;
         _lastMs = nowMs;
         var duration = durationMs(_step);
+        if (duration == WAIT_FOR_ESCALATION) {
+            // Termina con la alerta abierta, tras MAX_LEVEL_HOLD_MS en el nivel 3.
+            var reached = _maxLevelMs;
+            if (reached != null && nowMs - reached >= MAX_LEVEL_HOLD_MS) {
+                advance(nowMs);
+                return true;
+            }
+            return false;
+        }
         if (alertActive || dt <= 0 || duration == WAIT_FOR_ALERT) {
             return false;
         }
@@ -106,6 +134,15 @@ class DemoScript {
     function onAlertOpened() as Void {
         if (isRunning() && isWaitingForAlert()) {
             _alertSeen = true;
+        }
+    }
+
+    //! La alerta abierta subió al nivel `level` en nowMs. En el paso de escalamiento,
+    //! con su alerta ya abierta, anota cuándo llegó al nivel 3.
+    function onAlertLevel(level as Number, nowMs as Number) as Void {
+        if (isEscalationStep() && _alertSeen && level >= AlertnessColors.MAX_ALERT_LEVEL
+                && _maxLevelMs == null) {
+            _maxLevelMs = nowMs;
         }
     }
 
@@ -150,9 +187,19 @@ class DemoScript {
         return (STEP_SCENARIOS as Array<AccelScenario.Id>)[_step];
     }
 
-    //! true si el paso actual espera una alerta y su respuesta.
+    //! true si el paso actual espera una alerta: la respuesta (WAIT_FOR_ALERT) o que
+    //! suba hasta el nivel 3 (WAIT_FOR_ESCALATION).
     function isWaitingForAlert() as Boolean {
-        return isRunning() && durationMs(_step) == WAIT_FOR_ALERT;
+        if (!isRunning()) {
+            return false;
+        }
+        var duration = durationMs(_step);
+        return duration == WAIT_FOR_ALERT || duration == WAIT_FOR_ESCALATION;
+    }
+
+    //! true en el paso que deja la alerta sin responder hasta el nivel 3.
+    function isEscalationStep() as Boolean {
+        return isRunning() && durationMs(_step) == WAIT_FOR_ESCALATION;
     }
 
     //! true si el paso de espera actual ya abrió su alerta y falta la respuesta.
@@ -166,14 +213,14 @@ class DemoScript {
             return 0;
         }
         var duration = durationMs(_step);
-        if (duration == WAIT_FOR_ALERT) {
+        if (duration < 0) {
             return 0;
         }
         var left = duration - _elapsedMs;
         return left > 0 ? left : 0;
     }
 
-    //! Duración del paso index (ms) o WAIT_FOR_ALERT.
+    //! Duración del paso index (ms), WAIT_FOR_ALERT o WAIT_FOR_ESCALATION.
     static function durationMs(index as Number) as Number {
         return (STEP_DURATIONS_MS as Array<Number>)[index];
     }
@@ -185,6 +232,7 @@ class DemoScript {
             _state = DemoScriptState.FINISHED;
             _step = 0;
             _alertSeen = false;
+            _maxLevelMs = null;
             return;
         }
         enterStep(_step + 1, nowMs);
@@ -195,5 +243,6 @@ class DemoScript {
         _elapsedMs = 0;
         _lastMs = nowMs;
         _alertSeen = false;
+        _maxLevelMs = null;
     }
 }
