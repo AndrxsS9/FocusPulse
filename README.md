@@ -7,7 +7,7 @@ FocusPulse AI detecta **micro-sueños y cabeceos** a partir del acelerómetro de
 despierta al usuario con **vibraciones progresivas**. Incluye un **modo demo** para
 simular eventos sin necesidad de dormirse frente al reloj.
 
-> Estado: **Fase 8 — modo demo**. La pantalla inicial es la esfera de guardia: anillo de
+> Estado: **Fase 10 — IA entrenada**. La pantalla inicial es la esfera de guardia: anillo de
 > nivel de alerta en el borde, batería, hora, fecha, porcentaje de alerta, píldora de estado
 > y botón grande "Iniciar guardia" (START o un toque en el botón). Detrás de la hora, un orbe
 > IA de 3 anillos orgánicos cambia de color con el puntaje y de velocidad con la actividad
@@ -16,15 +16,18 @@ simular eventos sin necesidad de dormirse frente al reloj.
 > acelerómetro a 25 Hz (o una fuente simulada, marcada como "DEMO"). Tras unos segundos de
 > calibración ("Calibrando…"), el detector reconoce **cabeceos** (sacudida, quietud y caída
 > del brazo) e **inactividad prolongada**, y un clasificador (Activo, Normal, Cabeceo,
-> Inerte) mueve el puntaje y el orbe. Cada evento abre una **alerta a pantalla completa**
+> Inerte) mueve el puntaje y el orbe. Sus pesos (v2) salen de una **regresión logística
+> entrenada en Python con datos sintéticos** y exportada a Monkey C (`ml/`, `scripts\train.ps1`,
+> [docs/IA.md](docs/IA.md)). Cada evento abre una **alerta a pantalla completa**
 > "¡DESPIERTA!" con vibración por pulsos, luz y tono, que solo se cierra con "Estoy despierto"
 > (botón o START; BACK no la cierra). **Mantener UP** abre el menú principal, también en
 > release: *Modo demo* (fuente simulada, calibración de 5 s e inactividad a 8 s; se
 > recuerda entre arranques), *Escenario*, *Guion automático* y *Probar alerta* (solo con el
-> modo demo) y *Acerca de*. Con el modo demo y la guardia activa, **DOWN** pasa al
-> siguiente escenario. Ver [docs/GUIA_DEMO.md](docs/GUIA_DEMO.md) (sustentación),
-> [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md), [docs/DETECTOR.md](docs/DETECTOR.md) y
-> [docs/DISENO.md](docs/DISENO.md).
+> modo demo), *Historial*, *Modelo IA* (versión y métricas del clasificador, "Entrenado
+> con datos sintéticos") y *Acerca de*. Con el modo demo y la guardia activa, **DOWN** pasa
+> al siguiente escenario (normal, tecleo, cabeceo, inactividad, mirar la hora). Ver [docs/GUIA_DEMO.md](docs/GUIA_DEMO.md) (sustentación),
+> [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md), [docs/DETECTOR.md](docs/DETECTOR.md),
+> [docs/IA.md](docs/IA.md) y [docs/DISENO.md](docs/DISENO.md).
 
 ## Requisitos
 
@@ -58,6 +61,7 @@ powershell -ExecutionPolicy Bypass -File scripts\build.ps1
 | `run.ps1` | Compila, abre el simulador y ejecuta la app en `fr165`. `-NoBuild` omite la compilación; `-TargetDevice fr165m` usa el 165 Music; `-Release` ejecuta la compilación de release (la de la sustentación). | — |
 | `test.ps1` | Compila con pruebas (`-t`), las ejecuta en el simulador y termina con error si alguna falla. | `bin\FocusPulse-test.prg` |
 | `export.ps1` | Genera el paquete firmado en modo release para la tienda (`fr165` y `fr165m`). | `bin\FocusPulse.iq` |
+| `train.ps1` | Crea `ml\.venv` (Python 3.12), instala `ml\requirements.txt`, genera el dataset sintético, entrena, evalúa v1/v2 y exporta los pesos. `-Seed N` cambia la semilla; `-NoExport` no toca `source\` ni `tests\`. No usa el SDK. Ver [ml/README.md](ml/README.md). | `source\core\ClassifierWeights.mc`, `ml\reports\` |
 | `icon.ps1` | Genera el ícono del launcher con los colores de `Palette.mc`. `-Size` cambia el tamaño. No necesita el SDK. | `resources\drawables\launcher_icon.png` |
 
 Primer uso:
@@ -155,4 +159,6 @@ ml/                 Entrenamiento del modelo de detección (no se empaqueta en e
 - [docs/DISENO.md](docs/DISENO.md) — sistema de diseño: paleta, tipografía, layout, accesibilidad.
 - [docs/PENDIENTES.md](docs/PENDIENTES.md) — datos confirmados y lo que falta verificar
   (sobre todo en el reloj real).
-- [ml/README.md](ml/README.md) — entrenamiento del modelo.
+- [docs/IA.md](docs/IA.md) — clasificador entrenado: pipeline, fuga de datos, métricas v1/v2
+  y limitaciones (datos sintéticos).
+- [ml/README.md](ml/README.md) — cómo entrenar con `scripts\train.ps1`.
