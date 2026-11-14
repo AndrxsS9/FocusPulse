@@ -7,6 +7,8 @@ import Toybox.WatchUi;
 //!
 //! - Telemetría en vivo (TelemetryDebugView).
 //! - Detector en vivo (DetectorDebugView): estado, probabilidades, línea base y eventos.
+//! - Probar alerta nivel 1 / 2 / 3: abre la alerta a pantalla completa con vibración
+//!   (el escalamiento automático entre niveles es de la fase siguiente).
 //! - Fuente de datos: sensor real o simulada con un escenario (selector temporal hasta
 //!   que la fase del modo demo tenga su propia pantalla).
 //! - Guía de estilo.
@@ -18,12 +20,32 @@ module DebugMenu {
     const ITEM_SOURCE = :source;
     const ITEM_STYLE_GUIDE = :styleGuide;
 
+    //! "Probar alerta nivel 1 / 2 / 3", en orden de nivel.
+    const ALERT_ITEMS = [:alert1, :alert2, :alert3];
+
+    //! Nivel de alerta (1–3) de un ítem del menú, o 0 si no es uno de prueba de alerta.
+    function alertLevelOf(id as Object?) as Number {
+        var items = ALERT_ITEMS as Array<Symbol>;
+        for (var i = 0; i < items.size(); i++) {
+            if (items[i] == id) {
+                return i + 1;
+            }
+        }
+        return 0;
+    }
+
     function open(guard as GuardController) as Void {
         var menu = new WatchUi.Menu2({ :title => text(Rez.Strings.DebugMenuTitle) });
         menu.addItem(new WatchUi.MenuItem(text(Rez.Strings.DebugTelemetry), null,
             ITEM_TELEMETRY, {}));
         menu.addItem(new WatchUi.MenuItem(text(Rez.Strings.DebugDetector), null,
             ITEM_DETECTOR, {}));
+        var alertFormat = text(Rez.Strings.DebugTestAlertFormat);
+        var alertItems = ALERT_ITEMS as Array<Symbol>;
+        for (var level = 1; level <= alertItems.size(); level++) {
+            menu.addItem(new WatchUi.MenuItem(Lang.format(alertFormat, [level]), null,
+                alertItems[level - 1], {}));
+        }
         menu.addItem(new WatchUi.MenuItem(text(Rez.Strings.DebugSource),
             DebugSource.label(guard), ITEM_SOURCE, {}));
         menu.addItem(new WatchUi.MenuItem(text(Rez.Strings.DebugStyleGuide), null,
@@ -49,7 +71,13 @@ class DebugMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as MenuItem) as Void {
         var id = item.getId();
-        if (id == DebugMenu.ITEM_TELEMETRY) {
+        var alertLevel = DebugMenu.alertLevelOf(id);
+        if (alertLevel > 0) {
+            // Cierra el menú y abre la alerta sobre la esfera: al descartarla se vuelve
+            // a la esfera, como con una alerta real. Motivo: cabeceo (el texto más largo).
+            WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+            _guard.triggerAlert(alertLevel, DrowsinessEvent.NOD);
+        } else if (id == DebugMenu.ITEM_TELEMETRY) {
             WatchUi.pushView(new TelemetryDebugView(_guard), new TelemetryDebugDelegate(_guard),
                 WatchUi.SLIDE_UP);
         } else if (id == DebugMenu.ITEM_DETECTOR) {

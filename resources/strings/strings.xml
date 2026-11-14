@@ -88,6 +88,8 @@
     <string id="DebugSimulated">Simulated</string>
     <string id="DebugStyleGuide">Style guide</string>
     <string id="DebugTelemetry">Live telemetry</string>
+    <!-- Probar la alerta a pantalla completa: $1$ es el nivel (1–3). -->
+    <string id="DebugTestAlertFormat">Test alert level $1$</string>
     <string id="DebugRecording">Recording</string>
     <string id="DebugNotRecording">Not recording</string>
     <!-- Formatos de la telemetría en vivo: $1$, $2$… son valores numéricos. -->
