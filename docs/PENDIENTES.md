@@ -1,7 +1,7 @@
 # Pendientes de verificar
 
 Las fases 1 y 2 se compilaron, probaron y revisaron en el simulador con el **Connect IQ SDK
-9.3.0** (2026-11-12), y las fases 3 a 8 el 2026-11-13. La primera sección resume lo que quedó confirmado; el resto del
+9.3.0** (2026-11-12), las fases 3 a 8 el 2026-11-13 y la fase 9 el 2026-11-14. La primera sección resume lo que quedó confirmado; el resto del
 documento lista **solo lo que sigue abierto**. Al cerrar un punto, muévelo a la sección de
 datos confirmados o bórralo, y corrige el código si algo no coincide.
 
@@ -245,6 +245,49 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 - Automatizar los clics: `SetForegroundWindow` no siempre da el foco al simulador desde
   otro proceso; un clic en la barra de título lo asegura antes de pulsar botones.
 
+### Escalamiento, fatiga, descanso, resumen e historial (fase 9, simulador)
+
+- Las **167 pruebas** pasan (25 nuevas: 5 de escalamiento y 1 de nivel máximo en
+  `AlertLog`, 7 de `FatiguePredictor`, 4 de `BreakTimer` y la cuenta regresiva, 7 de
+  `GuardSummary`/`SessionHistory`/`HistoryStore` con el Storage del simulador, y el paso
+  nuevo del guion; el recorrido completo del guion con el detector se amplió a 6 pasos).
+  `build.ps1`, `build.ps1 -Release` y `export.ps1` (fr165 y fr165m) sin advertencias con
+  `-l 3`. Release: `FocusPulse-release.prg` 73,8 kB, `FocusPulse.iq` 176 kB.
+- Recorrido con la **compilación de release** (`run.ps1 -Release`) en el fr165, en
+  **español e inglés**:
+  - **Escalamiento:** "Probar alerta → Nivel 1" con la guardia en pausa: naranja nivel 1 →
+    naranja intenso "Nivel 2 de 3 · vibración media" → rojo "Nivel 3 de 3 · vibración
+    máxima", sin cerrarse; a los 40 s seguía en el 3. BACK no la cerró; START sí. En la
+    compilación de depuración: "sube al nivel 2 a los 6031 ms" y "al nivel 3 a los
+    12109 ms" (demo), y "ALERTA descartada en 25531 ms, nivel máximo 3".
+  - **Aviso de fatiga:** escenario de inactividad, 3 alertas respondidas → la consola pasa
+    a "fatiga 2" y la esfera muestra "Micro-sueños repetidos / descansa 15 min" ("Repeated
+    micro-sleeps / take a 15 min break") en lugar del puntaje y la píldora. La primera
+    versión ("toma un descanso de 15 min") se cortaba contra el borde redondo: se acortó y
+    se bajó la caja ([DISENO.md](DISENO.md) §5.4).
+  - **Descanso:** tocando el aviso y desde el menú (*Tomar descanso*): anillo cian que se
+    vacía, 0:30 → "Descanso terminado" + "Reanudar guardia"; START y el toque en el botón
+    reanudan (vuelve a "Calibrando…" y el aviso desaparece). BACK a mitad de cuenta
+    cancela y reanuda.
+  - **Resumen al pausar:** con episodios y con más de 1 min, se abre; una guardia de 3 s
+    sin episodios no lo muestra ni la guarda. Tras un descanso completo, el resumen de esa
+    guardia dice "Fatiga: Bajo" con sus 5 episodios. START vuelve a la esfera.
+  - **Historial:** subtítulo "3 guardias", lista "14 nov · 12:02 / 1 min 11 s · 3
+    episodios" ("Nov 14 · 12:02 / … · 3 episodes"), detalle con la fecha de título; se
+    conserva al volver a abrir la app. *Borrar historial* → *Cancelar* no borra;
+    *Confirmar* deja "Aún no hay guardias" ("No guards yet") y actualiza el subtítulo.
+  - **Guion automático completo** en los dos idiomas: "Guion 1/6 · Normal" … paso 6 sin
+    responder: nivel 2 a los 6 s, nivel 3 a los 12 s, y 4 s después la guardia se pausa sola
+    y se abre el resumen (1 min 11 s, 3 episodios, respuesta media 1,9 s, nivel máximo 3 de
+    3, fatiga Alto, DEMO).
+- **Cambiar el idioma del simulador** (*Settings > Language*) con la app abierta no cambia
+  sus textos: se cargan al iniciar la app; hay que volver a cargarla
+  (`run.ps1 -Release -NoBuild`). Una vez el clic en el idioma no se aplicó y hubo que
+  repetirlo. Está en [GUIA_DEMO.md](GUIA_DEMO.md).
+- Con el **menú principal abierto**, una alerta del detector se apila encima; al
+  responderla se vuelve al menú, no a la esfera (comportamiento de `pushView`, ya existía
+  en la fase 8). No molesta en la demo, pero ver el punto de la sección 3.
+
 ## 1. Entorno
 
 - [ ] **Hacer copia de seguridad de la llave** `%USERPROFILE%\Downloads\FocusPulse-keys\`
@@ -291,7 +334,7 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 - [ ] **Tono en el fr165**: si el reloj suena de verdad (tiene `playTone` según el SDK), con
       qué volumen, y si el `ToneProfile` con silencios de 0 Hz se acepta (si lanza
       `InvalidOptionsException`, `Haptics` pasa a `TONE_ALERT_HI`). Valorar el ajuste
-      "Sonido" de la fase 9 antes de usarlo en una oficina.
+      "Sonido" de la fase 10 antes de usarlo en una oficina.
 - [ ] La sacudida de la vista se calcula desde el inicio de la alerta y la vibración desde
       el `Timer` de `Haptics`: en una alerta larga podrían desfasarse unas decenas de ms.
       Mirarlo en el reloj; si se nota, que la vista lea el ciclo de `Haptics`.
@@ -365,6 +408,24 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
       pausa se distinguen con brillo bajo, y que el orbe no resta legibilidad a la hora al
       sol.
 
+- [ ] **Alerta encima del menú** (fase 9): si llega un evento con el menú principal (o el
+      historial) abierto, la alerta se apila encima y, al responder, se vuelve al menú. En
+      el reloj la guardia normalmente corre con la esfera a la vista; valorar cerrar los
+      menús al abrir una alerta del detector.
+- [ ] **Aviso de fatiga en el reloj**: que "descansa 15 min" / "take a 15 min break" caben
+      igual que en el simulador (`FONT_XTINY` a 2 líneas en 300×72 px) y que el aviso
+      ámbar se lee con brillo bajo. Valorar recuperar la frase completa "toma un descanso de
+      15 min" con una caja más alta (tapando la fecha) o un ícono.
+- [ ] **Descanso de 15 min en el reloj real**: que la vista de descanso no se cierre sola
+      (la pantalla AMOLED se apaga antes) y que la vibración suave del final se sienta con
+      la pantalla apagada. En el simulador solo se probó el de 30 s.
+- [ ] **Umbrales del predictor de fatiga** (30 min, 3 episodios, 1 s de tendencia, nivel 3):
+      salen de criterio, no de datos. Revisarlos con guardias reales
+      ([DETECTOR.md](DETECTOR.md) §8.6).
+- [ ] **Hora del historial**: se guarda `Time.now()` al iniciar la guardia (segundos Unix) y
+      se muestra en la hora local actual del reloj. Comprobar en el reloj que cambia bien
+      tras un cambio de zona horaria o de horario de verano.
+
 ## 4. Compilación y memoria
 
 - [ ] **Batería de la animación (fase 12):** medir en el reloj real el consumo de una guardia
@@ -395,7 +456,7 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 
 ## 6. Ícono y tienda (fase 13)
 
-- [ ] `AppInfo.VERSION` ("0.8.0", visible en *Acerca de*) debe coincidir con la versión que
+- [ ] `AppInfo.VERSION` ("0.9.0", visible en *Acerca de*) debe coincidir con la versión que
       se escriba al subir el paquete: el manifest de Connect IQ no lleva versión.
 
 - [ ] Ver el ícono de 54×54 en el menú de apps del simulador y del reloj: que el pulso se
