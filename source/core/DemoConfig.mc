@@ -86,6 +86,12 @@ class DemoConfig {
         return list[(index + 1) % list.size()];
     }
 
+    //! true si DOWN en la esfera debe pasar al siguiente escenario: solo con el modo
+    //! demo activo y la guardia en marcha. En otro caso DOWN conserva su función normal.
+    function handlesDownButton(guardActive as Boolean) as Boolean {
+        return _enabled && guardActive;
+    }
+
     //! Pasa al siguiente escenario del ciclo y lo devuelve.
     function nextScenario() as AccelScenario.Id {
         _scenario = scenarioAfter(_scenario);
