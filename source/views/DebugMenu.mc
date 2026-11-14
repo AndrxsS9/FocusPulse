@@ -1,4 +1,3 @@
-import Toybox.Application;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
@@ -9,8 +8,9 @@ import Toybox.WatchUi;
 //! - Detector en vivo (DetectorDebugView): estado, probabilidades, línea base y eventos.
 //! - Probar alerta nivel 1 / 2 / 3: abre la alerta a pantalla completa con vibración
 //!   (el escalamiento automático entre niveles es de la fase siguiente).
-//! - Fuente de datos: sensor real o simulada con un escenario (selector temporal hasta
-//!   que la fase del modo demo tenga su propia pantalla).
+//! - Fuente de datos: sensor real o simulada con un escenario, incluido el manual
+//!   (X/Y/Z fijos), que el menú principal no ofrece. Cambia la misma configuración que
+//!   el modo demo del menú principal (DemoConfig).
 //! - Guía de estilo.
 (:debug)
 module DebugMenu {
@@ -92,38 +92,19 @@ class DebugMenuDelegate extends WatchUi.Menu2InputDelegate {
     }
 }
 
-//! Selector de la fuente del acelerómetro y su persistencia entre arranques.
-//!
-//! La elección se guarda en Application.Storage para que, en el simulador, el modo
-//! demo siga activo al volver a abrir la app. Solo existe en depuración: en release la
-//! guardia siempre usa el sensor real.
+//! Selector de la fuente del acelerómetro (solo en depuración). Elegir un escenario
+//! activa el modo demo y "Sensor real" lo desactiva; GuardController lo guarda en
+//! Storage, así que la elección sigue al volver a abrir la app.
 (:debug)
 module DebugSource {
 
     //! Identificador del ítem "Sensor real" (los escenarios usan su AccelScenario.Id).
     const REAL = -1;
 
-    const KEY_DEMO = "debugDemoSource";
-    const KEY_SCENARIO = "debugDemoScenario";
-
     //! Texto de la fuente actual: "Sensor real" o el nombre del escenario.
     function label(guard as GuardController) as String {
-        return guard.isDemoSource() ? scenarioLabel(guard.demoScenario()) : DebugMenu.text(Rez.Strings.DebugSourceReal);
-    }
-
-    function scenarioLabel(scenario as AccelScenario.Id) as String {
-        switch (scenario) {
-            case AccelScenario.TYPING:
-                return DebugMenu.text(Rez.Strings.DemoActiveTyping);
-            case AccelScenario.NOD:
-                return DebugMenu.text(Rez.Strings.DemoSimulateNod);
-            case AccelScenario.INACTIVITY:
-                return DebugMenu.text(Rez.Strings.DemoProlongedInactivity);
-            case AccelScenario.MANUAL:
-                return DebugMenu.text(Rez.Strings.DemoManual);
-            default:
-                return DebugMenu.text(Rez.Strings.DemoNormalMovement);
-        }
+        return guard.isDemoMode() ? DemoText.scenarioName(guard.demoScenario())
+            : DebugMenu.text(Rez.Strings.DebugSourceReal);
     }
 
     //! Abre la lista de fuentes; parentItem es el ítem del menú anterior, cuyo
@@ -133,32 +114,20 @@ module DebugSource {
         var simulated = DebugMenu.text(Rez.Strings.DebugSimulated);
         menu.addItem(new WatchUi.MenuItem(DebugMenu.text(Rez.Strings.DebugSourceReal), null, REAL, {}));
         for (var i = 0; i < AccelScenario.COUNT; i++) {
-            menu.addItem(new WatchUi.MenuItem(scenarioLabel(i as AccelScenario.Id), simulated, i, {}));
+            menu.addItem(new WatchUi.MenuItem(DemoText.scenarioName(i as AccelScenario.Id), simulated,
+                i, {}));
         }
         WatchUi.pushView(menu, new DebugSourceDelegate(guard, parentItem), WatchUi.SLIDE_LEFT);
     }
 
-    //! Aplica una elección del selector (REAL o un AccelScenario.Id) y la guarda.
+    //! Aplica una elección del selector (REAL o un AccelScenario.Id).
     function select(guard as GuardController, choice as Number) as Void {
-        var demo = choice != REAL;
-        var scenario = (demo ? choice : guard.demoScenario()) as AccelScenario.Id;
-        guard.selectSource(demo, scenario);
-        try {
-            Application.Storage.setValue(KEY_DEMO, demo);
-            Application.Storage.setValue(KEY_SCENARIO, scenario as Number);
-        } catch (e instanceof Lang.Exception) {
-            // Sin almacenamiento la elección dura hasta cerrar la app.
+        if (choice == REAL) {
+            guard.setDemoMode(false);
+            return;
         }
-    }
-
-    //! Recupera la elección guardada, si la hay.
-    function restore(guard as GuardController) as Void {
-        var demo = Application.Storage.getValue(KEY_DEMO);
-        var scenario = Application.Storage.getValue(KEY_SCENARIO);
-        if (demo instanceof Boolean && scenario instanceof Number
-                && scenario >= 0 && scenario < AccelScenario.COUNT) {
-            guard.selectSource(demo, scenario as AccelScenario.Id);
-        }
+        guard.setDemoScenario(choice as AccelScenario.Id);
+        guard.setDemoMode(true);
     }
 }
 

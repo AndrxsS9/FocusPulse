@@ -132,7 +132,7 @@ class TelemetryDebugDelegate extends WatchUi.BehaviorDelegate {
     //! Recorre: sensor real → normal → tecleo → cabeceo → inactividad → manual.
     private function cycleSource(step as Number) as Void {
         var count = AccelScenario.COUNT + 1;
-        var current = _guard.isDemoSource() ? (_guard.demoScenario() as Number) + 1 : 0;
+        var current = _guard.isDemoMode() ? (_guard.demoScenario() as Number) + 1 : 0;
         var next = (current + step + count) % count;
         DebugSource.select(_guard, next == 0 ? DebugSource.REAL : next - 1);
     }

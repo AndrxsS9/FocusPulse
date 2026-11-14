@@ -1,0 +1,27 @@
+import Toybox.Lang;
+import Toybox.WatchUi;
+
+//! Textos localizados del modo demo, compartidos por el menú principal, la esfera y el
+//! menú de depuración.
+module DemoText {
+
+    //! Nombre completo del escenario ("Tecleo activo", "Inactividad prolongada"…).
+    function scenarioName(scenario as AccelScenario.Id) as String {
+        switch (scenario) {
+            case AccelScenario.TYPING:
+                return text(Rez.Strings.DemoActiveTyping);
+            case AccelScenario.NOD:
+                return text(Rez.Strings.DemoSimulateNod);
+            case AccelScenario.INACTIVITY:
+                return text(Rez.Strings.DemoProlongedInactivity);
+            case AccelScenario.MANUAL:
+                return text(Rez.Strings.DemoManual);
+            default:
+                return text(Rez.Strings.DemoNormalMovement);
+        }
+    }
+
+    function text(id as ResourceId) as String {
+        return WatchUi.loadResource(id) as String;
+    }
+}

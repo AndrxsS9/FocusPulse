@@ -7,9 +7,9 @@ import Toybox.WatchUi;
 //! telemetría, detector de somnolencia, clasificador y grabación de la actividad.
 //!
 //! - start(): reinicia el motor y el puntaje de alerta (88), arranca la fuente (real, o
-//!   simulada si se eligió la fuente demo), el detector (que empieza calibrando, con
-//!   los tiempos del modo demo si la fuente es simulada) y, si el ajuste recordActivity
-//!   está activo, la grabación.
+//!   simulada con el modo demo activo), el detector (que empieza calibrando, con los
+//!   tiempos del modo: DemoConfig) y, si el ajuste recordActivity está activo, la
+//!   grabación.
 //! - pause(): detiene la fuente, guarda la actividad, congela el puntaje y reinicia el
 //!   detector y el clasificador.
 //! - shutdown(): lo mismo, al cerrar la app con la guardia activa.
@@ -24,6 +24,11 @@ import Toybox.WatchUi;
 //! nuevos se ignoran y la esfera no se redibuja. "Estoy despierto" (dismissAlert) para
 //! la vibración, sube el puntaje a SCORE_AFTER_ALERT y guarda la alerta en AlertLog con
 //! su tiempo de respuesta. Pausar la guardia (o cerrar la app) la cierra sin respuesta.
+//!
+//! Modo demo (fase 8): DemoConfig decide la fuente y los tiempos; se guarda en Storage
+//! (DemoStore) con cada cambio. Cambiar de modo con la guardia activa la reinicia sin
+//! pausarla (restartGuard): otra fuente, motor, puntaje y detector desde cero, y la
+//! grabación sigue.
 class GuardController {
 
     private var _state as MonitorState;
@@ -51,8 +56,8 @@ class GuardController {
     private var _realSource as RealAccelSource;
     private var _demoSource as SimulatedAccelSource;
 
-    //! true: la guardia usa la fuente simulada (modo demo / depuración).
-    private var _useDemoSource as Boolean = false;
+    //! Modo demo: fuente simulada, escenario y tiempos del detector.
+    private var _demo as DemoConfig;
 
     //! true si el último intento de iniciar la guardia falló por el sensor.
     private var _sensorUnavailable as Boolean = false;
@@ -75,7 +80,8 @@ class GuardController {
         _snapshot = _engine.snapshot();
         _recorder = new SessionRecorder(sessionName);
         _realSource = new RealAccelSource();
-        _demoSource = new SimulatedAccelSource(AccelScenario.NORMAL, demoSeed);
+        _demo = new DemoConfig();
+        _demoSource = new SimulatedAccelSource(_demo.scenario(), demoSeed);
         _realSource.setListener(method(:onBatch));
         _demoSource.setListener(method(:onBatch));
         _alerts = new AlertController();
@@ -279,7 +285,7 @@ class GuardController {
     //! Arranca el detector (calibrando) y el clasificador desde cero.
     private function startDetection() as Void {
         _detectionStartMs = System.getTimer();
-        _detector.start(_detectionStartMs, _useDemoSource);
+        _detector.start(_detectionStartMs, _demo.isEnabled());
         _classifier.reset();
     }
 
@@ -349,15 +355,47 @@ class GuardController {
         return _sensorUnavailable;
     }
 
-    // --- Fuente -----------------------------------------------------------------
+    // --- Modo demo --------------------------------------------------------------
 
-    //! true si la guardia usa (o usará) la fuente simulada.
-    function isDemoSource() as Boolean {
-        return _useDemoSource;
+    //! Configuración del modo demo (solo lectura para las vistas y los menús).
+    function demoConfig() as DemoConfig {
+        return _demo;
+    }
+
+    //! true con el modo demo activo: la guardia usa (o usará) la fuente simulada.
+    function isDemoMode() as Boolean {
+        return _demo.isEnabled();
     }
 
     function demoScenario() as AccelScenario.Id {
-        return _demoSource.scenario();
+        return _demo.scenario();
+    }
+
+    //! Aplica la configuración guardada al arrancar la app (antes de la primera guardia).
+    function loadDemoConfig(config as DemoConfig) as Void {
+        _demo = config;
+        _demoSource.setScenario(config.scenario());
+    }
+
+    //! Activa o desactiva el modo demo y lo guarda. Con la guardia activa la reinicia
+    //! con la otra fuente y los tiempos del otro modo.
+    function setDemoMode(enabled as Boolean) as Void {
+        if (enabled == _demo.isEnabled()) {
+            return;
+        }
+        _demo.setEnabled(enabled);
+        DemoStore.save(_demo);
+        restartGuard();
+    }
+
+    //! Cambia el escenario simulado y lo guarda. El escenario empieza desde el
+    //! principio (elegir otra vez "Simular cabeceo" repite el cabeceo); el detector no
+    //! se reinicia, como al cambiar de postura de verdad.
+    function setDemoScenario(scenario as AccelScenario.Id) as Void {
+        _demo.setScenario(scenario);
+        _demoSource.setScenario(_demo.scenario());
+        DemoStore.save(_demo);
+        WatchUi.requestUpdate();
     }
 
     //! Frecuencia nominal de la fuente elegida (Hz).
@@ -365,36 +403,35 @@ class GuardController {
         return currentSource().sampleRateHz();
     }
 
-    //! Elige la fuente: real (demo = false) o simulada con un escenario. Con la guardia
-    //! activa cambia de fuente en caliente y reinicia el motor; elegir de nuevo un
-    //! escenario lo empieza desde el principio.
-    function selectSource(demo as Boolean, scenario as AccelScenario.Id) as Void {
-        _demoSource.setScenario(scenario);
-        if (demo == _useDemoSource) {
+    //! Reinicio seguro tras cambiar de modo: con la guardia en pausa solo redibuja; con
+    //! la guardia activa detiene las dos fuentes, vacía el motor, vuelve el puntaje a 88,
+    //! arranca la fuente del modo nuevo y vuelve a calibrar. La grabación de la
+    //! actividad no se corta. Si la fuente nueva no arranca, pausa la guardia.
+    private function restartGuard() as Void {
+        if (!_state.isActive()) {
             WatchUi.requestUpdate();
             return;
         }
-
-        var wasActive = _state.isActive();
-        if (wasActive) {
-            currentSource().stop();
+        if (cancelAlert()) {
+            WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
         }
-        _useDemoSource = demo;
-        if (wasActive) {
-            _engine.reset();
-            _lastBatchMs = null;
-            if (!currentSource().start()) {
-                _sensorUnavailable = true;
-                pause();
-                return;
-            }
-            // Otra fuente, otro modo: vuelve a calibrar.
-            startDetection();
+        _realSource.stop();
+        _demoSource.stop();
+        _engine.reset();
+        _snapshot = _engine.snapshot();
+        _lastBatchMs = null;
+        if (!currentSource().start()) {
+            _sensorUnavailable = true;
+            pause();
+            return;
         }
+        _sensorUnavailable = false;
+        _score.reset();
+        startDetection();
         WatchUi.requestUpdate();
     }
 
     private function currentSource() as AccelSource {
-        return _useDemoSource ? _demoSource : _realSource;
+        return _demo.usesSimulatedSource() ? _demoSource : _realSource;
     }
 }

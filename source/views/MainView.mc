@@ -439,7 +439,7 @@ class MainView extends WatchUi.View {
     //! sustentación se sepa qué datos se ven. Texto pequeño en color secundario: no
     //! compite con el contenido y casi no enciende píxeles.
     private function drawDemoBadge(dc as Dc, layout as RoundLayout) as Void {
-        if (_guard.isDemoSource()) {
+        if (_guard.isDemoMode()) {
             Draw.centeredText(dc, layout.centerX, layout.footerY, Typography.LABEL, _badgeDemo,
                 Palette.TEXT_SECONDARY);
         }

@@ -22,7 +22,8 @@ class FocusPulseApp extends Application.AppBase {
 
     //! Se llama al iniciar la app, antes de mostrar la vista inicial.
     function onStart(state as Dictionary?) as Void {
-        restoreDebugSource();
+        // El modo demo y su escenario se recuerdan entre arranques (DemoStore).
+        _guard.loadDemoConfig(DemoStore.load());
     }
 
     //! Se llama al cerrar la app (BACK, cierre del sistema): si la guardia sigue
@@ -34,18 +35,6 @@ class FocusPulseApp extends Application.AppBase {
     //! Vista inicial de la app.
     function getInitialView() as [Views] or [Views, InputDelegates] {
         return [new MainView(_guard), new MainDelegate(_guard)];
-    }
-
-    //! En depuración recupera la fuente elegida en el menú de depuración, para no
-    //! tener que elegirla otra vez en cada arranque del simulador.
-    (:debug)
-    private function restoreDebugSource() as Void {
-        DebugSource.restore(_guard);
-    }
-
-    //! En release la guardia siempre usa el acelerómetro real.
-    (:release)
-    private function restoreDebugSource() as Void {
     }
 }
 
