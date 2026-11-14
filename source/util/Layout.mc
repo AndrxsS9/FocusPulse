@@ -31,6 +31,9 @@ class RoundLayout {
     const BUTTON_MAX_WIDTH = 580;
     const TOUCH_PADDING = 30;    // margen extra del área táctil del botón
     const FOOTER_Y = 905;        // indicador de página
+    const ALERT_BUTTON_TOP = 670;       // "Estoy despierto" en la alerta a pantalla completa
+    const ALERT_BUTTON_HEIGHT = 165;
+    const ALERT_BUTTON_MAX_WIDTH = 720;
 
     var width as Number;
     var height as Number;
@@ -67,6 +70,11 @@ class RoundLayout {
     var buttonRect as Rect;
     var buttonTouchRect as Rect;
 
+    //! Botón "Estoy despierto" de la alerta y su área táctil. Más alto y más ancho que
+    //! el de la esfera (la alerta no tiene píldora ni marca debajo): fr165 278×64 px.
+    var alertButtonRect as Rect;
+    var alertButtonTouchRect as Rect;
+
     function initialize(screenWidth as Number, screenHeight as Number) {
         width = screenWidth;
         height = screenHeight;
@@ -99,6 +107,16 @@ class RoundLayout {
         buttonRect = new Rect(centerX - buttonWidth / 2, buttonTop, buttonWidth, buttonHeight);
         var pad = scaled(TOUCH_PADDING);
         buttonTouchRect = buttonRect.inflate(pad, pad).withMinSize(MIN_TOUCH);
+
+        var alertHeight = max(scaled(ALERT_BUTTON_HEIGHT), MIN_TOUCH);
+        var alertTop = toScreenY(ALERT_BUTTON_TOP);
+        var alertWidth = stadiumWidth(alertTop + alertHeight / 2, alertHeight);
+        var alertMax = scaled(ALERT_BUTTON_MAX_WIDTH);
+        if (alertWidth > alertMax) {
+            alertWidth = alertMax;
+        }
+        alertButtonRect = new Rect(centerX - alertWidth / 2, alertTop, alertWidth, alertHeight);
+        alertButtonTouchRect = alertButtonRect.inflate(pad, pad).withMinSize(MIN_TOUCH);
     }
 
     //! Convierte milésimas del lado menor a píxeles.
@@ -146,6 +164,11 @@ class RoundLayout {
     //! botón dibujado para perdonar toques imprecisos (docs/DISENO.md §6).
     function hitsButton(x as Number, y as Number) as Boolean {
         return buttonTouchRect.contains(x, y);
+    }
+
+    //! true si el toque (x, y) cae en el área táctil de "Estoy despierto".
+    function hitsAlertButton(x as Number, y as Number) as Boolean {
+        return alertButtonTouchRect.contains(x, y);
     }
 
     private function toScreenY(permille as Number) as Number {

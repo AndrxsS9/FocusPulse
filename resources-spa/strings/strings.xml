@@ -37,9 +37,11 @@
     <string id="AlertLevel1">Nivel 1 de 3</string>
     <string id="AlertLevel2">Nivel 2 de 3</string>
     <string id="AlertLevel3">Nivel 3 de 3</string>
-    <string id="AlertVibrationSoft">Vibración suave</string>
-    <string id="AlertVibrationMedium">Vibración media</string>
-    <string id="AlertVibrationMax">Vibración máxima</string>
+    <string id="AlertVibrationSoft">vibración suave</string>
+    <string id="AlertVibrationMedium">vibración media</string>
+    <string id="AlertVibrationMax">vibración máxima</string>
+    <!-- Segunda línea de la alerta: $1$ nivel (AlertLevelN), $2$ vibración (AlertVibration*, en minúsculas porque va después del punto medio). -->
+    <string id="AlertLevelLineFormat">$1$ · $2$</string>
     <string id="AlertCauseNod">Cabeceo / pérdida de tono muscular</string>
     <string id="AlertCauseInactivity">Inactividad prolongada</string>
 
