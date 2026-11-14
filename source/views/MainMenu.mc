@@ -14,6 +14,8 @@ import Toybox.WatchUi;
 //! - Tomar descanso (solo con la guardia activa): cierra el menú y abre el descanso
 //!   guiado, igual que tocar el aviso de fatiga de la esfera.
 //! - Historial: las últimas 10 guardias (HistoryMenu); el subtítulo dice cuántas hay.
+//! - Modelo IA: versión, tipo y métricas del clasificador (ModelInfoView); el subtítulo
+//!   es la versión de los pesos.
 //! - Acerca de: nombre, versión y qué hace la app.
 //! - Depuración (solo en compilaciones de depuración): el menú de depuración de siempre.
 //!
@@ -27,6 +29,7 @@ module MainMenu {
     const ITEM_TEST_ALERT = :testAlert;
     const ITEM_BREAK = :takeBreak;
     const ITEM_HISTORY = :history;
+    const ITEM_MODEL = :model;
     const ITEM_ABOUT = :about;
     const ITEM_DEBUG = :debug;
 
@@ -66,6 +69,8 @@ module MainMenu {
         }
         items.add(new WatchUi.MenuItem(DemoText.text(Rez.Strings.MenuHistory),
             SummaryText.historyCount(guard.history().size()), ITEM_HISTORY, {}));
+        items.add(new WatchUi.MenuItem(DemoText.text(Rez.Strings.MenuModel), ClassifierWeights.VERSION,
+            ITEM_MODEL, {}));
         items.add(new WatchUi.MenuItem(DemoText.text(Rez.Strings.MenuAbout), null, ITEM_ABOUT, {}));
         addDebugItem(items);
 
@@ -215,6 +220,8 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
             _guard.startBreak();
         } else if (id == MainMenu.ITEM_HISTORY) {
             HistoryMenu.open(_guard, item);
+        } else if (id == MainMenu.ITEM_MODEL) {
+            WatchUi.pushView(new ModelInfoView(), new WatchUi.BehaviorDelegate(), WatchUi.SLIDE_LEFT);
         } else if (id == MainMenu.ITEM_ABOUT) {
             WatchUi.pushView(new AboutView(), new WatchUi.BehaviorDelegate(), WatchUi.SLIDE_LEFT);
         } else {

@@ -127,6 +127,14 @@
     <!-- Línea de la esfera con el guion en marcha: $1$ paso, $2$ total, $3$ nombre corto. -->
     <string id="ScriptProgressFormat">Script $1$/$2$ · $3$</string>
     <string id="MenuAbout">About</string>
+    <!-- Pantalla "Modelo IA" (menú principal). ModelPercentFormat: $1$ entero, $2$ décima. -->
+    <string id="MenuModel">AI model</string>
+    <string id="ModelType">Logistic regression · 4 classes</string>
+    <string id="ModelVersion">Version</string>
+    <string id="ModelAccuracy">Accuracy</string>
+    <string id="ModelFalseNods">False nods</string>
+    <string id="ModelPercentFormat">$1$.$2$%</string>
+    <string id="ModelSynthetic">Trained on synthetic data</string>
     <!-- Acerca de: $1$ es la versión (AppInfo.VERSION). -->
     <string id="AboutVersionFormat">Version $1$</string>
     <string id="AboutDescription">Detects micro-sleeps and wakes you up with progressive vibrations.</string>
