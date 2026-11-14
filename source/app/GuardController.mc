@@ -458,10 +458,13 @@ class GuardController {
         // El evento que abre la alerta: un CABECEO puede llegar 2 lotes después o no
         // llegar (descartado por el modelo).
         var rejectedBefore = _confirmation.rejectedCount();
+        var confirmedBefore = _confirmation.confirmedCount();
         var event = _confirmation.update(detected,
             _classifier.probability(DrowsinessClass.NORMAL));
         if (_confirmation.rejectedCount() != rejectedBefore) {
-            logRejected(timestampMs);
+            logConfirmation(timestampMs, false);
+        } else if (_confirmation.confirmedCount() != confirmedBefore) {
+            logConfirmation(timestampMs, true);
         }
         if (event != DrowsinessEvent.NONE) {
             _lastEvent = event;
@@ -656,14 +659,15 @@ class GuardController {
     }
 
     (:debug)
-    private function logRejected(timestampMs as Number) as Void {
-        System.println("CABECEO descartado por el modelo a los "
+    private function logConfirmation(timestampMs as Number, confirmed as Boolean) as Void {
+        System.println("CABECEO " + (confirmed ? "confirmado" : "descartado") + " por el modelo a los "
             + ((timestampMs - _detectionStartMs) / 1000.0f).format("%.1f") + " s: p(Normal) "
-            + _confirmation.lastNormal().format("%.2f") + " >= " + NodConfirmation.NORMAL_MAX.format("%.2f"));
+            + _confirmation.lastNormal().format("%.2f") + (confirmed ? " < " : " >= ")
+            + NodConfirmation.NORMAL_MAX.format("%.2f"));
     }
 
     (:release)
-    private function logRejected(timestampMs as Number) as Void {
+    private function logConfirmation(timestampMs as Number, confirmed as Boolean) as Void {
     }
 
     //! En depuración, cada evento queda en la consola del simulador.
