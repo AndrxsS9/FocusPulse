@@ -243,8 +243,8 @@ class GuardController {
 
     //! Apila la alerta sobre la vista actual (normalmente la esfera) y empieza a vibrar.
     private function showAlert() as Void {
-        WatchUi.pushView(new AlertView(_alerts), new AlertDelegate(method(:dismissAlert)),
-            WatchUi.SLIDE_IMMEDIATE);
+        WatchUi.pushView(new AlertView(_alerts, method(:onAlertTick)),
+            new AlertDelegate(method(:dismissAlert)), WatchUi.SLIDE_IMMEDIATE);
         _haptics.start(_alerts.level());
     }
 

@@ -29,7 +29,15 @@ import Toybox.WatchUi;
 //!     personas fotosensibles); en el nivel 3 alterna rojo intenso y rojo oscuro;
 //!   - sacudida de 2/4/6 px mientras el motor vibra (VibePatterns.isOnAt).
 //!
-//! Refresco: un Timer cada REFRESH_MS mientras se ve (onShow/onHide).
+//! Escalamiento (fase 9): la vista lee el nivel de AlertController en cada cuadro. Si
+//! sube, sin cerrarse ni volver a abrirse cambia el color (el del nivel nuevo crece
+//! desde el centro sobre el anterior en TRANSITION_MS), el texto "Nivel N de 3 ·
+//! vibración …", el ritmo del pulso y la amplitud de la sacudida, que se cuenta desde
+//! el inicio del nivel porque Haptics vuelve a empezar el patrón en ese momento.
+//!
+//! Refresco: un Timer cada REFRESH_MS mientras se ve (onShow/onHide). Cada tick avisa
+//! también a la guardia (onTick) para que escale la alerta a tiempo aunque no lleguen
+//! lotes (alerta de prueba con la guardia en pausa).
 class AlertView extends WatchUi.View {
 
     //! Periodo de redibujo (ms): 20 cuadros por segundo, el mismo paso que la sacudida
@@ -60,7 +68,15 @@ class AlertView extends WatchUi.View {
     //! cubre casi toda la pantalla).
     const ENTRANCE_TEXT_FROM = 0.5f;
 
+    //! Al subir de nivel, el color nuevo crece desde el centro en este tiempo (ms), como
+    //! en la entrada pero sin el rebote del botón.
+    const TRANSITION_MS = AlertVisuals.ENTRANCE_MS;
+
     private var _alerts as AlertController;
+    private var _onTick as Method() as Void;
+
+    //! Nivel con el que se formateó _levelLine (se rehace al subir).
+    private var _shownLevel as Number = 0;
     private var _layout as RoundLayout?;
     private var _timer as Timer.Timer? = null;
 
@@ -74,19 +90,19 @@ class AlertView extends WatchUi.View {
     private var _levelY as Number = 0;
     private var _reasonY as Number = 0;
 
-    function initialize(alerts as AlertController) {
+    //! onTick: se llama en cada cuadro antes de dibujar (GuardController.onAlertTick).
+    function initialize(alerts as AlertController, onTick as Method() as Void) {
         View.initialize();
         _alerts = alerts;
+        _onTick = onTick;
     }
 
     function onLayout(dc as Dc) as Void {
         var layout = new RoundLayout(dc.getWidth(), dc.getHeight());
         _layout = layout;
-        var level = _alerts.level();
         _wakeUp = text(Rez.Strings.AlertWakeUp);
         _imAwake = text(Rez.Strings.ButtonImAwake);
-        _levelLine = Lang.format(text(Rez.Strings.AlertLevelLineFormat),
-            [levelText(level), vibrationText(level)]);
+        updateLevelLine();
         _reason = text(_alerts.reason() == DrowsinessEvent.INACTIVITY
             ? Rez.Strings.AlertCauseInactivity : Rez.Strings.AlertCauseNod);
 
@@ -131,7 +147,19 @@ class AlertView extends WatchUi.View {
     }
 
     function onTick() as Void {
+        _onTick.invoke();
         WatchUi.requestUpdate();
+    }
+
+    //! "Nivel N de 3 · vibración …" del nivel actual; solo se rehace si cambió.
+    private function updateLevelLine() as Void {
+        var level = _alerts.level();
+        if (level == _shownLevel) {
+            return;
+        }
+        _levelLine = Lang.format(text(Rez.Strings.AlertLevelLineFormat),
+            [levelText(level), vibrationText(level)]);
+        _shownLevel = level;
     }
 
     function onUpdate(dc as Dc) as Void {
@@ -139,13 +167,17 @@ class AlertView extends WatchUi.View {
         if (layout == null) {
             return;
         }
+        updateLevelLine();
         var level = _alerts.level();
-        var elapsed = _alerts.elapsedMs(System.getTimer());
+        var now = System.getTimer();
+        var elapsed = _alerts.elapsedMs(now);
+        // Pulso, sacudida y ondas cuentan desde el inicio del nivel: Haptics vuelve a
+        // empezar el patrón al subir, así que la sacudida sigue a los pulsos del motor.
+        var levelElapsed = _alerts.levelElapsedMs(now);
         // Pulso de brillo lento (< 1 ciclo/s) y, en el nivel 3, rojo intenso ↔ rojo oscuro.
-        var background = AlertnessColors.alertPulseColor(level, AlertVisuals.pulse(level, elapsed));
+        var background = AlertnessColors.alertPulseColor(level, AlertVisuals.pulse(level, levelElapsed));
         var foreground = AlertnessColors.alertTextColor(level);
-        // Sacudida sincronizada con los pulsos del motor.
-        var dx = AlertVisuals.shakeOffset(level, elapsed);
+        var dx = AlertVisuals.shakeOffset(level, levelElapsed);
 
         Draw.enableAntiAlias(dc);
         var progress = AlertVisuals.entranceProgress(elapsed);
@@ -153,8 +185,31 @@ class AlertView extends WatchUi.View {
             drawEntrance(dc, layout, elapsed, progress, background, foreground, dx);
             return;
         }
+        if (level > _alerts.startLevel() && levelElapsed < TRANSITION_MS) {
+            drawLevelTransition(dc, layout, level, levelElapsed, background, foreground, dx);
+            return;
+        }
         Draw.clear(dc, background);
-        drawContent(dc, layout, elapsed, dx, background, foreground, 1.0f);
+        drawContent(dc, layout, levelElapsed, dx, background, foreground, 1.0f);
+    }
+
+    //! Subida de nivel: el color del nivel nuevo crece desde el centro sobre el del
+    //! anterior. Los textos cambian al color del nivel nuevo cuando el disco ya cubre
+    //! casi todo (ENTRANCE_TEXT_FROM); antes conservan el del anterior, para que el
+    //! contraste no caiga ni un cuadro.
+    private function drawLevelTransition(dc as Dc, layout as RoundLayout, level as Number,
+            levelElapsed as Number, background as Number, foreground as Number, dx as Number) as Void {
+        var t = levelElapsed / TRANSITION_MS.toFloat();
+        Draw.clear(dc, AlertnessColors.alertBackgroundColor(level - 1));
+        dc.setColor(background, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(layout.centerX, layout.centerY, (layout.radius * t).toNumber() + 1);
+        if (t < ENTRANCE_TEXT_FROM) {
+            var previous = AlertnessColors.alertBackgroundColor(level - 1);
+            drawContent(dc, layout, levelElapsed, dx, previous,
+                AlertnessColors.alertTextColor(level - 1), 1.0f);
+            return;
+        }
+        drawContent(dc, layout, levelElapsed, dx, background, foreground, 1.0f);
     }
 
     //! Entrada (ENTRANCE_MS): el color de la alerta crece desde el centro como un disco,
