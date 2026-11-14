@@ -72,6 +72,21 @@ class DetectorRig {
         return event;
     }
 
+    //! Snapshot de ventana llena con los valores dados, para alimentar el detector sin
+    //! muestras (las pruebas de umbrales).
+    static function snapshot(variance as Float, peakJerk as Number, jerk as Number,
+            gx as Float, gy as Float, gz as Float) as TelemetrySnapshot {
+        var s = new TelemetrySnapshot();
+        s.windowFull = true;
+        s.variance = variance;
+        s.batchPeakJerk = peakJerk;
+        s.jerk = jerk;
+        s.gravityX = gx;
+        s.gravityY = gy;
+        s.gravityZ = gz;
+        return s;
+    }
+
     //! Entrega seconds lotes.
     function run(seconds as Number) as Void {
         for (var i = 0; i < seconds; i++) {

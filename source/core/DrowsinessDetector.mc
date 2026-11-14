@@ -63,11 +63,16 @@ module DrowsinessEvent {
 //! quietud (stillThreshold). Los eventos no esperan a la calibración: con el umbral por
 //! defecto ya funcionan, y perder un cabeceo en los primeros 30 s sería peor.
 //!
+//! **Sensibilidad (fase 11).** La sacudida, la inclinación y el tiempo de inactividad
+//! salen de DetectorThresholds según el ajuste; los valores de abajo son los de la
+//! sensibilidad media.
+//!
 //! El tiempo entra como parámetro (ms, el del lote). Lógica pura: no depende de Sensor,
 //! WatchUi ni Graphics.
 class DrowsinessDetector {
 
-    //! Sacudida mínima (mg) que abre una caída candidata.
+    //! Sacudida mínima (mg) que abre una caída candidata, con la sensibilidad media. La
+    //! que se usa sale de DetectorThresholds (ajuste "Sensibilidad").
     static const NOD_JERK_MIN = 400;
 
     //! Sacudida máxima (mg) en las últimas muestras del lote para considerar que el
@@ -79,10 +84,11 @@ class DrowsinessDetector {
     //! Tiempo máximo (ms) entre la sacudida y la quietud.
     static const NOD_STILL_WITHIN_MS = 5000;
 
-    //! Cambio de inclinación mínimo (grados) entre antes y después de la caída.
+    //! Cambio de inclinación mínimo (grados) entre antes y después de la caída
+    //! (sensibilidad media).
     static const NOD_TILT_MIN = 35.0f;
 
-    //! Quietud continua (ms) que dispara la inactividad prolongada.
+    //! Quietud continua (ms) que dispara la inactividad prolongada (sensibilidad media).
     static const INACTIVITY_MS = 60000;
 
     //! Lo mismo en modo demo, para la sustentación.
@@ -95,6 +101,10 @@ class DrowsinessDetector {
     static const STILL_CREDIT_MS = SlidingWindow.WINDOW_SECONDS * 1000;
 
     private var _baseline as Baseline;
+
+    //! Umbrales de la sensibilidad elegida (Media: los NOD_JERK_MIN, NOD_TILT_MIN e
+    //! INACTIVITY_* de arriba).
+    private var _thresholds as DetectorThresholds;
 
     private var _running as Boolean = false;
     private var _demo as Boolean = false;
@@ -133,6 +143,18 @@ class DrowsinessDetector {
 
     function initialize() {
         _baseline = new Baseline();
+        _thresholds = new DetectorThresholds(SensitivityLevel.MEDIUM);
+    }
+
+    //! Cambia la sensibilidad (ajuste "Sensibilidad"). Se aplica desde el lote siguiente
+    //! sin reiniciar nada: una caída candidata ya abierta sigue pendiente.
+    function setSensitivity(level as SensitivityLevel.Id) as Void {
+        _thresholds = new DetectorThresholds(level);
+    }
+
+    //! Umbrales en uso (solo lectura).
+    function thresholds() as DetectorThresholds {
+        return _thresholds;
     }
 
     //! Empieza a vigilar y a calibrar (al iniciar la guardia). demo: usa los tiempos
@@ -181,7 +203,7 @@ class DrowsinessDetector {
         var gz = snapshot.gravityZ;
 
         // 1. Sacudida: abre (o renueva) la caída candidata con la postura de antes.
-        if (snapshot.batchPeakJerk >= NOD_JERK_MIN) {
+        if (snapshot.batchPeakJerk >= _thresholds.nodJerkMin) {
             _fallMs = timeMs;
             if (_hasPrevious) {
                 _fallX = _prevX;
@@ -249,7 +271,7 @@ class DrowsinessDetector {
     private function decide(timeMs as Number, still as Boolean, pending as Boolean) as DrowsinessEvent.Id {
         var blocked = !canEmit(timeMs);
         if (pending && still) {
-            if (_tilt < NOD_TILT_MIN) {
+            if (_tilt < _thresholds.nodTiltMin) {
                 // Quietud sin cambio de postura: no fue una caída del brazo.
                 _fallMs = null;
             } else if (!blocked) {
@@ -315,9 +337,10 @@ class DrowsinessDetector {
         return _running && _baseline.isCalibrating();
     }
 
-    //! Quietud continua que dispara la inactividad (ms): 60 s, o 8 s en modo demo.
+    //! Quietud continua que dispara la inactividad (ms): 60 s, o 8 s en modo demo, con la
+    //! sensibilidad media (DetectorThresholds).
     function inactivityMs() as Number {
-        return _demo ? INACTIVITY_DEMO_MS : INACTIVITY_MS;
+        return _demo ? _thresholds.inactivityDemoMs : _thresholds.inactivityMs;
     }
 
     //! Segundos de quietud continua hasta el último lote (0 si hay movimiento).
