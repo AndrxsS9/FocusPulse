@@ -76,6 +76,14 @@ FEATURE_COUNT = len(FEATURE_NAMES)
 
 EVENT_NONE, EVENT_NOD, EVENT_INACTIVITY = 0, 1, 2
 
+# Umbrales por sensibilidad (DetectorThresholds.mc, fase 11): sacudida (mg), inclinación
+# (grados), inactividad y su versión demo (ms). "media" son las constantes de arriba.
+SENSITIVITY_PRESETS = {
+    "baja": (440, f32(45.0), 90000, 12000),
+    "media": (NOD_JERK_MIN, NOD_TILT_MIN, INACTIVITY_MS, INACTIVITY_DEMO_MS),
+    "alta": (340, f32(28.0), 45000, 6000),
+}
+
 
 def magnitude_of(x: int, y: int, z: int) -> int:
     """RingBuffer.magnitudeOf: módulo redondeado al mg entero."""
@@ -242,9 +250,11 @@ class Baseline:
 
 class Detector:
 
-    def __init__(self, demo: bool) -> None:
+    def __init__(self, demo: bool, sensitivity: str = "media") -> None:
         self.baseline = Baseline()
         self.demo = demo
+        (self.jerk_min, self.tilt_min, self.inactivity_normal_ms,
+         self.inactivity_demo_ms) = SENSITIVITY_PRESETS[sensitivity]
         self.has_previous = False
         self.prev = (f32(0), f32(0), f32(0))
         self.fall_ms: int | None = None
@@ -258,7 +268,7 @@ class Detector:
         self.baseline.start(0, CALIBRATION_DEMO_MS if demo else CALIBRATION_MS)
 
     def inactivity_ms(self) -> int:
-        return INACTIVITY_DEMO_MS if self.demo else INACTIVITY_MS
+        return self.inactivity_demo_ms if self.demo else self.inactivity_normal_ms
 
     def can_emit(self, time_ms: int) -> bool:
         return self.refractory_until_ms is None or time_ms >= self.refractory_until_ms
@@ -270,7 +280,7 @@ class Detector:
             return EVENT_NONE
         g = s.gravity
 
-        if s.batch_peak_jerk >= NOD_JERK_MIN:
+        if s.batch_peak_jerk >= self.jerk_min:
             self.fall_ms = time_ms
             self.fall = self.prev if self.has_previous else g
         if self.fall_ms is not None and time_ms - self.fall_ms > NOD_STILL_WITHIN_MS:
@@ -307,7 +317,7 @@ class Detector:
     def _decide(self, time_ms: int, still: bool, pending: bool) -> int:
         blocked = not self.can_emit(time_ms)
         if pending and still:
-            if self.tilt < NOD_TILT_MIN:
+            if self.tilt < self.tilt_min:
                 self.fall_ms = None
             elif not blocked:
                 return EVENT_NOD
@@ -348,12 +358,13 @@ class BatchResult:
     event: int
 
 
-def sequence_features(xyz: np.ndarray, demo: bool) -> list[BatchResult]:
+def sequence_features(xyz: np.ndarray, demo: bool, sensitivity: str = "media") -> list[BatchResult]:
     """Pasa una secuencia completa (n × 3 enteros en mg, una guardia que empieza en
     t = 0) por la cadena del reloj y devuelve un resultado por lote completo de 25
-    muestras. Las muestras sobrantes del final se ignoran."""
+    muestras. Las muestras sobrantes del final se ignoran. sensitivity: preajuste del
+    detector (SENSITIVITY_PRESETS)."""
     window = Window()
-    detector = Detector(demo)
+    detector = Detector(demo, sensitivity)
     results = []
     for k in range(len(xyz) // BATCH_SAMPLES):
         chunk = xyz[k * BATCH_SAMPLES:(k + 1) * BATCH_SAMPLES]
@@ -381,11 +392,12 @@ def window_label(labels: np.ndarray, end: int) -> int:
     return nod if (window == nod).any() else int(window[-1])
 
 
-def dataset_windows(samples, sequences):
+def dataset_windows(samples, sequences, sensitivity: str = "media"):
     """Una fila por lote con la ventana llena: características, etiqueta y grupos.
 
     samples y sequences son los DataFrames de generate_dataset.py (o de
-    import_real.py, con las mismas columnas)."""
+    import_real.py, con las mismas columnas). El modelo se entrena con la sensibilidad
+    media; las otras solo se usan para evaluar (confirmation.py)."""
     import pandas as pd
 
     label_index = {name: i for i, name in enumerate(LABELS)}
@@ -395,7 +407,7 @@ def dataset_windows(samples, sequences):
         info = meta.loc[sequence]
         xyz = group[["x", "y", "z"]].to_numpy()
         labels = group["etiqueta"].map(label_index).to_numpy()
-        for r in sequence_features(xyz, bool(info["demo"])):
+        for r in sequence_features(xyz, bool(info["demo"]), sensitivity):
             if r.features is None:
                 continue
             rows.append([sequence, int(info["usuario"]), info["tipo"], bool(info["negativo_dificil"]),

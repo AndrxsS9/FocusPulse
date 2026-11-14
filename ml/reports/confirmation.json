@@ -1,0 +1,592 @@
+{
+  "aviso": "Datos SINTÉTICOS: no es precisión en el mundo real.",
+  "modelo": "v2",
+  "semilla": 20261114,
+  "regla": "confirmar si p(Normal) suavizada, retardo_lotes después del evento, < umbral_normal",
+  "eleccion": {
+    "elegido": {
+      "retardo_lotes": 2,
+      "umbral_normal": 0.35,
+      "falsos_mirar_hora": 5,
+      "auc": 0.9643449419568824
+    },
+    "candidatos": [
+      {
+        "retardo_lotes": 0,
+        "umbral_normal": 0.55,
+        "falsos_mirar_hora": 23,
+        "auc": 0.8996683250414594
+      },
+      {
+        "retardo_lotes": 1,
+        "umbral_normal": 0.4,
+        "falsos_mirar_hora": 5,
+        "auc": 0.9535655058043118
+      },
+      {
+        "retardo_lotes": 2,
+        "umbral_normal": 0.35,
+        "falsos_mirar_hora": 5,
+        "auc": 0.9643449419568824
+      }
+    ]
+  },
+  "entrenamiento": {
+    "regla": {
+      "recall_cabeceo": "67 de 108",
+      "recall_cabeceo_tasa": 0.6203703703703703,
+      "falsos_mirar_hora": "31 de 72",
+      "falsos_mirar_hora_tasa": 0.4305555555555556,
+      "falsos_otros": 0
+    },
+    "con_confirmacion": {
+      "recall_cabeceo": "67 de 108",
+      "recall_cabeceo_tasa": 0.6203703703703703,
+      "falsos_mirar_hora": "5 de 72",
+      "falsos_mirar_hora_tasa": 0.06944444444444445,
+      "falsos_otros": 0
+    },
+    "detalle_regla": {
+      "apoyar_brazo": {
+        "secuencias": 72,
+        "con_alerta_cabeceo": 0
+      },
+      "cabeceo": {
+        "secuencias": 108,
+        "con_alerta_cabeceo": 67
+      },
+      "inactividad": {
+        "secuencias": 36,
+        "con_alerta_cabeceo": 0
+      },
+      "mirar_hora": {
+        "secuencias": 72,
+        "con_alerta_cabeceo": 31
+      },
+      "mixta": {
+        "secuencias": 72,
+        "con_alerta_cabeceo": 0
+      },
+      "tecleo_normal": {
+        "secuencias": 36,
+        "con_alerta_cabeceo": 0
+      },
+      "_eventos": 103
+    },
+    "detalle_con_confirmacion": {
+      "apoyar_brazo": {
+        "secuencias": 72,
+        "con_alerta_cabeceo": 0
+      },
+      "cabeceo": {
+        "secuencias": 108,
+        "con_alerta_cabeceo": 67
+      },
+      "inactividad": {
+        "secuencias": 36,
+        "con_alerta_cabeceo": 0
+      },
+      "mirar_hora": {
+        "secuencias": 72,
+        "con_alerta_cabeceo": 5
+      },
+      "mixta": {
+        "secuencias": 72,
+        "con_alerta_cabeceo": 0
+      },
+      "tecleo_normal": {
+        "secuencias": 36,
+        "con_alerta_cabeceo": 0
+      },
+      "_eventos": 73
+    }
+  },
+  "prueba": {
+    "regla": {
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "15 de 24",
+      "falsos_mirar_hora_tasa": 0.625,
+      "falsos_otros": 0
+    },
+    "con_confirmacion": {
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "3 de 24",
+      "falsos_mirar_hora_tasa": 0.125,
+      "falsos_otros": 0
+    },
+    "detalle_regla": {
+      "apoyar_brazo": {
+        "secuencias": 24,
+        "con_alerta_cabeceo": 0
+      },
+      "cabeceo": {
+        "secuencias": 36,
+        "con_alerta_cabeceo": 22
+      },
+      "inactividad": {
+        "secuencias": 12,
+        "con_alerta_cabeceo": 0
+      },
+      "mirar_hora": {
+        "secuencias": 24,
+        "con_alerta_cabeceo": 15
+      },
+      "mixta": {
+        "secuencias": 24,
+        "con_alerta_cabeceo": 0
+      },
+      "tecleo_normal": {
+        "secuencias": 12,
+        "con_alerta_cabeceo": 0
+      },
+      "_eventos": 45
+    },
+    "detalle_con_confirmacion": {
+      "apoyar_brazo": {
+        "secuencias": 24,
+        "con_alerta_cabeceo": 0
+      },
+      "cabeceo": {
+        "secuencias": 36,
+        "con_alerta_cabeceo": 22
+      },
+      "inactividad": {
+        "secuencias": 12,
+        "con_alerta_cabeceo": 0
+      },
+      "mirar_hora": {
+        "secuencias": 24,
+        "con_alerta_cabeceo": 3
+      },
+      "mixta": {
+        "secuencias": 24,
+        "con_alerta_cabeceo": 0
+      },
+      "tecleo_normal": {
+        "secuencias": 12,
+        "con_alerta_cabeceo": 0
+      },
+      "_eventos": 26
+    }
+  },
+  "rejilla_prueba": [
+    {
+      "retardo_lotes": 0,
+      "umbral_normal": 0.2,
+      "recall_cabeceo": "2 de 36",
+      "recall_cabeceo_tasa": 0.05555555555555555,
+      "falsos_mirar_hora": "0 de 24",
+      "falsos_mirar_hora_tasa": 0.0,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 0,
+      "umbral_normal": 0.25,
+      "recall_cabeceo": "10 de 36",
+      "recall_cabeceo_tasa": 0.2777777777777778,
+      "falsos_mirar_hora": "0 de 24",
+      "falsos_mirar_hora_tasa": 0.0,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 0,
+      "umbral_normal": 0.3,
+      "recall_cabeceo": "17 de 36",
+      "recall_cabeceo_tasa": 0.4722222222222222,
+      "falsos_mirar_hora": "1 de 24",
+      "falsos_mirar_hora_tasa": 0.041666666666666664,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 0,
+      "umbral_normal": 0.35,
+      "recall_cabeceo": "21 de 36",
+      "recall_cabeceo_tasa": 0.5833333333333334,
+      "falsos_mirar_hora": "6 de 24",
+      "falsos_mirar_hora_tasa": 0.25,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 0,
+      "umbral_normal": 0.4,
+      "recall_cabeceo": "21 de 36",
+      "recall_cabeceo_tasa": 0.5833333333333334,
+      "falsos_mirar_hora": "8 de 24",
+      "falsos_mirar_hora_tasa": 0.3333333333333333,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 0,
+      "umbral_normal": 0.45,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "10 de 24",
+      "falsos_mirar_hora_tasa": 0.4166666666666667,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 0,
+      "umbral_normal": 0.5,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "10 de 24",
+      "falsos_mirar_hora_tasa": 0.4166666666666667,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 0,
+      "umbral_normal": 0.55,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "13 de 24",
+      "falsos_mirar_hora_tasa": 0.5416666666666666,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 0,
+      "umbral_normal": 0.6,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "14 de 24",
+      "falsos_mirar_hora_tasa": 0.5833333333333334,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 1,
+      "umbral_normal": 0.2,
+      "recall_cabeceo": "14 de 36",
+      "recall_cabeceo_tasa": 0.3888888888888889,
+      "falsos_mirar_hora": "1 de 24",
+      "falsos_mirar_hora_tasa": 0.041666666666666664,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 1,
+      "umbral_normal": 0.25,
+      "recall_cabeceo": "20 de 36",
+      "recall_cabeceo_tasa": 0.5555555555555556,
+      "falsos_mirar_hora": "2 de 24",
+      "falsos_mirar_hora_tasa": 0.08333333333333333,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 1,
+      "umbral_normal": 0.3,
+      "recall_cabeceo": "21 de 36",
+      "recall_cabeceo_tasa": 0.5833333333333334,
+      "falsos_mirar_hora": "3 de 24",
+      "falsos_mirar_hora_tasa": 0.125,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 1,
+      "umbral_normal": 0.35,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "4 de 24",
+      "falsos_mirar_hora_tasa": 0.16666666666666666,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 1,
+      "umbral_normal": 0.4,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "6 de 24",
+      "falsos_mirar_hora_tasa": 0.25,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 1,
+      "umbral_normal": 0.45,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "8 de 24",
+      "falsos_mirar_hora_tasa": 0.3333333333333333,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 1,
+      "umbral_normal": 0.5,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "8 de 24",
+      "falsos_mirar_hora_tasa": 0.3333333333333333,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 1,
+      "umbral_normal": 0.55,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "8 de 24",
+      "falsos_mirar_hora_tasa": 0.3333333333333333,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 1,
+      "umbral_normal": 0.6,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "9 de 24",
+      "falsos_mirar_hora_tasa": 0.375,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 2,
+      "umbral_normal": 0.2,
+      "recall_cabeceo": "16 de 36",
+      "recall_cabeceo_tasa": 0.4444444444444444,
+      "falsos_mirar_hora": "2 de 24",
+      "falsos_mirar_hora_tasa": 0.08333333333333333,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 2,
+      "umbral_normal": 0.25,
+      "recall_cabeceo": "20 de 36",
+      "recall_cabeceo_tasa": 0.5555555555555556,
+      "falsos_mirar_hora": "2 de 24",
+      "falsos_mirar_hora_tasa": 0.08333333333333333,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 2,
+      "umbral_normal": 0.3,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "2 de 24",
+      "falsos_mirar_hora_tasa": 0.08333333333333333,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 2,
+      "umbral_normal": 0.35,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "3 de 24",
+      "falsos_mirar_hora_tasa": 0.125,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 2,
+      "umbral_normal": 0.4,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "6 de 24",
+      "falsos_mirar_hora_tasa": 0.25,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 2,
+      "umbral_normal": 0.45,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "6 de 24",
+      "falsos_mirar_hora_tasa": 0.25,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 2,
+      "umbral_normal": 0.5,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "7 de 24",
+      "falsos_mirar_hora_tasa": 0.2916666666666667,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 2,
+      "umbral_normal": 0.55,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "7 de 24",
+      "falsos_mirar_hora_tasa": 0.2916666666666667,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 2,
+      "umbral_normal": 0.6,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "7 de 24",
+      "falsos_mirar_hora_tasa": 0.2916666666666667,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 3,
+      "umbral_normal": 0.2,
+      "recall_cabeceo": "20 de 36",
+      "recall_cabeceo_tasa": 0.5555555555555556,
+      "falsos_mirar_hora": "1 de 24",
+      "falsos_mirar_hora_tasa": 0.041666666666666664,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 3,
+      "umbral_normal": 0.25,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "1 de 24",
+      "falsos_mirar_hora_tasa": 0.041666666666666664,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 3,
+      "umbral_normal": 0.3,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "2 de 24",
+      "falsos_mirar_hora_tasa": 0.08333333333333333,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 3,
+      "umbral_normal": 0.35,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "3 de 24",
+      "falsos_mirar_hora_tasa": 0.125,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 3,
+      "umbral_normal": 0.4,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "4 de 24",
+      "falsos_mirar_hora_tasa": 0.16666666666666666,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 3,
+      "umbral_normal": 0.45,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "4 de 24",
+      "falsos_mirar_hora_tasa": 0.16666666666666666,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 3,
+      "umbral_normal": 0.5,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "4 de 24",
+      "falsos_mirar_hora_tasa": 0.16666666666666666,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 3,
+      "umbral_normal": 0.55,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "4 de 24",
+      "falsos_mirar_hora_tasa": 0.16666666666666666,
+      "falsos_otros": 0
+    },
+    {
+      "retardo_lotes": 3,
+      "umbral_normal": 0.6,
+      "recall_cabeceo": "22 de 36",
+      "recall_cabeceo_tasa": 0.6111111111111112,
+      "falsos_mirar_hora": "4 de 24",
+      "falsos_mirar_hora_tasa": 0.16666666666666666,
+      "falsos_otros": 0
+    }
+  ],
+  "alternativa_p_cabeceo_prueba": [
+    {
+      "umbral_cabeceo": 0.3,
+      "recall_cabeceo": "21 de 36",
+      "recall_cabeceo_tasa": 0.5833333333333334,
+      "falsos_mirar_hora": "15 de 24",
+      "falsos_mirar_hora_tasa": 0.625,
+      "falsos_otros": 0
+    },
+    {
+      "umbral_cabeceo": 0.4,
+      "recall_cabeceo": "20 de 36",
+      "recall_cabeceo_tasa": 0.5555555555555556,
+      "falsos_mirar_hora": "15 de 24",
+      "falsos_mirar_hora_tasa": 0.625,
+      "falsos_otros": 0
+    },
+    {
+      "umbral_cabeceo": 0.5,
+      "recall_cabeceo": "16 de 36",
+      "recall_cabeceo_tasa": 0.4444444444444444,
+      "falsos_mirar_hora": "10 de 24",
+      "falsos_mirar_hora_tasa": 0.4166666666666667,
+      "falsos_otros": 0
+    },
+    {
+      "umbral_cabeceo": 0.6,
+      "recall_cabeceo": "10 de 36",
+      "recall_cabeceo_tasa": 0.2777777777777778,
+      "falsos_mirar_hora": "7 de 24",
+      "falsos_mirar_hora_tasa": 0.2916666666666667,
+      "falsos_otros": 0
+    },
+    {
+      "umbral_cabeceo": 0.7,
+      "recall_cabeceo": "3 de 36",
+      "recall_cabeceo_tasa": 0.08333333333333333,
+      "falsos_mirar_hora": "5 de 24",
+      "falsos_mirar_hora_tasa": 0.20833333333333334,
+      "falsos_otros": 0
+    }
+  ],
+  "por_sensibilidad_prueba": {
+    "baja": {
+      "regla": {
+        "recall_cabeceo": "17 de 36",
+        "recall_cabeceo_tasa": 0.4722222222222222,
+        "falsos_mirar_hora": "13 de 24",
+        "falsos_mirar_hora_tasa": 0.5416666666666666,
+        "falsos_otros": 0
+      },
+      "con_confirmacion": {
+        "recall_cabeceo": "17 de 36",
+        "recall_cabeceo_tasa": 0.4722222222222222,
+        "falsos_mirar_hora": "2 de 24",
+        "falsos_mirar_hora_tasa": 0.08333333333333333,
+        "falsos_otros": 0
+      }
+    },
+    "media": {
+      "regla": {
+        "recall_cabeceo": "22 de 36",
+        "recall_cabeceo_tasa": 0.6111111111111112,
+        "falsos_mirar_hora": "15 de 24",
+        "falsos_mirar_hora_tasa": 0.625,
+        "falsos_otros": 0
+      },
+      "con_confirmacion": {
+        "recall_cabeceo": "22 de 36",
+        "recall_cabeceo_tasa": 0.6111111111111112,
+        "falsos_mirar_hora": "3 de 24",
+        "falsos_mirar_hora_tasa": 0.125,
+        "falsos_otros": 0
+      }
+    },
+    "alta": {
+      "regla": {
+        "recall_cabeceo": "30 de 36",
+        "recall_cabeceo_tasa": 0.8333333333333334,
+        "falsos_mirar_hora": "17 de 24",
+        "falsos_mirar_hora_tasa": 0.7083333333333334,
+        "falsos_otros": 0
+      },
+      "con_confirmacion": {
+        "recall_cabeceo": "30 de 36",
+        "recall_cabeceo_tasa": 0.8333333333333334,
+        "falsos_mirar_hora": "4 de 24",
+        "falsos_mirar_hora_tasa": 0.16666666666666666,
+        "falsos_otros": 0
+      }
+    }
+  }
+}

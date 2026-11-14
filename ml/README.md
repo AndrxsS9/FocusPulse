@@ -34,6 +34,9 @@ powershell -ExecutionPolicy Bypass -File scripts\train.ps1
    `features.py`, división por usuario, validación cruzada agrupada, regresión logística
    multinomial, pesos con la estandarización plegada y comparación v1 frente a v2 en el mismo
    conjunto de prueba. Escribe `models\model_v2.json` y `reports\`.
+   Después, `confirmation.py` elige con los usuarios de entrenamiento el retardo y el
+   umbral con que el modelo confirma los cabeceos del detector y mide el efecto en la
+   prueba (`reports\confirmation.md`).
 6. **Exportación** (`export_weights.py`): reescribe `source\core\ClassifierWeights.mc`
    (GENERADO, no editar a mano), `tests\ModelVectors.mc` y `tests\FeatureVectors.mc`.
 7. Compilar y probar en el reloj: `scripts\build.ps1` y `scripts\test.ps1`.
@@ -56,11 +59,12 @@ Tarda unos 30 s. Con la misma semilla el resultado es idéntico bit a bit: si na
 | `test_vectors.py` | Exporta muestras fijas con sus características y eventos esperados a `tests/FeatureVectors.mc`; la prueba `featuresMatchPythonVectors` comprueba en el reloj que coinciden. |
 | `train.py` | División por usuario, `GroupKFold`, elección de C y del peso de las clases, plegado de la estandarización, `models/model_v2.json`. |
 | `evaluate.py` | Métricas de v1 y v2 con la misma EMA que el reloj, informe y gráficas. |
+| `confirmation.py` | Confirmación del cabeceo por el modelo (fase 11): reproduce la regla y la confirmación, elige retardo y umbral con el entrenamiento y mide falsos cabeceos al mirar la hora y recall de cabeceos, también con las tres sensibilidades. `reports/confirmation.md` y `.json`. |
 | `export_weights.py` | Genera `ClassifierWeights.mc` y `tests/ModelVectors.mc`. |
 | `import_real.py` | **Esqueleto** para importar datos reales futuros (CSV implementado; FIT de SensorLogging por hacer). No se ejecuta en el pipeline. |
 | `data/` | Dataset generado (ignorado por git, salvo su README). |
 | `models/model_v2.json` | Pesos plegados, estandarización original, hiperparámetros y resultados de la validación cruzada. |
-| `reports/` | `report.md`, `metrics.json`, `confusion_v1.png`, `confusion_v2.png`, `per_class_v1_v2.png`. |
+| `reports/` | `report.md`, `metrics.json`, `confusion_v1.png`, `confusion_v2.png`, `per_class_v1_v2.png`, `confirmation.md`, `confirmation.json`. |
 
 ## Resultado actual (semilla 20261114)
 

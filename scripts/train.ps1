@@ -10,6 +10,8 @@
       3. genera el dataset SINTÉTICO en ml\data\ (generate_dataset.py);
       4. entrena con validación cruzada agrupada por usuario y evalúa v1 frente a v2 sobre
          el mismo conjunto de prueba (train.py): ml\reports\ y ml\models\model_v2.json;
+         después elige el retardo y el umbral de la confirmación del cabeceo por el
+         modelo (confirmation.py): ml\reports\confirmation.md y confirmation.json;
       5. salvo con -NoExport, escribe source\core\ClassifierWeights.mc y los vectores de
          prueba de tests\ (export_weights.py).
 
@@ -58,6 +60,7 @@ Push-Location $MlDir
 try {
     Invoke-Native $Python @('generate_dataset.py', '--seed', "$Seed")
     Invoke-Native $Python @('train.py', '--seed', "$Seed")
+    Invoke-Native $Python @('confirmation.py')
     if ($NoExport) {
         Write-Host 'Sin exportar (-NoExport): source\ y tests\ no cambiaron.' -ForegroundColor Yellow
     } else {
