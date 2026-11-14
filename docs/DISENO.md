@@ -85,6 +85,13 @@ El texto claro sobre los naranjas no llega a 3:1 (2,2:1 y 3,0:1), por eso los ni
 puro llega a 4,8:1 y cumple 4,5:1 también para texto pequeño. El botón "Estoy despierto" es
 `TEXT` con texto `BACKGROUND` (18,6:1) en los tres niveles.
 
+El fondo además late (pulso de brillo, §5.3): `alertPulseColor` oscurece los niveles 1 y 2
+como mucho un 12 % y lleva el nivel 3 hasta un rojo oscuro (`RED_INTENSE` al 60 % sobre
+`BACKGROUND`, calculado con `ColorMath.blend`, sin token nuevo). El contraste del texto en el
+punto más oscuro sigue por encima de 4,5:1: 6,69:1 (nivel 1), 4,96:1 (nivel 2) y 9,59:1
+(nivel 3, que gana contraste al oscurecerse). Lo comprueba
+`alertPulseColorsKeepTextReadable` en 11 puntos del pulso.
+
 ## 3. Tipografía
 
 Roles en `source/util/Typography.mc`, mapeados a fuentes del sistema. Las vistas usan el
@@ -262,7 +269,95 @@ apaga orbe, arco y latido (para el futuro ajuste "Animaciones reducidas"). En de
 dibujo y el estado del orbe. Medido en el simulador (fr165 y fr165m): 12,2–13,4 cuadros/s
 con la guardia activa y 7–12 ms de dibujo medio; ver `PENDIENTES.md`.
 
-### 5.3 Funciones de dibujo
+### 5.3 Alerta a pantalla completa (fase 7)
+
+`AlertView` (`source/views/AlertView.mc`) se apila sobre la esfera con `pushView` cuando el
+detector emite un cabeceo o una inactividad, y solo se cierra con "Estoy despierto". La
+lógica vive en `core` (`AlertController`, `VibePatterns`, `AlertVisuals`, `AlertLog`) y la
+vibración en `source/platform/Haptics.mc`.
+
+**Anatomía** (fr165, revisada en español e inglés en el simulador):
+
+```
+                       ((▯))                      y ≈ 70   ícono de vibración
+                   ¡DESPIERTA!                    y 125    ALERT (FONT_LARGE, fittingFont)
+          Nivel 1 de 3 · vibración suave          y ≈ 170  LABEL
+         Cabeceo / pérdida de tono                         LABEL, partido en dos líneas
+                    muscular                               si no cabe
+             [   Estoy despierto   ]              y 261–325 botón 258×64 px
+```
+
+| Zona | Contenido | Notas |
+|---|---|---|
+| Fondo | `alertPulseColor(nivel, pulso)` | Naranja / naranja intenso / rojo intenso que late (§2.2). La única pantalla con fondo claro: dura segundos. |
+| Ícono | Contorno de un reloj y dos ondas (arcos de ±35°) a cada lado que crecen de 21 a 38 px de radio y se desvanecen hacia el fondo, desfasadas medio periodo (1,2 s). | Del color del texto. |
+| Título | "¡DESPIERTA!" / "WAKE UP!" | `FONT_LARGE` cabe en ambos idiomas; `Draw.fittingFont` lo bajaría si no. |
+| Nivel | "Nivel N de 3 · vibración suave/media/máxima" (`AlertLevelLineFormat`). | La vibración va en minúsculas porque sigue al punto medio. "Nivel 3 de 3 · vibración máxima" mide ≈ 357 px y "Level 3 of 3 · maximum vibration" ≈ 373 px: más que la cuerda segura (340 px) pero dentro de la pantalla, que aquí no tiene anillo. |
+| Motivo | "Cabeceo / pérdida de tono muscular" o "Inactividad prolongada". | `fitTextToArea` en dos líneas cuando no cabe en una. |
+| Botón | "Estoy despierto" / "I'm awake": `TEXT` con texto `BACKGROUND`. | `RoundLayout.alertButtonRect`, 258×64 px (el de la esfera es 226×54); el texto cabe en `BODY`. Área táctil 280×86 px (`alertButtonTouchRect`). |
+
+**Niveles y vibración** (`VibePatterns`). Los Forerunner ignoran el `dutyCycle`: los
+niveles se distinguen por pulsos, duración y repetición. Cada ráfaga es una sola llamada a
+`Attention.vibrate` (≤ 8 `VibeProfile`) y se repite con un `Timer`.
+
+| Nivel | Color | Patrón (ms, encendido/apagado) | Se repite cada | Motor encendido | Sacudida |
+|---|---|---|---|---|---|
+| 1 suave | `ORANGE` | 150 · 150 · 150 (2 pulsos) | 3 s | 10 % | 2 px |
+| 2 media | `ORANGE_DEEP` | 300 · 200 · 300 · 200 · 300 (3 pulsos) | 2 s | 45 % | 4 px |
+| 3 máxima | `RED_INTENSE` | 800 · 200 · 800 · 200 · 800 · 200 · 800 (4 tramos) | 4 s | 80 %, casi continuo | 6 px |
+
+En esta fase un evento del detector siempre abre el **nivel 1**; los niveles 2 y 3 se abren
+desde el menú de depuración ("Probar alerta nivel 1 / 2 / 3"). El escalamiento automático es
+de la fase siguiente.
+
+**Animaciones** (`AlertVisuals`, redibujo cada 50 ms mientras la alerta se ve):
+
+- **Entrada, 300 ms:** el color de la alerta crece desde el centro como un disco y el botón
+  entra con un rebote de escala (easeOutBack, pico ≈ 108 %); los textos aparecen a la
+  mitad, cuando el disco ya los cubre.
+- **Pulso de brillo:** onda triangular sin saltos, de 2,4 / 1,8 / 1,2 s según el nivel.
+- **Sacudida:** el contenido se desplaza ±2/4/6 px cada 50 ms **solo mientras el motor está
+  encendido** (`VibePatterns.isOnAt`), así se ve el ritmo de la vibración aunque el reloj la
+  tenga apagada.
+
+**Luz y tono** (`Haptics`): `Attention.backlight(true)` en cada ráfaga (la excepción por
+protección contra quemado se atrapa); un tono de 2,5 kHz por pulso con `ToneProfile` si el
+reloj tiene `playTone` y los tonos activados, `TONE_ALERT_HI` si no hay `ToneProfile`, y nada
+si no hay tonos. Sin vibración en el reloj (`vibrateOn` falso o sin motor) la alerta es solo
+visual, con la misma pantalla, luz y tono.
+
+**Al descartar** (botón o START): para la vibración, `popView` a la vista anterior (la
+esfera), el puntaje sube a un mínimo de 70 y la alerta se guarda con su tiempo de respuesta
+en `AlertLog` (en memoria, las 32 últimas). El detector no se reinicia, así que respeta su
+refractario: en el escenario de inactividad, tras descartar, la siguiente alerta llegó a
+los 10–11 s del evento anterior. Mientras la alerta está abierta los eventos nuevos se
+ignoran y la esfera no se redibuja (`MainView` para su timer en `onHide` y
+`GuardController` no pide redibujos). Pausar la guardia o cerrar la app con la alerta
+abierta la cierra sin guardar respuesta.
+
+#### Accesibilidad de la alerta
+
+- **No depende de la vista:** el usuario puede tener los ojos cerrados. La vibración es el
+  canal principal; la pantalla, la luz y el tono son refuerzos. Sin vibración, queda la
+  alerta visual.
+- **Fotosensibilidad:** el pulso de brillo va a menos de **1 ciclo por segundo** (el más
+  rápido, 1,2 s en el nivel 3), lejos del límite de 3 destellos por segundo (WCAG 2.3.1),
+  y cambia de forma gradual, sin destellos bruscos; el rojo saturado, que es el caso más
+  delicado, es justo el más lento de los dos extremos que alterna. Lo comprueban
+  `alertPulseIsSlowerThanThreeHertz` (periodo ≥ 334 ms y menos de 9 picos en 3 s) y
+  `alertPulseIsSmoothTriangle`. La sacudida es un desplazamiento de pocos píxeles, no un
+  cambio de brillo.
+- **Contraste** ≥ 4,5:1 en todo el ciclo del pulso (§2.2). El nivel también va en texto
+  ("Nivel 2 de 3"), no solo en el color.
+- **Objetivo táctil grande:** botón de 258×64 px con área de 280×86 px (≈ 22×7 mm), y
+  START hace lo mismo.
+- **Por qué BACK no descarta.** Alguien que se está durmiendo puede rozar BACK con la
+  manga o la otra mano, o deslizar la pantalla sin querer; si eso cerrara la alerta, el
+  aviso que debía despertarlo se apagaría sin que se entere. Descartar exige un gesto
+  deliberado (el botón grande o START). BACK, deslizar, mantener UP y las teclas de página
+  se consumen sin hacer nada; en la esfera BACK sigue saliendo de la app como siempre.
+
+### 5.4 Funciones de dibujo
 
 Funciones en `source/util/Draw.mc`:
 
@@ -273,7 +368,7 @@ Funciones en `source/util/Draw.mc`:
 | Píldora de estado | `Draw.pill` | Relleno `SURFACE`, borde `BORDER_STRONG`, texto de color. Devuelve su `Rect`; `Draw.pillHeight` da su alto antes de dibujarla, para colocar el resto alrededor. |
 | Píldora con punto | `Draw.statusPill` | Igual que `pill`, con un punto del color del texto delante (guardia activa) y, con `pulse` entre 0 y 1, el halo del latido. |
 | Batería | `Draw.battery` | Cuerpo redondeado + borne, relleno proporcional al porcentaje. |
-| Botón grande | `Draw.largeButton` | `fillRoundedRectangle` con extremos redondos. Cian con texto oscuro en la pantalla principal; blanco con texto oscuro en la alerta. Si el texto no cabe, reduce la fuente con `Draw.fittingFont`. |
+| Botón grande | `Draw.largeButton` | `fillRoundedRectangle` con extremos redondos. Cian con texto oscuro en la pantalla principal; blanco con texto oscuro en la alerta. El botón de la alerta es más grande (`RoundLayout.alertButtonRect`). Si el texto no cabe, reduce la fuente con `Draw.fittingFont`. |
 | Indicador de página | `Draw.pageDots` | Punto actual en `ACCENT`, el resto en `BORDER_STRONG`. |
 
 `Draw.enableAntiAlias(dc)` activa el suavizado cuando el dispositivo lo soporta.
@@ -315,7 +410,8 @@ Funciones en `source/util/Draw.mc`:
 - El nivel de alerta se muestra también como **porcentaje** y la sesión como **texto** en
   la píldora de estado.
 - La alerta a pantalla completa incluye el nivel en texto ("Nivel 2 de 3") y, sobre todo,
-  **vibración**: el usuario puede tener los ojos cerrados.
+  **vibración**: el usuario puede tener los ojos cerrados. Detalle y decisiones de
+  accesibilidad de la alerta (fotosensibilidad, BACK) en la sección 5.3.
 
 ## 7. Textos
 

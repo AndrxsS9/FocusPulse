@@ -7,7 +7,7 @@ FocusPulse AI detecta **micro-sueños y cabeceos** a partir del acelerómetro de
 despierta al usuario con **vibraciones progresivas**. Incluye un **modo demo** interno para
 simular eventos sin necesidad de dormirse frente al reloj.
 
-> Estado: **Fase 6 — detector de somnolencia**. La pantalla inicial es la esfera de guardia: anillo de
+> Estado: **Fase 7 — alerta háptica**. La pantalla inicial es la esfera de guardia: anillo de
 > nivel de alerta en el borde, batería, hora, fecha, porcentaje de alerta, píldora de estado
 > y botón grande "Iniciar guardia" (START o un toque en el botón). Detrás de la hora, un orbe
 > IA de 3 anillos orgánicos cambia de color con el puntaje y de velocidad con la actividad
@@ -16,8 +16,9 @@ simular eventos sin necesidad de dormirse frente al reloj.
 > acelerómetro a 25 Hz (o una fuente simulada, marcada como "DEMO"). Tras unos segundos de
 > calibración ("Calibrando…"), el detector reconoce **cabeceos** (sacudida, quietud y caída
 > del brazo) e **inactividad prolongada**, y un clasificador (Activo, Normal, Cabeceo,
-> Inerte) mueve el puntaje y el orbe; los eventos se ven en el menú de depuración. Las
-> alertas con vibración llegan en la fase 7. Ver [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md),
+> Inerte) mueve el puntaje y el orbe. Cada evento abre una **alerta a pantalla completa**
+> "¡DESPIERTA!" con vibración por pulsos, luz y tono, que solo se cierra con "Estoy despierto"
+> (botón o START; BACK no la cierra). Ver [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md),
 > [docs/DETECTOR.md](docs/DETECTOR.md) y [docs/DISENO.md](docs/DISENO.md).
 
 ## Requisitos

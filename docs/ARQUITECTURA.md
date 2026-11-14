@@ -19,8 +19,8 @@ Documento vivo. Describe los módulos previstos y el plan por fases. Lo marcado 
 ## Flujo de datos
 
 Implementado en la fase 3 (fuentes → motor → snapshot) y la fase 6 (detector, línea base,
-clasificador). Las alertas llegan en la fase 7. El algoritmo del detector está explicado
-en [DETECTOR.md](DETECTOR.md).
+clasificador) y la fase 7 (alerta a pantalla completa con vibración). El algoritmo del
+detector está explicado en [DETECTOR.md](DETECTOR.md) y la alerta en [DISENO.md](DISENO.md) §5.3.
 
 ```
    source/platform                         source/core
@@ -53,7 +53,7 @@ en [DETECTOR.md](DETECTOR.md).
                          StateClassifier (fase 6) → p(Activo, Normal, Cabeceo, Inerte)
                                                    ▼
                          AlertnessScore → anillo y porcentaje · OrbModel → orbe
-                         AlertEscalator → Haptics / AlertView (fase 7)
+                         AlertController (fase 7) → AlertView + Haptics → AlertLog
 ```
 
 - **Las dos fuentes entregan el mismo lote**: arreglos `x`, `y`, `z` en mili‑g y la marca
@@ -131,9 +131,12 @@ pruebas son reproducibles.
 | `source/core` | `Baseline` | Línea base del usuario en ln(varianza + 1): calibración de 30 s (5 s demo), EMA lenta y umbral de quietud adaptativo. | 6 ✅ |
 | `source/core` | `StateClassifier`, `ClassifierWeights` | Regresión logística multiclase (Activo, Normal, Cabeceo, Inerte) con probabilidades suavizadas; pesos v1 a mano en formato scikit-learn. El orbe y el puntaje usan su salida. | 6 ✅ |
 | `source/views` | `DetectorDebugView` | Detector en vivo (`(:debug)`): estado, barras de probabilidad, línea base, umbral, último evento y su hora. | 6 ✅ |
-| `source/core` | `AlertEscalator` | Decide el nivel de alerta (1 suave → 3 intenso) y cuándo reiniciar. | 7 |
-| `source/platform` | `Haptics` | `Attention.vibrate` con `VibeProfile` según el nivel. | 7 |
-| `source/views` | `AlertView` | Alerta a pantalla completa que exige confirmación. | 7 |
+| `source/core` | `AlertController` | Estado de la alerta: inactiva → activa (nivel 1–3, motivo, inicio) → descartada (tiempo de respuesta) o cancelada (pausa). Ignora eventos con una alerta abierta. | 7 ✅ |
+| `source/core` | `VibePatterns`, `AlertVisuals` | Patrón de vibración por nivel (≤ 8 tramos, periodo de repetición) y curvas de la alerta: pulso de brillo (< 1 ciclo/s), entrada con rebote y sacudida sincronizada con el motor. | 7 ✅ |
+| `source/core` | `AlertLog`, `AlertRecord` | Alertas respondidas con su tiempo de respuesta, en memoria (32 como mucho). | 7 ✅ |
+| `source/platform` | `Haptics` | `Attention.vibrate` con `VibeProfile` según el patrón, repetido con un `Timer`; respeta `vibrateOn`, enciende la luz y toca un tono por pulso si hay tonos. | 7 ✅ |
+| `source/views` | `AlertView`, `AlertDelegate` | Alerta a pantalla completa: "¡DESPIERTA!", nivel, motivo y "Estoy despierto" (botón o START; BACK no la cierra). Ver [DISENO.md](DISENO.md) §5.3. | 7 ✅ |
+| `source/core` | `AlertEscalator` | Escalamiento automático entre niveles (1 suave → 3 máxima) si el usuario no responde. En la fase 7 los niveles 2 y 3 solo se abren desde depuración. | siguiente |
 | `source/views` | Modo demo | Pantalla del modo demo sobre `SimulatedAccelSource`; sustituye al selector de depuración. | 8 |
 | `resources/settings` | `properties.xml`, `settings.xml` | Sensibilidad, intensidad de vibración, modo demo (junto a `recordActivity`). | 9 |
 | `source/core` | `SessionStats` | Resumen de sesión (duración, eventos) e historial en `Application.Storage`. | 10 |
@@ -172,7 +175,7 @@ los módulos de las fases siguientes:
 | 4 | Esfera principal: anillo de alerta, batería, hora, fecha, puntaje provisional, píldora, botón de guardia y marca DEMO. ✅ |
 | 5 | Orbe IA animado, arco de escaneo y punto que late. ✅ |
 | 6 | Inclinación, detector de cabeceos e inactividad, línea base adaptativa y clasificador v1. ✅ |
-| 7 | Alertas con vibración progresiva y pantalla de alerta. |
+| 7 | Alerta a pantalla completa con vibración por niveles, luz y tono; "Estoy despierto" con tiempo de respuesta. ✅ |
 | 8 | Modo demo interno para simular eventos. |
 | 9 | Ajustes de usuario (sensibilidad, intensidad). |
 | 10 | Resumen de sesión e historial. |
@@ -205,3 +208,9 @@ número respecto al plan inicial.
   `DrowsinessDetector` (eventos, falsos positivos, refractario, pausa), `Baseline`,
   `StateClassifier` (con una matriz de confusión que se escribe en el registro) y el
   puntaje y el orbe a partir del clasificador. Ver [DETECTOR.md](DETECTOR.md) §6.
+- Fase 7: 124 pruebas. Las nuevas cubren `AlertController` (evento → nivel 1, eventos
+  ignorados con la alerta abierta, tiempo de respuesta, cancelar al pausar), `VibePatterns`
+  (≤ 8 tramos positivos, ráfaga dentro del periodo, niveles crecientes sin intensidad),
+  `AlertVisuals` y `alertPulseColor` (pulso más lento que 3 Hz, contraste ≥ 4,5:1 en todo
+  el ciclo, rebote de entrada, sacudida solo con el motor encendido), `AlertLog`,
+  `AlertnessScore.raiseTo` y el área táctil del botón de la alerta.

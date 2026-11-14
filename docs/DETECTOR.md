@@ -3,8 +3,9 @@
 Cómo decide la app que el usuario cabeceó o lleva demasiado tiempo inmóvil (fase 6). Todo
 vive en `source/core` (lógica pura, sin `WatchUi`, `Graphics` ni `Sensor`): el tiempo entra
 como parámetro y las pruebas recorren secuencias completas de la fuente simulada con el
-reloj controlado. La pantalla de alerta y la vibración llegan en la fase 7; aquí el
-detector emite eventos y se ven en la depuración (*Detector en vivo*).
+reloj controlado. El detector emite eventos (se ven en la depuración, *Detector en vivo*) y,
+desde la fase 7, cada uno abre la alerta a pantalla completa con vibración
+([DISENO.md](DISENO.md) §5.3).
 
 ## 1. Flujo por lote
 
@@ -100,7 +101,9 @@ iniciar la guardia, y nunca antes.
 
 - Tras cada evento, **10 s** sin emitir otro, y la cuenta de quietud vuelve a cero. Si el
   usuario sigue inmóvil, en demo llega otra inactividad a los 10 s (8, 18, 28 s…): es la
-  señal que usará el escalado de alertas de la fase 7.
+  señal que usará el escalamiento automático de alertas (fase siguiente). Mientras la
+  alerta está abierta el detector sigue corriendo y sus eventos se ignoran; al descartarla,
+  el siguiente llega cuando termina el refractario.
 - Una caída candidata que se confirma durante el refractario espera a que termine (si no
   caducó): dos cabeceos seguidos dan eventos a los 6 y 16 s.
 - Al **pausar** la guardia se borra todo (estado, candidata, quietud, línea base); al

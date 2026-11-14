@@ -1,7 +1,7 @@
 # Pendientes de verificar
 
 Las fases 1 y 2 se compilaron, probaron y revisaron en el simulador con el **Connect IQ SDK
-9.3.0** (2026-11-12), y las fases 3, 4, 5 y 6 el 2026-11-13. La primera sección resume lo que quedó confirmado; el resto del
+9.3.0** (2026-11-12), y las fases 3 a 7 el 2026-11-13. La primera sección resume lo que quedó confirmado; el resto del
 documento lista **solo lo que sigue abierto**. Al cerrar un punto, muévelo a la sección de
 datos confirmados o bórralo, y corrige el código si algo no coincide.
 
@@ -161,6 +161,48 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 - En `FONT_XTINY` la línea superior de la vista (y ≈ 58 px) admite unos 18 caracteres:
   "Caída · verificando quietud" no cabía y quedó "Caída detectada".
 
+### Alerta háptica (fase 7, simulador)
+
+- Las **124 pruebas** pasan (24 nuevas). `build.ps1` y `export.ps1` (fr165 y fr165m) sin
+  advertencias con `-l 3`.
+- Recorrido en el fr165, en **español e inglés**, con la fuente simulada y la consola de la
+  compilación de depuración (`ALERTA …` y `EVENTO …`):
+  - **Cabeceo:** evento a los 6,0 s → alerta de nivel 1 "Cabeceo / pérdida de tono
+    muscular" / "Head nod / loss of muscle tone".
+  - **Inactividad:** evento a los 8,0 s → alerta "Inactividad prolongada" / "Prolonged
+    inactivity".
+  - Con la alerta abierta llegaron inactividades a los 16 y 27 s y **se ignoraron** (ninguna
+    alerta nueva). Tras descartar, la siguiente llegó a los 38 s: el refractario se respeta.
+  - **START** y un **toque en el botón** cierran la alerta y vuelven a la esfera; un toque
+    fuera del botón y **BACK no hacen nada** (BACK sí funciona en el menú justo después, así
+    que la tecla llegó). Tras descartar con la guardia activa, el puntaje queda en 70 (en la
+    esfera se ve 68 % un segundo después, porque el clasificador sigue en Inerte); con la
+    guardia en pausa no cambia.
+  - **Niveles 1, 2 y 3** desde "Probar alerta nivel N": colores, textos y botón sin cortes
+    en ambos idiomas. Ráfagas contadas al descartar: 8 en 22,6 s (nivel 1, cada 3 s) y 7 en
+    12,2 s (nivel 2, cada 2 s): el temporizador repite al ritmo previsto.
+  - Pulso del fondo (rojo intenso ↔ rojo oscuro en el nivel 3) y sacudida vistos en capturas
+    seguidas. La entrada de 300 ms es demasiado rápida para capturarla; con la duración
+    alargada a 3 s (cambio temporal, no versionado) se vio el disco creciendo desde el centro.
+  - Memoria con la alerta abierta: **68 de 764 kB**.
+- **Cómo se ve la vibración en el simulador (SDK 9.3.0, Windows):** no se ve. Ni la ventana
+  ni la imagen del reloj se mueven (medido: posición de la ventana muestreada cada 5 ms
+  durante el nivel 3 y píxeles de la correa iguales en 6 capturas), y la barra de estado no
+  tiene indicador de vibración. Para comprobarla:
+  1. la **consola** de la compilación de depuración escribe al abrir cada alerta
+     `ALERTA nivel N: vibración [tramos] cada P ms, tono …, luz …` (o `vibración no (sin
+     motor o apagada en el reloj)`), y al descartar `ALERTA descartada en T ms (R ráfagas)`;
+  2. la **barra de estado** pasa de "☀ Off" a "☀ Default" al abrirse la alerta: es
+     `Attention.backlight(true)`;
+  3. *Settings > Vibrate* desmarcado → la consola dice `vibración no` y la alerta sigue,
+     solo visual, con luz y tono (verificado);
+  4. la **sacudida** de la propia alerta sigue el mismo patrón que el motor.
+  El sonido de los tonos no se comprobó (no se escuchó la salida de audio del equipo); la
+  consola confirma que el fr165 tiene `playTone`, `ToneProfile` y *Settings > Tones* activado.
+- Automatizar el simulador: la pantalla está escalada al 125 %, así que `GetWindowRect` y
+  `SetCursorPos` usan coordenadas lógicas y una captura de pantalla completa, físicas
+  (× 1,25). Los menús del simulador (*Settings*) no se exponen por UI Automation.
+
 ## 1. Entorno
 
 - [ ] **Hacer copia de seguridad de la llave** `%USERPROFILE%\Downloads\FocusPulse-keys\`
@@ -189,8 +231,28 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
       el reloj que la actividad se guarda.
 - [ ] Reproducir en el simulador un FIT grabado en el reloj con `SensorLogging` (*Activity
       Data > FIT/GPX Playable File*) para probar el sensor real con datos de muñeca reales.
-- [ ] Diseñar los 3 niveles de vibración solo con duración, pulsos y pausas (máximo 8
-      `VibeProfile` por llamada), y comprobar en el reloj que se distinguen.
+- [ ] **Sentir la vibración real en el reloj** (fase 7). Los 3 niveles ya están diseñados
+      solo con duración, pulsos y pausas ([DISENO.md](DISENO.md) §5.3). En el fr165:
+      - que se **distinguen** los tres sin mirar la pantalla (2×150 ms cada 3 s, 3×300 ms
+        cada 2 s, 800/200 ms casi continuo) y que el nivel 1 no sea tan suave que no
+        despierte;
+      - que los tramos con `dutyCycle` 0 sean **pausas** y no vibración: los Forerunner
+        ignoran el `dutyCycle`; si los 0 vibran, el patrón entero sería un zumbido continuo
+        y habría que lanzar cada pulso con su propio `Timer`;
+      - que `stop()` **corte la ráfaga en curso** (`VibeProfile(0, 10)`): en el nivel 3
+        quedan hasta 3,8 s de vibración si una llamada nueva no reemplaza a la anterior;
+      - que se siente con la **pantalla apagada o atenuada** y con la app inactiva grabando
+        (ver los puntos de arriba sobre `Attention` denegada).
+- [ ] **Luz con protección contra quemado**: `Attention.backlight(true)` en cada ráfaga
+      puede lanzar `BacklightOnTooLongException` tras ≈ 1 min de alerta en el AMOLED. Se
+      atrapa; comprobar en el reloj que la alerta sigue visible y que no se apaga la pantalla.
+- [ ] **Tono en el fr165**: si el reloj suena de verdad (tiene `playTone` según el SDK), con
+      qué volumen, y si el `ToneProfile` con silencios de 0 Hz se acepta (si lanza
+      `InvalidOptionsException`, `Haptics` pasa a `TONE_ALERT_HI`). Valorar el ajuste
+      "Sonido" de la fase 9 antes de usarlo en una oficina.
+- [ ] La sacudida de la vista se calcula desde el inicio de la alerta y la vibración desde
+      el `Timer` de `Haptics`: en una alerta larga podrían desfasarse unas decenas de ms.
+      Mirarlo en el reloj; si se nota, que la vista lea el ciclo de `Haptics`.
 - [ ] Desde dónde lanza el usuario la app en el fr165 (menú de apps o glance), para evitar el
       cierre por tiempo de las apps abiertas desde glances.
 
@@ -215,11 +277,21 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 - [ ] En el **reloj real**, si `FONT_NUMBER_MEDIUM` (la hora) se ve igual que en el
       simulador, que usa Roboto TTF para todo. El porcentaje de la esfera usa `FONT_SMALL`
       (fuente de texto) para no depender de que las numéricas traigan `%`.
-- [ ] "Estoy despierto" baja a `FONT_XTINY` en un botón de 226 px. En la pantalla de alerta
-      (fase 7) hay espacio para un botón más ancho. ("Iniciar guardia" en `FONT_TINY` se ve
-      bien en la esfera: decidido en la fase 4.)
-- [ ] En la pantalla de alerta, "¡DESPIERTA!" en `FONT_LARGE` mide casi todo el ancho
-      seguro. Revisarlo en el reloj y usar `Draw.fittingFont` si hace falta.
+- [ ] En la alerta, "¡DESPIERTA!" cabe en `FONT_LARGE` en el simulador (se elige con
+      `Draw.fittingFont`) y "Estoy despierto" va en `BODY` en el botón de 258 px (fase 7).
+      Revisar en el reloj que ambos se ven igual.
+- [ ] La línea "Nivel 3 de 3 · vibración máxima" (≈ 357 px) y "Level 3 of 3 · maximum
+      vibration" (≈ 373 px) pasan del ancho seguro de 340 px; caben en la pantalla porque la
+      alerta no tiene anillo. Ver en el reloj que no se acercan demasiado al borde curvo; si
+      molesta, partir la línea en dos o abreviar.
+- [ ] Probar con el reloj puesto que el botón de la alerta (área 280×86 px) se acierta
+      medio dormido, y que nadie la cierra sin querer con BACK o deslizando (se consumen).
+- [ ] Ver la alerta en el **fr165m**: solo se revisó en el fr165 (misma pantalla).
+- [ ] **Pausar con la alerta abierta** no tiene camino en la interfaz (la alerta tapa la
+      esfera y consume BACK); solo pasa al cerrar la app el sistema (`onStop` → `shutdown`)
+      o si falla el cambio de fuente. Lo cubren `alertCancelClosesWithoutResponse` y el
+      código de `GuardController.pause`/`shutdown`; comprobar en el reloj que un cierre
+      del sistema durante una alerta detiene la vibración.
 - [ ] Ver en el simulador la píldora **"Sensor no disponible"** (ámbar) y la batería baja
       en rojo (≤ 15 %, *Settings > Set Battery Status*). No se forzaron en la fase 4: el
       acelerómetro del simulador siempre se registra bien.
