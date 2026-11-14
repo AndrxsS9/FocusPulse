@@ -150,8 +150,6 @@ class MainView extends WatchUi.View {
 
     //! Textos del aviso breve: título y valor, rehechos solo cuando cambia el aviso.
     private var _toastScenarioTitle as String = "";
-    private var _toastScriptTitle as String = "";
-    private var _toastScriptDone as String = "";
     private var _toastKind as Number = -1;
     private var _toastValue as Number = -1;
     private var _toastTitle as String = "";
@@ -186,8 +184,6 @@ class MainView extends WatchUi.View {
         _scriptFormat = WatchUi.loadResource(Rez.Strings.ScriptProgressFormat) as String;
         _demoLineKey = -1;
         _toastScenarioTitle = WatchUi.loadResource(Rez.Strings.MenuScenario) as String;
-        _toastScriptTitle = WatchUi.loadResource(Rez.Strings.MenuScript) as String;
-        _toastScriptDone = WatchUi.loadResource(Rez.Strings.ToastScriptDone) as String;
         _toastKind = -1;
         _buttonStart = WatchUi.loadResource(Rez.Strings.ButtonStartGuard) as String;
         _buttonPause = WatchUi.loadResource(Rez.Strings.ButtonPauseGuard) as String;
@@ -557,9 +553,6 @@ class MainView extends WatchUi.View {
         if (toast.kind() == ToastKind.SCENARIO) {
             _toastTitle = _toastScenarioTitle;
             _toastText = DemoText.scenarioName(toast.value() as AccelScenario.Id);
-        } else if (toast.kind() == ToastKind.SCRIPT_DONE) {
-            _toastTitle = _toastScriptTitle;
-            _toastText = _toastScriptDone;
         } else {
             return false;
         }

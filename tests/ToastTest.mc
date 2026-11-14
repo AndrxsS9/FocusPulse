@@ -23,8 +23,8 @@ function toastIsVisibleForItsDuration(logger as Logger) as Boolean {
 function toastReplacedRestartsTimer(logger as Logger) as Boolean {
     var toast = new Toast();
     toast.show(ToastKind.SCENARIO, AccelScenario.TYPING as Number, 0);
-    toast.show(ToastKind.SCRIPT_DONE, 0, 1000);
-    Test.assertEqual(toast.kind(), ToastKind.SCRIPT_DONE);
+    toast.show(ToastKind.SCENARIO, AccelScenario.NOD as Number, 1000);
+    Test.assertEqual(toast.value(), AccelScenario.NOD as Number);
     Test.assertMessage(toast.isVisible(2000), "el nuevo cuenta desde su propio inicio");
     Test.assertMessage(!toast.isVisible(2500), "y dura lo mismo");
 

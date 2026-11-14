@@ -55,8 +55,10 @@ import Toybox.WatchUi;
 //! grabación sigue.
 //!
 //! Guion automático (DemoScript): avanza con los lotes y con las alertas del detector
-//! que se responden; cada paso cambia el escenario simulado. Se cancela al pausar la
-//! guardia, al apagar el modo demo, con DOWN o al elegir un escenario a mano.
+//! que se responden; cada paso cambia el escenario simulado. El último paso deja su
+//! alerta sin respuesta: el guion se entera de cada subida de nivel y, 4 s después de
+//! llegar al 3, termina; entonces la guardia se pausa y se ve su resumen. Se cancela al
+//! pausar la guardia, al apagar el modo demo, con DOWN o al elegir un escenario a mano.
 class GuardController {
 
     private var _state as MonitorState;
@@ -87,7 +89,7 @@ class GuardController {
     //! Modo demo: fuente simulada, escenario y tiempos del detector.
     private var _demo as DemoConfig;
 
-    //! Aviso breve en la esfera (cambio de escenario con DOWN, fin del guion).
+    //! Aviso breve en la esfera (cambio de escenario con DOWN).
     private var _toast as Toast;
 
     //! Guion automático del modo demo.
@@ -449,8 +451,11 @@ class GuardController {
     //! Sube la alerta de nivel si lleva escalationMs sin respuesta y, si subió, cambia la
     //! vibración al patrón del nivel nuevo. La vista lee el nivel en cada cuadro.
     private function updateAlert() as Void {
-        if (_alerts.update(System.getTimer())) {
+        var now = System.getTimer();
+        if (_alerts.update(now)) {
             _haptics.start(_alerts.level());
+            // El último paso del guion termina cuando la alerta llega al nivel 3.
+            _script.onAlertLevel(_alerts.level(), now);
             logEscalation();
         }
     }
@@ -732,13 +737,15 @@ class GuardController {
         return _script;
     }
 
-    //! El guion cambió de paso o terminó: aplica el escenario del paso nuevo; al
-    //! terminar vuelve a movimiento normal y muestra el aviso "Guion · Completado".
+    //! El guion cambió de paso o terminó: aplica el escenario del paso nuevo. Al
+    //! terminar (con la alerta del último paso aún abierta en el nivel 3) vuelve a
+    //! movimiento normal y pausa la guardia: la alerta se cierra sin respuesta y se abre
+    //! el resumen de la guardia.
     private function onScriptStep() as Void {
         logScriptStep();
         if (_script.isFinished()) {
             applyScenario(AccelScenario.NORMAL);
-            _toast.show(ToastKind.SCRIPT_DONE, 0, System.getTimer());
+            pause();
             return;
         }
         applyScenario(_script.scenario());

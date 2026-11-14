@@ -7,9 +7,7 @@ module ToastKind {
         //! Sin aviso.
         NONE = 0,
         //! Cambio de escenario con DOWN; el valor es el AccelScenario.Id nuevo.
-        SCENARIO = 1,
-        //! El guion automático terminó.
-        SCRIPT_DONE = 2
+        SCENARIO = 1
     }
 }
 
