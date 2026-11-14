@@ -53,11 +53,12 @@ function demoConfigMatchesDetectorTimes(logger as Logger) as Boolean {
 }
 
 (:test)
-function demoConfigCyclesFourScenariosInOrder(logger as Logger) as Boolean {
+function demoConfigCyclesFiveScenariosInOrder(logger as Logger) as Boolean {
     var config = new DemoConfig();
     Test.assertEqual(config.nextScenario(), AccelScenario.TYPING);
     Test.assertEqual(config.nextScenario(), AccelScenario.NOD);
     Test.assertEqual(config.nextScenario(), AccelScenario.INACTIVITY);
+    Test.assertEqual(config.nextScenario(), AccelScenario.GLANCE);
     Test.assertEqualMessage(config.nextScenario(), AccelScenario.NORMAL, "vuelve al primero");
     Test.assertEqual(config.scenario(), AccelScenario.NORMAL);
 

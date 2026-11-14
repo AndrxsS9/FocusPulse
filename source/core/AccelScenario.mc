@@ -18,11 +18,15 @@ module AccelScenario {
         INACTIVITY = 3,
         //! Manual: X/Y/Z fijos (SimulatedAccelSource.setManual) con ruido de ±4 mg. Solo
         //! se elige desde el menú de depuración.
-        MANUAL = 4
+        MANUAL = 4,
+        //! Mirar la hora y quedarse leyendo (negativo difícil, fase 10): giro rápido de la
+        //! muñeca, 6 s con el brazo sostenido y la esfera inclinada, y vuelta al
+        //! movimiento normal, cada 12 s. No debe dar cabeceo.
+        GLANCE = 5
     }
 
     //! Número de escenarios (para recorrerlos en el selector de depuración).
-    const COUNT = 5;
+    const COUNT = 6;
 
     //! true si value es un AccelScenario.Id válido (p. ej. al leerlo de Storage).
     function isValid(value as Object?) as Boolean {

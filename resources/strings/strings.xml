@@ -102,6 +102,7 @@
     <string id="DemoMaxAlert">Maximum alert</string>
     <string id="DemoNormalMovement">Normal movement</string>
     <string id="DemoManual">Manual (fixed X/Y/Z)</string>
+    <string id="DemoGlance">Glance at the watch</string>
 
     <!-- Nombres cortos de los escenarios para la línea de la esfera (unos 25 caracteres en total). -->
     <string id="DemoShortNormal">Normal</string>
@@ -109,6 +110,7 @@
     <string id="DemoShortNod">Head nod</string>
     <string id="DemoShortInactivity">Inactivity</string>
     <string id="DemoShortManual">Manual</string>
+    <string id="DemoShortGlance">Glance</string>
     <!-- Línea del modo demo en la esfera, en lugar de la fecha: $1$ BadgeDemo, $2$ nombre corto. -->
     <string id="DemoBadgeFormat">$1$ · $2$</string>
 

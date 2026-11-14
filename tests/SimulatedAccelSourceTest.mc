@@ -165,3 +165,28 @@ function simulatedManualUsesFixedAxes(logger as Logger) as Boolean {
     }
     return true;
 }
+
+(:test)
+function simulatedGlanceTurnsTheWristAndHoldsIt(logger as Logger) as Boolean {
+    var source = new SimulatedAccelSource(AccelScenario.GLANCE, SIM_TEST_SEED);
+    var engine = runScenario(source, 4);
+    var before = engine.snapshot();
+    // Giro a los 4 s y lectura hasta los 10,3 s: a los 9 s la ventana es toda lectura.
+    feedSeconds(source, engine, 5, 5000);
+    var reading = engine.snapshot();
+    var tilt = Tilt.between(before, reading);
+    logger.debug("mirar la hora: varianza antes=" + before.variance + " leyendo=" + reading.variance
+        + " inclinación=" + tilt + " sacudida máx. del giro=" + reading.batchPeakJerk);
+    Test.assert(!before.isStill);
+    // El brazo sostenido tiembla: más que un brazo inerte (≈ 6 mg²), menos que el umbral
+    // de quietud. Es justo lo que lo hace parecido a un cabeceo.
+    Test.assert(reading.variance > 10.0f && reading.variance < SlidingWindow.STILL_VARIANCE_MAX);
+    Test.assert(tilt > DrowsinessDetector.NOD_TILT_MIN);
+
+    // Después baja el brazo y vuelve a la postura normal (el ciclo dura 12 s).
+    feedSeconds(source, engine, 4, 10000);
+    var after = engine.snapshot();
+    Test.assert(!after.isStill);
+    Test.assert(Tilt.between(before, after) < 10.0f);
+    return true;
+}

@@ -165,3 +165,16 @@ function detectorResetsWhenPaused(logger as Logger) as Boolean {
     Test.assertEqual(rig.detector.state(), DetectorState.CALIBRATING);
     return true;
 }
+
+(:test)
+function detectorGlanceAtWatchTwoMinutesHasNoNod(logger as Logger) as Boolean {
+    // Mirar la hora y quedarse leyendo cada 12 s (negativo difícil): el giro no llega a
+    // la sacudida de una caída y la lectura es demasiado corta para la inactividad.
+    var rig = new DetectorRig(AccelScenario.GLANCE, SIM_TEST_SEED, true);
+    rig.run(120);
+    logger.debug("mirar la hora 2 min: cabeceos=" + rig.nods + " inactividad=" + rig.inactivities
+        + " lotes con sacudida >= 400 mg=" + rig.jerkBatches + " pico=" + rig.maxPeakJerk);
+    Test.assertEqual(rig.nods, 0);
+    Test.assertEqual(rig.inactivities, 0);
+    return true;
+}

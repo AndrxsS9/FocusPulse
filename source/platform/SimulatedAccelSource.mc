@@ -54,6 +54,27 @@ class SimulatedAccelSource extends AccelSource {
     //! ~1220 mg del recorrido, ≈ 464 mg: por encima de los 400 mg de una sacudida.
     static const NOD_PROFILE = [10, 25, 45, 80, 300, 680, 950, 1000, 1040, 1010, 985, 1000];
 
+    //! Mirar la hora y quedarse leyendo: el negativo difícil (a) de ml/generate_dataset.py
+    //! con los valores del usuario de referencia. Ciclo de GLANCE_CYCLE_SAMPLES (12 s):
+    //! movimiento normal hasta GLANCE_RAISE_START (4 s), giro rápido de 8 muestras
+    //! (0,32 s: la gravedad gira 80° con módulo constante y se suma la aceleración de
+    //! subir el brazo, ±300 mg), GLANCE_HOLD_SAMPLES (6 s) leyendo con el brazo sostenido
+    //! (temblor triangular de ±16 mg), bajada de 15 muestras y movimiento normal.
+    //! Las tablas son la trayectoria de generate_dataset.turn_path redondeada a mg.
+    static const GLANCE_CYCLE_SAMPLES = 300;
+    static const GLANCE_RAISE_START = 100;
+    static const GLANCE_HOLD_SAMPLES = 150;
+    static const GLANCE_HOLD_X = 14;
+    static const GLANCE_HOLD_Y = 930;
+    static const GLANCE_HOLD_Z = 346;
+    static const GLANCE_HOLD_NOISE = 16;
+    static const GLANCE_RAISE_X = [45, 52, 50, 39, 26, 16, 12, 13];
+    static const GLANCE_RAISE_Y = [-135, 45, 326, 546, 612, 600, 654, 822];
+    static const GLANCE_RAISE_Z = [1098, 1268, 1226, 962, 628, 389, 289, 306];
+    static const GLANCE_LOWER_X = [15, 18, 22, 26, 31, 34, 36, 37, 36, 36, 35, 35, 35, 37, 39];
+    static const GLANCE_LOWER_Y = [952, 984, 984, 941, 854, 730, 582, 428, 283, 157, 53, -31, -99, -148, -174];
+    static const GLANCE_LOWER_Z = [374, 445, 540, 646, 747, 827, 877, 894, 886, 866, 847, 842, 856, 891, 944];
+
     //! Valores iniciales del escenario manual.
     static const MANUAL_DEFAULT_X = 0;
     static const MANUAL_DEFAULT_Y = 0;
@@ -155,6 +176,9 @@ class SimulatedAccelSource extends AccelSource {
                 ys[i] = INERT_Y + noise(INERT_NOISE);
                 zs[i] = INERT_Z + noise(INERT_NOISE);
                 break;
+            case AccelScenario.GLANCE:
+                glanceSample(xs, ys, zs, i);
+                break;
             case AccelScenario.MANUAL:
                 xs[i] = _manualX + noise(INERT_NOISE);
                 ys[i] = _manualY + noise(INERT_NOISE);
@@ -184,6 +208,36 @@ class SimulatedAccelSource extends AccelSource {
         xs[i] = lerp(NOD_FROM_X, NOD_TO_X, permille) + noise(INERT_NOISE);
         ys[i] = lerp(NOD_FROM_Y, NOD_TO_Y, permille) + noise(INERT_NOISE);
         zs[i] = lerp(NOD_FROM_Z, NOD_TO_Z, permille) + noise(INERT_NOISE);
+    }
+
+    //! Mirar la hora: normal, giro, lectura con el brazo sostenido, bajada y normal, en un
+    //! ciclo de GLANCE_CYCLE_SAMPLES.
+    private function glanceSample(xs as Array<Number>, ys as Array<Number>, zs as Array<Number>,
+            i as Number) as Void {
+        var raiseX = GLANCE_RAISE_X as Array<Number>;
+        var lowerX = GLANCE_LOWER_X as Array<Number>;
+        var k = _sampleIndex % GLANCE_CYCLE_SAMPLES;
+        var holdStart = GLANCE_RAISE_START + raiseX.size();
+        var lowerStart = holdStart + GLANCE_HOLD_SAMPLES;
+        if (k < GLANCE_RAISE_START || k >= lowerStart + lowerX.size()) {
+            xs[i] = NORMAL_X + softNoise(NORMAL_NOISE);
+            ys[i] = NORMAL_Y + softNoise(NORMAL_NOISE);
+            zs[i] = NORMAL_Z + softNoise(NORMAL_NOISE);
+        } else if (k < holdStart) {
+            var j = k - GLANCE_RAISE_START;
+            xs[i] = raiseX[j] + softNoise(GLANCE_HOLD_NOISE);
+            ys[i] = (GLANCE_RAISE_Y as Array<Number>)[j] + softNoise(GLANCE_HOLD_NOISE);
+            zs[i] = (GLANCE_RAISE_Z as Array<Number>)[j] + softNoise(GLANCE_HOLD_NOISE);
+        } else if (k < lowerStart) {
+            xs[i] = GLANCE_HOLD_X + softNoise(GLANCE_HOLD_NOISE);
+            ys[i] = GLANCE_HOLD_Y + softNoise(GLANCE_HOLD_NOISE);
+            zs[i] = GLANCE_HOLD_Z + softNoise(GLANCE_HOLD_NOISE);
+        } else {
+            var j = k - lowerStart;
+            xs[i] = lowerX[j] + softNoise(NORMAL_NOISE / 2);
+            ys[i] = (GLANCE_LOWER_Y as Array<Number>)[j] + softNoise(NORMAL_NOISE / 2);
+            zs[i] = (GLANCE_LOWER_Z as Array<Number>)[j] + softNoise(NORMAL_NOISE / 2);
+        }
     }
 
     //! Punto entre from y to, con t en milésimas (puede pasar de 1000 en el rebote).

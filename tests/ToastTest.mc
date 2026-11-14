@@ -44,7 +44,7 @@ function downButtonOnlyCyclesInDemoGuard(logger as Logger) as Boolean {
     return true;
 }
 
-//! Cuatro pulsaciones de DOWN con 1 s entre ellas: recorren los cuatro escenarios y
+//! Cinco pulsaciones de DOWN con 1 s entre ellas: recorren los cinco escenarios y
 //! cada aviso muestra el escenario nuevo durante 1,5 s, reemplazando al anterior.
 (:test)
 function downButtonCyclesScenariosWithToast(logger as Logger) as Boolean {
@@ -52,7 +52,7 @@ function downButtonCyclesScenariosWithToast(logger as Logger) as Boolean {
     config.setEnabled(true);
     var toast = new Toast();
     var expected = [AccelScenario.TYPING, AccelScenario.NOD, AccelScenario.INACTIVITY,
-        AccelScenario.NORMAL] as Array<AccelScenario.Id>;
+        AccelScenario.GLANCE, AccelScenario.NORMAL] as Array<AccelScenario.Id>;
     for (var i = 0; i < expected.size(); i++) {
         var nowMs = 1000 * (i + 1);
         Test.assertMessage(config.handlesDownButton(true), "DOWN atendido");
@@ -61,6 +61,6 @@ function downButtonCyclesScenariosWithToast(logger as Logger) as Boolean {
         Test.assertEqual(toast.value(), expected[i] as Number);
         Test.assertMessage(toast.isVisible(nowMs + 999), "aviso visible hasta la siguiente pulsación");
     }
-    Test.assertMessage(!toast.isVisible(4000 + Toast.DURATION_MS), "el último aviso se apaga solo");
+    Test.assertMessage(!toast.isVisible(5000 + Toast.DURATION_MS), "el último aviso se apaga solo");
     return true;
 }

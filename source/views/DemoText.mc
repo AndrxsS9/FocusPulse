@@ -16,6 +16,8 @@ module DemoText {
                 return text(Rez.Strings.DemoProlongedInactivity);
             case AccelScenario.MANUAL:
                 return text(Rez.Strings.DemoManual);
+            case AccelScenario.GLANCE:
+                return text(Rez.Strings.DemoGlance);
             default:
                 return text(Rez.Strings.DemoNormalMovement);
         }
@@ -32,6 +34,8 @@ module DemoText {
                 return text(Rez.Strings.DemoShortInactivity);
             case AccelScenario.MANUAL:
                 return text(Rez.Strings.DemoShortManual);
+            case AccelScenario.GLANCE:
+                return text(Rez.Strings.DemoShortGlance);
             default:
                 return text(Rez.Strings.DemoShortNormal);
         }

@@ -16,7 +16,7 @@ import Toybox.Lang;
 //! guardia.
 //!
 //! El escenario se recuerda aunque el modo demo esté apagado, para volver a él al
-//! encenderlo. Los cuatro escenarios de la demo se recorren en orden con
+//! encenderlo. Los cinco escenarios de la demo se recorren en orden con
 //! nextScenario(); MANUAL solo existe en el menú de depuración y no forma parte del
 //! ciclo.
 //!
@@ -31,7 +31,8 @@ class DemoConfig {
         AccelScenario.NORMAL,
         AccelScenario.TYPING,
         AccelScenario.NOD,
-        AccelScenario.INACTIVITY
+        AccelScenario.INACTIVITY,
+        AccelScenario.GLANCE
     ];
 
     //! Claves del diccionario guardado.
