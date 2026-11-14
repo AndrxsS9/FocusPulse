@@ -7,7 +7,7 @@ import Toybox.WatchUi;
 //! del historial usa la misma vista con su fecha como título.
 //!
 //! De arriba abajo (fr165, 390×390; milésimas del lado):
-//!   - título (LABEL, ACCENT) y una raya corta de acento;
+//!   - título (LABEL, ACCENT): "Resumen de la guardia" o la fecha, y una raya corta;
 //!   - cinco filas "etiqueta ······ valor": duración, episodios, respuesta media, nivel
 //!     máximo y fatiga (el valor de la fatiga en su color: cian, ámbar o rojo);
 //!   - "DEMO" (LABEL, ACCENT) si la guardia corrió en modo demo.
@@ -74,8 +74,9 @@ class SummaryView extends WatchUi.View {
         var cx = layout.centerX;
 
         var titleY = layout.scaled(TITLE_Y);
-        var titleFont = Draw.fittingFont(dc, _title, layout.safeWidthAt(titleY), Typography.BODY);
-        Draw.centeredText(dc, cx, titleY, titleFont, _title, Palette.ACCENT);
+        // LABEL para los dos títulos ("Resumen de la guardia" no cabe más grande a esta
+        // altura); la fecha del detalle va igual, así no se pega a la raya.
+        Draw.centeredText(dc, cx, titleY, Typography.LABEL, _title, Palette.ACCENT);
         var rule = layout.scaled(RULE_WIDTH);
         var ruleY = layout.scaled(RULE_Y);
         dc.setPenWidth(2);

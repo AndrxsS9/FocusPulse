@@ -81,6 +81,19 @@
     <string id="DurationMinFormat">$1$ min</string>
     <string id="DurationHourFormat">$1$ h $2$ min</string>
 
+    <!-- Historial (menú principal). HistoryItemFormat: $1$ día, $2$ mes abreviado, $3$ hora;
+         HistorySubFormat: $1$ duración, $2$ episodios (EpisodesOne / EpisodesFormat). -->
+    <string id="MenuHistory">History</string>
+    <string id="HistoryCountOne">1 guard</string>
+    <string id="HistoryCountFormat">$1$ guards</string>
+    <string id="HistoryEmpty">No guards yet</string>
+    <string id="HistoryClear">Clear history</string>
+    <string id="HistoryClearConfirm">Clear the history?</string>
+    <string id="HistoryItemFormat">$2$ $1$ · $3$</string>
+    <string id="HistorySubFormat">$1$ · $2$</string>
+    <string id="EpisodesOne">1 episode</string>
+    <string id="EpisodesFormat">$1$ episodes</string>
+
     <!-- Modo demo -->
     <string id="DemoTitle">Demo mode</string>
     <string id="DemoSimulateNod">Simulate nod</string>

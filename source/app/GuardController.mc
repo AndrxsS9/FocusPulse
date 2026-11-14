@@ -269,6 +269,12 @@ class GuardController {
         return _history;
     }
 
+    //! "Borrar historial" (tras confirmar): vacía el historial en memoria y en Storage.
+    function clearHistory() as Void {
+        _history.clear();
+        HistoryStore.clear();
+    }
+
     //! Aplica el historial guardado al arrancar la app.
     function loadHistory(history as SessionHistory) as Void {
         _history = history;
