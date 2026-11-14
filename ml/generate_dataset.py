@@ -13,6 +13,9 @@ Lo que añade sobre el simulador:
 - **Orientación aleatoria de la muñeca**: cada secuencia gira todas sus muestras con una
   rotación al azar (la gravedad apunta a otro lado). Las características del reloj no
   dependen de la orientación, así que esto prueba justamente eso.
+- **Negativos difíciles**, etiquetados como Normal: (a) mirar la hora y quedarse
+  leyendo (giro rápido y luego quietud con la muñeca inclinada) y (b) apoyar el brazo
+  despacio sobre la mesa. Son los dos casos que más se parecen a un cabeceo.
 - **Transiciones** entre estados dentro de una misma secuencia (una guardia): normal →
   tecleo → normal → inactividad, cabeceo y despertar, etc.
 
@@ -54,6 +57,15 @@ NOD_TO = (-240, -940, 240)
 NOD_LEAD_SAMPLES = 75
 NOD_PROFILE = (10, 25, 45, 80, 300, 680, 950, 1000, 1040, 1010, 985, 1000)
 
+# Negativos difíciles (se etiquetan Normal). El usuario de referencia los hace con estos
+# valores, los mismos que el escenario "mirar la hora" (GLANCE) de SimulatedAccelSource.
+GLANCE_TARGET = (0, 1000, 0)  # hacia dónde gira la gravedad al levantar la esfera
+GLANCE_ANGLE_DEG = 80.0
+GLANCE_RAISE_SAMPLES = 8  # giro rápido: 0,32 s
+GLANCE_LIFT_MG = 300  # aceleración de subir el brazo (módulo + / − durante el giro)
+GLANCE_HOLD_NOISE = 16  # temblor del brazo sostenido mientras se lee (triangular)
+GLANCE_LOWER_SAMPLES = 15
+
 # Etiquetas (mismo orden que DrowsinessClass en Monkey C).
 LABELS = ("activo", "normal", "cabeceo", "inerte")
 
@@ -75,6 +87,11 @@ class UserProfile:
     inert_noise: int
     nod_angle_deg: float
     nod_samples: int
+    glance_angle_deg: float
+    glance_samples: int
+    glance_lift: int
+    hold_noise: int
+    rest_noise: int
 
 
 def nod_reference_angle() -> float:
@@ -96,6 +113,11 @@ def reference_user() -> UserProfile:
         inert_noise=INERT_NOISE,
         nod_angle_deg=nod_reference_angle(),
         nod_samples=len(NOD_PROFILE),
+        glance_angle_deg=GLANCE_ANGLE_DEG,
+        glance_samples=GLANCE_RAISE_SAMPLES,
+        glance_lift=GLANCE_LIFT_MG,
+        hold_noise=GLANCE_HOLD_NOISE,
+        rest_noise=12,
     )
 
 
@@ -111,6 +133,11 @@ def random_user(user: int, rng: np.random.Generator) -> UserProfile:
         inert_noise=int(rng.integers(2, 7)),
         nod_angle_deg=float(rng.uniform(50.0, 100.0)),
         nod_samples=int(rng.integers(8, 17)),
+        glance_angle_deg=float(rng.uniform(60.0, 110.0)),
+        glance_samples=int(rng.integers(6, 15)),
+        glance_lift=int(rng.integers(100, 451)),
+        hold_noise=int(rng.integers(6, 31)),
+        rest_noise=int(rng.integers(8, 21)),
     )
 
 
@@ -147,6 +174,22 @@ def rotate_towards(v: np.ndarray, target: np.ndarray, angle_deg: float) -> np.nd
     t = t / np.linalg.norm(t)
     a = math.radians(angle_deg)
     return norm * (math.cos(a) * u + math.sin(a) * t)
+
+
+def smoothstep(k: np.ndarray) -> np.ndarray:
+    return k * k * (3.0 - 2.0 * k)
+
+
+def turn_path(start: np.ndarray, target: np.ndarray, angle_deg: float, n: int,
+              lift: float) -> np.ndarray:
+    """Giro controlado de la muñeca en n muestras: la gravedad gira angle_deg hacia
+    target (con módulo constante, no como la caída del cabeceo) y se suma la aceleración
+    de mover el brazo: el módulo sube lift mg y luego baja otro tanto al frenar."""
+    k = smoothstep(np.arange(1, n + 1) / n)
+    path = np.array([rotate_towards(start, target, angle_deg * ki) for ki in k])
+    unit = path / np.linalg.norm(path, axis=1, keepdims=True)
+    push = lift * np.sin(2 * math.pi * (np.arange(n) + 0.5) / n)
+    return path + unit * push[:, None]
 
 
 def resample_profile(profile: tuple[int, ...], samples: int) -> np.ndarray:
@@ -234,6 +277,37 @@ class SequenceBuilder:
         self.posture = target
         self.script.append(f"despertar:{n}")
 
+    def glance(self, hold: int, target=None) -> None:
+        """Negativo difícil (a): giro rápido para mirar la hora y quedarse leyendo, con
+        el brazo sostenido (temblor pequeño) y luego bajarlo. Todo es Normal."""
+        p = self.p
+        start = self.posture.copy()
+        target = np.array(GLANCE_TARGET if target is None else target, float)
+        raise_path = turn_path(start, target, p.glance_angle_deg, p.glance_samples, p.glance_lift)
+        held = rotate_towards(start, target, p.glance_angle_deg)
+        noise = lambda n, a: soft_noise(self.rng, a, (n, 3))
+        self._add(raise_path + noise(p.glance_samples, p.hold_noise), "normal")
+        self._add(held + noise(hold, p.hold_noise), "normal")
+        lower = turn_path(held, start, p.glance_angle_deg, GLANCE_LOWER_SAMPLES, p.glance_lift / 2)
+        self._add(lower + noise(GLANCE_LOWER_SAMPLES, max(10, p.normal_noise // 2)), "normal")
+        self.posture = start
+        self.script.append(f"mirar_hora:{p.glance_samples}+{hold}+{GLANCE_LOWER_SAMPLES}")
+
+    def rest_arm(self, lower: int, rest: int, lift: int, angle_deg: float, target) -> None:
+        """Negativo difícil (b): apoyar el brazo despacio sobre la mesa, dejarlo un rato
+        (la mano todavía se mueve un poco) y volver a moverse. Todo es Normal."""
+        p = self.p
+        start = self.posture.copy()
+        target = np.asarray(target, float)
+        down = turn_path(start, target, angle_deg, lower, 0.0)
+        rested = rotate_towards(start, target, angle_deg)
+        self._add(down + soft_noise(self.rng, max(10, p.normal_noise // 2), (lower, 3)), "normal")
+        self._add(rested + soft_noise(self.rng, p.rest_noise, (rest, 3)), "normal")
+        up = turn_path(rested, start, angle_deg, lift, 0.0)
+        self._add(up + soft_noise(self.rng, max(10, p.normal_noise // 2), (lift, 3)), "normal")
+        self.posture = start
+        self.script.append(f"apoyar_brazo:{lower}+{rest}+{lift}")
+
     def build(self, rotation: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         xyz = np.concatenate(self.xyz) @ rotation.T
         return np.rint(xyz).astype(int), np.concatenate(self.labels)
@@ -276,12 +350,41 @@ def seq_inactivity(b: SequenceBuilder, rng: np.random.Generator) -> None:
     b.inert(b.seconds(rng.uniform(15, 40)))
 
 
+def random_direction(rng: np.random.Generator) -> np.ndarray:
+    v = rng.normal(size=3)
+    return 1000.0 * v / np.linalg.norm(v)
+
+
+def seq_glance(b: SequenceBuilder, rng: np.random.Generator) -> None:
+    """Negativo difícil (a): una o dos miradas a la hora entre movimiento normal o tecleo."""
+    if rng.random() < 0.5:
+        b.typing(b.seconds(rng.uniform(5, 10)))
+        b.normal(b.seconds(rng.uniform(1, 2)))
+    else:
+        b.normal(b.seconds(rng.uniform(5, 10)))
+    target = None if b.p.user == 0 else random_direction(rng)
+    for _ in range(int(rng.integers(1, 3))):
+        b.glance(hold=b.seconds(rng.uniform(3, 8)), target=target)
+        b.normal(b.seconds(rng.uniform(4, 8)))
+
+
+def seq_rest_arm(b: SequenceBuilder, rng: np.random.Generator) -> None:
+    """Negativo difícil (b): apoyar el brazo despacio en la mesa y volver a moverse."""
+    b.normal(b.seconds(rng.uniform(5, 10)))
+    b.rest_arm(lower=b.seconds(rng.uniform(1, 3)), rest=b.seconds(rng.uniform(3, 6)),
+               lift=b.seconds(rng.uniform(1, 2)), angle_deg=float(rng.uniform(30, 70)),
+               target=random_direction(rng))
+    b.normal(b.seconds(rng.uniform(5, 10)))
+
+
 # Tipo → (función, secuencias por usuario, ¿negativo difícil?)
 SEQUENCE_KINDS = {
     "mixta": (seq_mixed, 2, False),
     "cabeceo": (seq_nod, 3, False),
     "tecleo_normal": (seq_typing_then_normal, 1, False),
     "inactividad": (seq_inactivity, 1, False),
+    "mirar_hora": (seq_glance, 2, True),
+    "apoyar_brazo": (seq_rest_arm, 2, True),
 }
 
 
