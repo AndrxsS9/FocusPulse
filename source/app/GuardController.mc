@@ -18,6 +18,12 @@ import Toybox.WatchUi;
 //! puntaje (que sigue las probabilidades del clasificador). Todo se actualiza con los lotes de telemetría, no con el redibujo de la
 //! vista. El último evento del detector se guarda con su hora para las vistas. Las vistas
 //! leen el estado, el puntaje y el snapshot; los delegados llaman a toggle().
+//!
+//! Alerta (fase 7): un evento del detector pasa a AlertController; si abre una alerta,
+//! se apila AlertView y Haptics empieza a vibrar. Mientras está abierta, los eventos
+//! nuevos se ignoran y la esfera no se redibuja. "Estoy despierto" (dismissAlert) para
+//! la vibración, sube el puntaje a SCORE_AFTER_ALERT y guarda la alerta en AlertLog con
+//! su tiempo de respuesta. Pausar la guardia (o cerrar la app) la cierra sin respuesta.
 class GuardController {
 
     private var _state as MonitorState;
@@ -51,6 +57,14 @@ class GuardController {
     //! true si el último intento de iniciar la guardia falló por el sensor.
     private var _sensorUnavailable as Boolean = false;
 
+    //! Puntaje mínimo tras confirmar "Estoy despierto".
+    static const SCORE_AFTER_ALERT = 70.0f;
+
+    //! Alerta a pantalla completa: estado, vibración y alertas respondidas (en memoria).
+    private var _alerts as AlertController;
+    private var _haptics as Haptics;
+    private var _alertLog as AlertLog;
+
     //! sessionName: nombre de la actividad grabada (texto localizado).
     function initialize(state as MonitorState, sessionName as String, demoSeed as Number) {
         _state = state;
@@ -64,6 +78,9 @@ class GuardController {
         _demoSource = new SimulatedAccelSource(AccelScenario.NORMAL, demoSeed);
         _realSource.setListener(method(:onBatch));
         _demoSource.setListener(method(:onBatch));
+        _alerts = new AlertController();
+        _haptics = new Haptics();
+        _alertLog = new AlertLog();
     }
 
     // --- Guardia ----------------------------------------------------------------
@@ -109,6 +126,10 @@ class GuardController {
 
     //! Pausa la guardia: detiene la fuente y guarda la actividad, si se grababa.
     function pause() as Void {
+        // Con una alerta abierta, la cierra sin guardar respuesta y vuelve a la esfera.
+        if (cancelAlert()) {
+            WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+        }
         stopAll();
         _state.pause();
         WatchUi.requestUpdate();
@@ -122,6 +143,7 @@ class GuardController {
     //! sesión aún grabando, aunque onStop la guarde), y desde onStop como respaldo para
     //! los cierres del sistema. La segunda llamada no hace nada.
     function shutdown() as Void {
+        cancelAlert();
         stopAll();
         _state.pause();
     }
@@ -161,10 +183,97 @@ class GuardController {
             _lastEvent = event;
             _lastEventMoment = Time.now();
             logEvent(event, timestampMs);
+            // Con una alerta ya abierta, AlertController ignora el evento.
+            if (_alerts.onEvent(event, System.getTimer())) {
+                showAlert();
+            }
         }
         _score.update(_classifier.isReady() ? _classifier.probabilities() : null, dt);
 
+        // Con la alerta encima, la esfera y el orbe no se ven: no se redibujan (MainView
+        // además detiene su timer en onHide). La alerta tiene su propio timer.
+        if (!_alerts.isActive()) {
+            WatchUi.requestUpdate();
+        }
+    }
+
+    // --- Alerta -----------------------------------------------------------------
+
+    //! Abre una alerta de un nivel concreto (menú de depuración). Devuelve false si ya
+    //! había una abierta.
+    function triggerAlert(level as Number, reason as DrowsinessEvent.Id) as Boolean {
+        if (!_alerts.trigger(level, reason, System.getTimer())) {
+            return false;
+        }
+        showAlert();
+        return true;
+    }
+
+    //! Apila la alerta sobre la vista actual (normalmente la esfera) y empieza a vibrar.
+    private function showAlert() as Void {
+        WatchUi.pushView(new AlertView(_alerts), new AlertDelegate(method(:dismissAlert)),
+            WatchUi.SLIDE_IMMEDIATE);
+        _haptics.start(_alerts.level());
+    }
+
+    //! "Estoy despierto" (botón o START): detiene la vibración, sube el puntaje a un
+    //! mínimo de SCORE_AFTER_ALERT, guarda la alerta con su tiempo de respuesta y
+    //! vuelve a la vista anterior. El detector sigue vigilando: no se reinicia, así que
+    //! respeta el refractario del evento que abrió la alerta.
+    function dismissAlert() as Void {
+        var response = _alerts.dismiss(System.getTimer());
+        if (response == null) {
+            return;
+        }
+        _haptics.stop();
+        if (_state.isActive()) {
+            _score.raiseTo(SCORE_AFTER_ALERT);
+        }
+        _alertLog.add(new AlertRecord(_alerts.reason(), _alerts.level(), _alerts.startMs(),
+            response));
+        logDismiss(response);
+        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
         WatchUi.requestUpdate();
+    }
+
+    //! Cierra la alerta sin respuesta (pausa o cierre de la app). Devuelve true si había
+    //! una abierta; quien llama decide si quita la vista.
+    private function cancelAlert() as Boolean {
+        if (!_alerts.cancel()) {
+            return false;
+        }
+        _haptics.stop();
+        logCancel();
+        return true;
+    }
+
+    (:debug)
+    private function logCancel() as Void {
+        System.println("ALERTA cerrada sin respuesta (guardia en pausa o app cerrada)");
+    }
+
+    (:release)
+    private function logCancel() as Void {
+    }
+
+    (:debug)
+    private function logDismiss(responseMs as Number) as Void {
+        System.println("ALERTA descartada en " + responseMs + " ms (" + _haptics.bursts()
+            + " ráfagas); alertas respondidas: " + _alertLog.size() + ", media "
+            + _alertLog.averageResponseMs() + " ms; puntaje " + _score.value());
+    }
+
+    (:release)
+    private function logDismiss(responseMs as Number) as Void {
+    }
+
+    function isAlertActive() as Boolean {
+        return _alerts.isActive();
+    }
+
+    //! Alertas respondidas en esta ejecución de la app (solo en memoria).
+    function alertLog() as AlertLog {
+        return _alertLog;
     }
 
     //! Arranca el detector (calibrando) y el clasificador desde cero.
