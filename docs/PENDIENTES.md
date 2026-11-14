@@ -1,7 +1,7 @@
 # Pendientes de verificar
 
 Las fases 1 y 2 se compilaron, probaron y revisaron en el simulador con el **Connect IQ SDK
-9.3.0** (2026-11-12), y las fases 3 a 7 el 2026-11-13. La primera sección resume lo que quedó confirmado; el resto del
+9.3.0** (2026-11-12), y las fases 3 a 8 el 2026-11-13. La primera sección resume lo que quedó confirmado; el resto del
 documento lista **solo lo que sigue abierto**. Al cerrar un punto, muévelo a la sección de
 datos confirmados o bórralo, y corrige el código si algo no coincide.
 
@@ -203,6 +203,48 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
   `SetCursorPos` usan coordenadas lógicas y una captura de pantalla completa, físicas
   (× 1,25). Los menús del simulador (*Settings*) no se exponen por UI Automation.
 
+### Modo demo (fase 8, simulador)
+
+- Las **142 pruebas** pasan (18 nuevas: 7 de `DemoConfig`, 1 de `DemoStore` con el
+  `Application.Storage` del simulador, 4 de `Toast` y la regla de DOWN, 6 de
+  `DemoScript`). `build.ps1`, `build.ps1 -Release` y `export.ps1` (fr165 y fr165m) sin
+  advertencias con `-l 3`.
+- Recorrido con la **compilación de release** (`run.ps1 -Release`) en el fr165, en
+  **español e inglés**:
+  - **Mantener UP** abre el menú principal *FocusPulse AI* y no tiene la entrada
+    *Depuración*. En la compilación de depuración sí está, abre el menú de siempre, y su
+    selector de fuente cambia el mismo ajuste ("Simular cabeceo" → "DEMO · Cabeceo").
+  - **Modo demo**: START cambia el interruptor ("Sensor real" ↔ "Datos simulados"), el
+    menú se rehace con *Escenario*, *Guion automático* y *Probar alerta* y el foco sigue
+    en el interruptor. **Se recuerda al volver a abrir la app** (Storage).
+  - **Escenario**: submenú con los 4 escenarios y el foco en el actual; el subtítulo del
+    menú se actualiza al elegir.
+  - **DOWN**: en pausa no hace nada; con la guardia activa recorre normal → tecleo →
+    cabeceo → inactividad → normal con el aviso "Escenario / …", que ya no está a los
+    1,8 s. "Inactividad prolongada" y "Prolonged inactivity" bajan de fuente y caben.
+  - **Guion automático** completo en los dos idiomas: "Guion 1/5 · Normal" con
+    "Calibrando…", 2/5 tecleo a los 10 s, 3/5 cabeceo a los 20 s y su alerta antes de los
+    33 s. **Sin responder durante 15 s el guion siguió esperando.** Tras "Estoy despierto",
+    4/5 normal, 5/5 inactividad a los 8 s y su alerta; al responder, aviso "Guion
+    automático / Completado" ("Auto script / Complete") y "DEMO · Normal".
+    Cancelar desde el menú ("Detener · paso 1/5") y pausando la guardia vuelve a
+    "DEMO · …".
+  - **Probar alerta**: niveles 1, 2 y 3 se abren sobre la esfera y START vuelve a ella.
+  - **Acerca de**: nombre, "Versión 0.8.0" y la descripción. La primera versión cortaba la
+    descripción con "…" (la caja llegaba muy abajo, donde el círculo es estrecho): se
+    acortó el texto y se subió el bloque.
+  - **Desactivar el modo demo con la guardia activa**: desaparecen los ítems de la demo,
+    vuelve la fecha, el puntaje se reinicia a 88 y queda "Calibrando…" con el sensor real,
+    sin errores; DOWN deja de cambiar nada. Sin *Activity Data* el acelerómetro del
+    simulador no entrega lotes, así que la calibración no termina (comportamiento
+    conocido de la fase 3).
+  - Las líneas de la esfera más largas caben en `dateY`: "Guion 2/5 · Tecleo activo",
+    "Script 2/5 · Active typing", "Guion 5/5 · Inactividad".
+- `test.ps1` deja el simulador sin dispositivo ("CIQ Simulator" vacío): hay que volver a
+  cargar la app con `run.ps1`. Está en [GUIA_DEMO.md](GUIA_DEMO.md).
+- Automatizar los clics: `SetForegroundWindow` no siempre da el foco al simulador desde
+  otro proceso; un clic en la barra de título lo asegura antes de pulsar botones.
+
 ## 1. Entorno
 
 - [ ] **Hacer copia de seguridad de la llave** `%USERPROFILE%\Downloads\FocusPulse-keys\`
@@ -255,6 +297,9 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
       Mirarlo en el reloj; si se nota, que la vista lea el ciclo de `Haptics`.
 - [ ] Desde dónde lanza el usuario la app en el fr165 (menú de apps o glance), para evitar el
       cierre por tiempo de las apps abiertas desde glances.
+- [ ] **Modo demo en el reloj real** (fase 8): que mantener UP abra el menú principal, que
+      DOWN durante la guardia llegue como `onNextPage` y cambie de escenario, y que el modo
+      se recuerde tras reiniciar el reloj (`Storage`).
 
 - [ ] **Validar el detector con datos de muñeca reales** (fase 11 o antes, con
       `SensorLogging`): la sacudida de 400 mg, los 35° de inclinación, los 50 mg de
@@ -301,7 +346,17 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 - [ ] En el reloj real: que el toque en el botón (área de 248×76 px) se acierte con el reloj
       puesto, y que la píldora, cuyo borde inferior queda 3 px dentro del área táctil del
       botón, no provoque toques no deseados.
-- [ ] **Quemado AMOLED:** la hora en `TEXT` y la marca DEMO no se mueven. Para guardias
+- [ ] **Deslizar en la esfera** (pantalla táctil): en el reloj real, un deslizamiento
+      vertical podría llegar como `onNextPage`/`onPreviousPage`. Con el modo demo y la
+      guardia activa, deslizar hacia arriba cambiaría de escenario. En el simulador solo se
+      probaron los botones; si molesta, atender solo `KEY_DOWN` en `onKey`.
+- [ ] Con el **sensor real** y sin lotes (el simulador sin *Activity Data*, o un sensor que
+      no entrega datos), la píldora se queda en "Calibrando…" para siempre. Valorar un
+      aviso "Sin datos del sensor" tras unos segundos sin lotes (fase 12).
+- [ ] Con el modo demo activo la esfera **no muestra la fecha** (su línea pasa a "DEMO ·
+      escenario"). Aceptable para la demo; revisar si en el reloj se quiere la fecha en
+      algún otro sitio.
+- [ ] **Quemado AMOLED:** la hora en `TEXT` y la línea "DEMO · …" (cian) no se mueven. Para guardias
       largas, valorar un desplazamiento de unos píxeles cada minuto (fase 12). El orbe y las
       partículas sí se mueven, pero en pausa quedan fijos (tenues).
 - [ ] Revisar *Detector en vivo* en **inglés** y en el **fr165m**: solo se vio en español
@@ -323,8 +378,9 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
       `BufferedBitmap`.
 - [ ] Comprobar en el reloj si `setStroke`/`setFill` (alfa real) existen en el firmware; si
       sí, valorar usarlos con un `has` en lugar de la mezcla precalculada.
-- [ ] Comprobar en tiempo de ejecución que el `.prg` release no contiene la guía de estilo ni
-      el menú de depuración: mantener UP en la app instalada desde el `.iq` no debe abrir nada.
+- [ ] Comprobar **en el reloj**, con la app instalada desde el `.iq`, que mantener UP abre el
+      menú principal **sin** la entrada *Depuración*. En el simulador ya se vio con
+      `run.ps1 -Release` (mismo `-r` que el `.iq`).
 - [ ] Las funciones auxiliares sin `(:test)` de `tests/` (`colorsMatch`, `insideCircle`) y
       los textos `StyleGuide*`/`TypeRole*`/`Debug*` se empaquetan también en release. Medir con el
       perfilador de memoria del simulador si el costo importa (fase 12).
@@ -338,6 +394,9 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
       mano en movimiento.
 
 ## 6. Ícono y tienda (fase 13)
+
+- [ ] `AppInfo.VERSION` ("0.8.0", visible en *Acerca de*) debe coincidir con la versión que
+      se escriba al subir el paquete: el manifest de Connect IQ no lleva versión.
 
 - [ ] Ver el ícono de 54×54 en el menú de apps del simulador y del reloj: que el pulso se
       lea a tamaño real.
