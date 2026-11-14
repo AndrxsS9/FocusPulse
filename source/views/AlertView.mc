@@ -23,11 +23,19 @@ import Toybox.WatchUi;
 //! relleno claro de pantalla completa (docs/DISENO.md §1): debe ser imposible de
 //! ignorar y dura pocos segundos.
 //!
+//! Animaciones (curvas en source/core/AlertVisuals.mc):
+//!   - entrada de 300 ms: el color crece desde el centro y el botón rebota en escala;
+//!   - pulso de brillo del fondo, más lento que 1 ciclo por segundo (seguro para
+//!     personas fotosensibles); en el nivel 3 alterna rojo intenso y rojo oscuro;
+//!   - sacudida de 2/4/6 px mientras el motor vibra (VibePatterns.isOnAt).
+//!
 //! Refresco: un Timer cada REFRESH_MS mientras se ve (onShow/onHide).
 class AlertView extends WatchUi.View {
 
-    //! Periodo de redibujo (ms): unos 15 cuadros por segundo para las ondas del ícono.
-    const REFRESH_MS = 66;
+    //! Periodo de redibujo (ms): 20 cuadros por segundo, el mismo paso que la sacudida
+    //! (AlertVisuals.SHAKE_STEP_MS), así cambia de lado en cada cuadro. La alerta dura
+    //! pocos segundos: el costo en batería es pequeño.
+    const REFRESH_MS = AlertVisuals.SHAKE_STEP_MS;
 
     //! Una onda del ícono tarda WAVE_PERIOD_MS en expandirse y desvanecerse; hay
     //! WAVES desfasadas entre sí.
@@ -47,6 +55,10 @@ class AlertView extends WatchUi.View {
     //! Centro vertical de "¡DESPIERTA!" y separación con la línea de nivel (milésimas).
     const TITLE_Y = 320;
     const LINE_GAP = 4;
+
+    //! Durante la entrada, los textos aparecen a partir de esta fracción (el disco ya
+    //! cubre casi toda la pantalla).
+    const ENTRANCE_TEXT_FROM = 0.5f;
 
     private var _alerts as AlertController;
     private var _layout as RoundLayout?;
@@ -129,17 +141,40 @@ class AlertView extends WatchUi.View {
         }
         var level = _alerts.level();
         var elapsed = _alerts.elapsedMs(System.getTimer());
-        var background = AlertnessColors.alertBackgroundColor(level);
+        // Pulso de brillo lento (< 1 ciclo/s) y, en el nivel 3, rojo intenso ↔ rojo oscuro.
+        var background = AlertnessColors.alertPulseColor(level, AlertVisuals.pulse(level, elapsed));
         var foreground = AlertnessColors.alertTextColor(level);
+        // Sacudida sincronizada con los pulsos del motor.
+        var dx = AlertVisuals.shakeOffset(level, elapsed);
 
         Draw.enableAntiAlias(dc);
+        var progress = AlertVisuals.entranceProgress(elapsed);
+        if (progress < 1.0f) {
+            drawEntrance(dc, layout, elapsed, progress, background, foreground, dx);
+            return;
+        }
         Draw.clear(dc, background);
-        drawContent(dc, layout, elapsed, 0, background, foreground);
+        drawContent(dc, layout, elapsed, dx, background, foreground, 1.0f);
     }
 
-    //! Contenido de la alerta desplazado dx píxeles en horizontal.
+    //! Entrada (ENTRANCE_MS): el color de la alerta crece desde el centro como un disco,
+    //! el botón entra con un pequeño rebote de escala y los textos aparecen a mitad de
+    //! camino, cuando el disco ya los cubre.
+    private function drawEntrance(dc as Dc, layout as RoundLayout, elapsed as Number,
+            progress as Float, background as Number, foreground as Number, dx as Number) as Void {
+        var scale = AlertVisuals.entranceScale(elapsed);
+        Draw.clear(dc, Palette.BACKGROUND);
+        dc.setColor(background, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(layout.centerX, layout.centerY, (layout.radius * scale).toNumber() + 1);
+        if (progress >= ENTRANCE_TEXT_FROM) {
+            drawContent(dc, layout, elapsed, dx, background, foreground, scale);
+        }
+    }
+
+    //! Contenido de la alerta desplazado dx píxeles en horizontal, con el botón a la
+    //! escala buttonScale (1 fuera de la entrada).
     private function drawContent(dc as Dc, layout as RoundLayout, elapsed as Number,
-            dx as Number, background as Number, foreground as Number) as Void {
+            dx as Number, background as Number, foreground as Number, buttonScale as Float) as Void {
         var cx = layout.centerX + dx;
         drawIcon(dc, layout, cx, elapsed, background, foreground);
         Draw.centeredText(dc, cx, layout.scaled(TITLE_Y), _titleFont, _wakeUp, foreground);
@@ -147,8 +182,13 @@ class AlertView extends WatchUi.View {
         Draw.centeredText(dc, cx, _reasonY, Typography.LABEL, _reason, foreground);
 
         var b = layout.alertButtonRect;
-        Draw.largeButton(dc, new Rect(b.x + dx, b.y, b.width, b.height), _imAwake,
-            Typography.BODY, Palette.TEXT, Palette.BACKGROUND);
+        var w = (b.width * buttonScale).toNumber();
+        var h = (b.height * buttonScale).toNumber();
+        if (h < 2) {
+            return;
+        }
+        Draw.largeButton(dc, new Rect(b.centerX() - w / 2 + dx, b.centerY() - h / 2, w, h),
+            _imAwake, Typography.BODY, Palette.TEXT, Palette.BACKGROUND);
     }
 
     //! Ícono de vibración: el contorno de un reloj y, a cada lado, WAVES ondas (arcos)
