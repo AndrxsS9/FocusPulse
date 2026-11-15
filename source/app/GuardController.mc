@@ -106,6 +106,9 @@ class GuardController {
     //! true si el último intento de iniciar la guardia falló por el sensor.
     private var _sensorUnavailable as Boolean = false;
 
+    //! Avisa si la fuente deja de entregar lotes más de 5 s con la guardia activa.
+    private var _watchdog as SensorWatchdog;
+
     //! Puntaje mínimo tras confirmar "Estoy despierto".
     static const SCORE_AFTER_ALERT = 70.0f;
 
@@ -148,6 +151,7 @@ class GuardController {
         _detector = new DrowsinessDetector();
         _classifier = new StateClassifier();
         _confirmation = new NodConfirmation();
+        _watchdog = new SensorWatchdog();
         _snapshot = _engine.snapshot();
         _recorder = new SessionRecorder(sessionName);
         _realSource = new RealAccelSource();
@@ -352,6 +356,7 @@ class GuardController {
         _detector.reset();
         _classifier.reset();
         _confirmation.reset();
+        _watchdog.stop();
         _realSource.stop();
         _demoSource.stop();
     }
@@ -438,6 +443,10 @@ class GuardController {
         if (!_state.isActive()) {
             return;
         }
+        // Tras más de 5 s sin lotes, lo de antes del corte ya no vale.
+        if (_watchdog.onData(System.getTimer())) {
+            onSensorDataBack();
+        }
         _engine.addBatch(xs, ys, zs, timestampMs);
 
         // dt del puntaje: tiempo desde el lote anterior; en el primero, la duración
@@ -492,6 +501,47 @@ class GuardController {
         }
     }
 
+    // --- Sin datos del sensor -----------------------------------------------------
+
+    //! Revisa si la fuente lleva más de 5 s sin entregar lotes (lo llaman los timers de
+    //! la esfera y de la alerta). Al pasar a "sin datos", lo registra y redibuja: la
+    //! esfera muestra el aviso ámbar. Mientras dura, el detector no recibe nada, así
+    //! que no puede emitir eventos.
+    function checkSensorData() as Void {
+        if (_state.isActive() && _watchdog.check(System.getTimer())) {
+            logSensorData(false);
+            WatchUi.requestUpdate();
+        }
+    }
+
+    //! true con la guardia activa y más de 5 s sin lotes del acelerómetro.
+    function isSensorDataMissing() as Boolean {
+        return _state.isActive() && _watchdog.isStale();
+    }
+
+    //! Los lotes volvieron tras un corte: la ventana, la quietud, la caída candidata, el
+    //! clasificador y la confirmación empiezan de cero (el corte no cuenta como
+    //! inactividad). La línea base y la calibración se conservan.
+    private function onSensorDataBack() as Void {
+        _engine.reset();
+        _detector.onDataGap();
+        _classifier.reset();
+        _confirmation.reset();
+        _lastBatchMs = null;
+        logSensorData(true);
+    }
+
+    (:debug)
+    private function logSensorData(back as Boolean) as Void {
+        System.println(back ? "SENSOR datos de nuevo; ventana y quietud desde cero"
+            : "SENSOR sin datos del acelerómetro desde hace " + _watchdog.silenceMs(System.getTimer())
+                + " ms (aviso en la esfera)");
+    }
+
+    (:release)
+    private function logSensorData(back as Boolean) as Void {
+    }
+
     // --- Alerta -----------------------------------------------------------------
 
     //! Abre una alerta de un nivel concreto (menú de depuración). Devuelve false si ya
@@ -517,6 +567,7 @@ class GuardController {
     //! escala aunque la guardia esté en pausa (alertas de prueba) y sin esperar al lote.
     function onAlertTick() as Void {
         updateAlert();
+        checkSensorData();
     }
 
     //! Sube la alerta de nivel si lleva escalationMs sin respuesta y, si subió, cambia la
@@ -604,9 +655,10 @@ class GuardController {
     }
 
     //! true si la esfera debe mostrar el aviso "Micro-sueños repetidos": guardia activa
-    //! con la fatiga en Alto.
+    //! con la fatiga en Alto. Sin datos del sensor manda ese otro aviso (la píldora): la
+    //! guardia no está vigilando.
     function showsFatigueWarning() as Boolean {
-        return _state.isActive() && _fatigue == FatigueLevel.HIGH;
+        return _state.isActive() && _fatigue == FatigueLevel.HIGH && !_watchdog.isStale();
     }
 
     //! Tiempo desde el inicio de la guardia (ms).
@@ -651,6 +703,7 @@ class GuardController {
         _detector.start(_detectionStartMs, _demo.isEnabled());
         _classifier.reset();
         _confirmation.reset();
+        _watchdog.start(_detectionStartMs);
     }
 
     //! Confirmación de cabeceos (solo lectura para las vistas de depuración).

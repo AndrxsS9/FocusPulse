@@ -141,6 +141,7 @@ class MainView extends WatchUi.View {
     private var _statusActive as String = "";
     private var _statusCalibrating as String = "";
     private var _statusSensorUnavailable as String = "";
+    private var _statusNoSensorData as String = "";
     private var _badgeDemo as String = "";
     private var _demoBadgeFormat as String = "";
     private var _scriptFormat as String = "";
@@ -181,6 +182,7 @@ class MainView extends WatchUi.View {
         _statusActive = WatchUi.loadResource(Rez.Strings.StatusActive) as String;
         _statusCalibrating = WatchUi.loadResource(Rez.Strings.StatusCalibrating) as String;
         _statusSensorUnavailable = WatchUi.loadResource(Rez.Strings.StatusSensorUnavailable) as String;
+        _statusNoSensorData = WatchUi.loadResource(Rez.Strings.StatusNoSensorData) as String;
         _badgeDemo = WatchUi.loadResource(Rez.Strings.BadgeDemo) as String;
         _demoBadgeFormat = WatchUi.loadResource(Rez.Strings.DemoBadgeFormat) as String;
         _scriptFormat = WatchUi.loadResource(Rez.Strings.ScriptProgressFormat) as String;
@@ -204,8 +206,9 @@ class MainView extends WatchUi.View {
         stopTimer();
     }
 
-    //! Callback del timer.
+    //! Callback del timer: de paso revisa si siguen llegando lotes del acelerómetro.
     function onTick() as Void {
+        _guard.checkSensorData();
         WatchUi.requestUpdate();
     }
 
@@ -448,12 +451,18 @@ class MainView extends WatchUi.View {
 
     //! Píldora de estado: en pausa (gris), guardia activa (cian, con un punto que late
     //! cada HEARTBEAT_PERIOD_MS; "Calibrando…" mientras el detector aprende la línea
-    //! base) o sensor no disponible (ámbar).
+    //! base), sin datos del sensor (ámbar, sin punto: más de 5 s sin lotes con la
+    //! guardia activa; se quita sola al volver los datos) o sensor no disponible (ámbar).
     private function drawStatus(dc as Dc, layout as RoundLayout, animate as Boolean) as Void {
         var text = _statusPaused;
         var color = Palette.TEXT_SECONDARY;
         var active = _guard.isActive();
-        if (active) {
+        if (_guard.isSensorDataMissing()) {
+            text = _statusNoSensorData;
+            color = Palette.AMBER;
+            active = false;
+            animate = false;
+        } else if (active) {
             text = _guard.isCalibrating() ? _statusCalibrating : _statusActive;
             color = Palette.ACCENT;
         } else if (_guard.isSensorUnavailable()) {

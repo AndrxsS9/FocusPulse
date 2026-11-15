@@ -7,6 +7,7 @@
     <string id="StatusActive">Guardia activa</string>
     <string id="StatusCalibrating">Calibrando…</string>
     <string id="StatusSensorUnavailable">Sensor no disponible</string>
+    <string id="StatusNoSensorData">Sin datos del sensor</string>
     <string id="StatusDemo">Modo demo</string>
     <!-- Marca discreta de la esfera cuando la fuente es simulada. -->
     <string id="BadgeDemo">DEMO</string>
