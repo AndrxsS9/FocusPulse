@@ -4,7 +4,8 @@ import Toybox.WatchUi;
 
 //! Entrada de la pantalla principal.
 //!
-//! - Botón START/STOP (onKey, KEY_ENTER): inicia o pausa la guardia.
+//! - Botón START/STOP (onKey, KEY_ENTER): inicia o pausa la guardia. Como el toque en
+//!   el botón, le da el foco (ButtonFocus) para que la esfera dibuje su borde cian.
 //! - Toque en el botón grande (su área táctil, RoundLayout.buttonTouchRect): lo mismo
 //!   que START/STOP. Con la fatiga en Alto, un toque en el aviso "Micro-sueños
 //!   repetidos" abre el descanso guiado. Un toque en otra parte no hace nada.
@@ -21,12 +22,16 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
 
     private var _guard as GuardController;
 
+    //! Foco del botón grande: START y un toque en él lo marcan (borde cian en la esfera).
+    private var _focus as ButtonFocus;
+
     //! Geometría de la pantalla, la misma que usa MainView para dibujar el botón.
     private var _layout as RoundLayout;
 
-    function initialize(guard as GuardController) {
+    function initialize(guard as GuardController, focus as ButtonFocus) {
         BehaviorDelegate.initialize();
         _guard = guard;
+        _focus = focus;
         var settings = System.getDeviceSettings();
         _layout = new RoundLayout(settings.screenWidth, settings.screenHeight);
     }
@@ -42,6 +47,7 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
     //! Botón START/STOP (KEY_ENTER): inicia o pausa la guardia.
     function onKey(keyEvent as KeyEvent) as Boolean {
         if (keyEvent.getKey() == WatchUi.KEY_ENTER) {
+            _focus.press(System.getTimer());
             _guard.toggle();
             return true;
         }
@@ -55,6 +61,7 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
     function onTap(clickEvent as ClickEvent) as Boolean {
         var point = clickEvent.getCoordinates();
         if (_layout.hitsButton(point[0], point[1])) {
+            _focus.press(System.getTimer());
             _guard.toggle();
         } else if (_guard.showsFatigueWarning() && _layout.hitsFatigueBanner(point[0], point[1])) {
             _guard.startBreak();

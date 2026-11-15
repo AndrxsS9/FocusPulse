@@ -26,9 +26,9 @@ class RoundLayout {
     const DATE_Y = 470;          // fecha corta bajo la hora
     const SCORE_Y = 558;         // "ALERTA" + porcentaje de alerta
     const PILL_Y = 648;          // píldora de estado
-    const BUTTON_TOP = 720;      // borde superior del botón grande
-    const BUTTON_HEIGHT = 140;
-    const BUTTON_MAX_WIDTH = 580;
+    const BUTTON_TOP = 712;      // borde superior del botón grande
+    const BUTTON_HEIGHT = 154;   // fr165: 220×60, como el diseño web
+    const BUTTON_MAX_WIDTH = 565;
     const TOUCH_PADDING = 30;    // margen extra del área táctil del botón
     const FOOTER_Y = 905;        // indicador de página
     const ALERT_BUTTON_TOP = 670;       // "Estoy despierto" en la alerta a pantalla completa

@@ -59,6 +59,9 @@ class MainView extends WatchUi.View {
     const TOAST_PADDING = 30;
     const TOAST_BORDER = 5;
 
+    //! Borde cian del botón con el foco, en milésimas del lado (fr165: 2 px).
+    const FOCUS_BORDER = 6;
+
     //! Aviso de fatiga: grosor del borde, en milésimas del lado
     //! (fr165: 2 px).
     const BANNER_BORDER = 5;
@@ -82,6 +85,9 @@ class MainView extends WatchUi.View {
 
     private var _guard as GuardController;
     private var _layout as RoundLayout?;
+
+    //! Foco del botón grande (lo pulsa MainDelegate): borde cian mientras dura.
+    private var _focus as ButtonFocus;
 
     //! Orbe IA y los arreglos donde se escriben sus puntos (sin crear objetos por cuadro).
     private var _orb as OrbModel;
@@ -129,9 +135,10 @@ class MainView extends WatchUi.View {
     private var _bannerTitle as String = "";
     private var _bannerAction as String = "";
 
-    function initialize(guard as GuardController) {
+    function initialize(guard as GuardController, focus as ButtonFocus) {
         View.initialize();
         _guard = guard;
+        _focus = focus;
         _orb = new OrbModel();
         _xs = new Array<Float>[OrbModel.POINTS];
         _ys = new Array<Float>[OrbModel.POINTS];
@@ -485,17 +492,25 @@ class MainView extends WatchUi.View {
             Palette.TEXT);
     }
 
-    //! Botón grande: "Iniciar guardia" (cian, texto oscuro) o "Pausar guardia"
-    //! (superficie con borde, texto claro). Si el texto no cabe, baja la fuente.
-    //! START y un toque en layout.buttonTouchRect hacen lo mismo (MainDelegate).
+    //! Botón grande de 220×60 y radio 30 (fr165): "Iniciar guardia" (cian, texto oscuro)
+    //! o "Pausar guardia" (fondo BORDER #1C222B y texto TEXT, como el diseño web). Con
+    //! la guardia activa, mientras el botón tiene el foco (ButtonFocus: se acaba de
+    //! pulsar) lleva un borde cian de FOCUS_BORDER px por dentro. Si el texto no cabe,
+    //! baja la fuente. START y un toque en layout.buttonTouchRect hacen lo mismo
+    //! (MainDelegate).
     private function drawButton(dc as Dc, layout as RoundLayout) as Void {
         var rect = layout.buttonRect;
         if (_guard.isActive()) {
-            Draw.largeButton(dc, rect, _buttonPause, Typography.BODY, Palette.SURFACE, Palette.TEXT);
-            dc.setPenWidth(2);
-            dc.setColor(Palette.BORDER_STRONG, Graphics.COLOR_TRANSPARENT);
-            dc.drawRoundedRectangle(rect.x, rect.y, rect.width, rect.height, rect.height / 2);
-            dc.setPenWidth(1);
+            Draw.largeButton(dc, rect, _buttonPause, Typography.BODY, Palette.BORDER, Palette.TEXT);
+            if (_focus.isHighlighted(System.getTimer())) {
+                var pen = layout.scaled(FOCUS_BORDER);
+                var inset = pen / 2;
+                dc.setPenWidth(pen);
+                dc.setColor(Palette.ACCENT, Graphics.COLOR_TRANSPARENT);
+                dc.drawRoundedRectangle(rect.x + inset, rect.y + inset, rect.width - pen,
+                    rect.height - pen, rect.height / 2 - inset);
+                dc.setPenWidth(1);
+            }
         } else {
             Draw.largeButton(dc, rect, _buttonStart, Typography.BODY, Palette.ACCENT,
                 Palette.BACKGROUND);

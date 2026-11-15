@@ -45,7 +45,10 @@ class FocusPulseApp extends Application.AppBase {
 
     //! Vista inicial de la app.
     function getInitialView() as [Views] or [Views, InputDelegates] {
-        return [new MainView(_guard), new MainDelegate(_guard)];
+        // El foco del botón grande lo comparten la esfera (lo dibuja) y su delegado (lo
+        // pulsa).
+        var focus = new ButtonFocus();
+        return [new MainView(_guard, focus), new MainDelegate(_guard, focus)];
     }
 }
 
