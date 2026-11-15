@@ -258,7 +258,7 @@ prueba para no hacer trampa. Estos porcentajes comparan versiones con datos simu
 son la precisión en una muñeca real, que se medirá con datos del reloj." (Detalle en
 [IA.md](IA.md).)
 
-**Qué decir (Acerca de):** nombre, versión 0.11.0 y la frase de la app.
+**Qué decir (Acerca de):** nombre, versión 1.0.0 y la frase de la app.
 
 ### Paso 9 — Volver al sensor real (30 s)
 
