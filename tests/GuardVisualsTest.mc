@@ -1,7 +1,8 @@
 import Toybox.Lang;
 import Toybox.Test;
 
-//! Pruebas de GuardVisuals (source/core): arco de escaneo y ping de la píldora.
+//! Pruebas de GuardVisuals (source/core): arco de escaneo, ping de la píldora y
+//! parpadeo de los dos puntos de la hora.
 
 (:test)
 function guardScanArcMatchesTheWebDesign(logger as Logger) as Boolean {
@@ -39,5 +40,19 @@ function guardPingGrowsAndFades(logger as Logger) as Boolean {
     // Fuera de rango se recorta.
     Test.assert(nearlyEqual(GuardVisuals.pingScale(2.0f), 2.6f, 0.0001f));
     Test.assertEqual(GuardVisuals.pingAlpha(-1.0f), 800);
+    return true;
+}
+
+(:test)
+function guardClockColonBlinksEverySecond(logger as Logger) as Boolean {
+    // Cambia cada segundo entre opaco y 0,25; nunca desaparece.
+    Test.assertEqual(GuardVisuals.colonAlpha(0), 1000);
+    Test.assertEqual(GuardVisuals.colonAlpha(1), 250);
+    Test.assertEqual(GuardVisuals.colonAlpha(58), 1000);
+    Test.assertEqual(GuardVisuals.colonAlpha(59), 250);
+    for (var s = 0; s < 60; s++) {
+        Test.assert(GuardVisuals.colonAlpha(s) >= 250);
+        Test.assert(GuardVisuals.colonAlpha(s) != GuardVisuals.colonAlpha((s + 1) % 60));
+    }
     return true;
 }

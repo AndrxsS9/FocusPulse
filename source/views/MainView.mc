@@ -376,7 +376,7 @@ class MainView extends WatchUi.View {
     private function drawClock(dc as Dc, layout as RoundLayout) as Void {
         var now = Gregorian.info(Time.now(), Time.FORMAT_MEDIUM);
         var time = ClockFormat.hoursMinutes(now.hour, now.min, System.getDeviceSettings().is24Hour);
-        Draw.centeredText(dc, layout.centerX, layout.timeY, Typography.TIME, time, Palette.TEXT);
+        drawTime(dc, layout, time, GuardVisuals.colonAlpha(now.sec));
         if (_guard.isDemoMode()) {
             drawDemoLine(dc, layout);
             return;
@@ -391,6 +391,35 @@ class MainView extends WatchUi.View {
         var date = Lang.format(_dateFormat, [weekday, now.day, month]);
         Draw.centeredText(dc, layout.centerX, layout.dateY, Typography.LABEL, date,
             Palette.TEXT_SECONDARY);
+    }
+
+    //! Hora "HH:MM" centrada en timeY, con los dos puntos dibujados aparte con la
+    //! opacidad colonAlpha (milésimas, mezclada con el fondo): parpadean cada segundo
+    //! entre 1 y 0,25 (GuardVisuals). Las tres piezas juntas miden lo mismo que la hora
+    //! entera, así que no se mueve al parpadear.
+    private function drawTime(dc as Dc, layout as RoundLayout, time as String,
+            colonAlpha as Number) as Void {
+        var colon = time.find(":");
+        if (colon == null) {
+            Draw.centeredText(dc, layout.centerX, layout.timeY, Typography.TIME, time, Palette.TEXT);
+            return;
+        }
+        var hours = time.substring(0, colon) as String;
+        var minutes = time.substring(colon + 1, time.length()) as String;
+        var separator = ":";
+        var font = Typography.TIME;
+        var hoursWidth = dc.getTextWidthInPixels(hours, font);
+        var colonWidth = dc.getTextWidthInPixels(separator, font);
+        var left = layout.centerX
+            - (hoursWidth + colonWidth + dc.getTextWidthInPixels(minutes, font)) / 2;
+        var justify = Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER;
+
+        dc.setColor(Palette.TEXT, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left, layout.timeY, font, hours, justify);
+        dc.drawText(left + hoursWidth + colonWidth, layout.timeY, font, minutes, justify);
+        dc.setColor(ColorMath.blend(Palette.TEXT, Palette.BACKGROUND, colonAlpha),
+            Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left + hoursWidth, layout.timeY, font, separator, justify);
     }
 
     //! "ALERTA" en etiqueta pequeña y el porcentaje en el color del anillo, centrados

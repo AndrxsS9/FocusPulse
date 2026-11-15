@@ -10,7 +10,13 @@ import Toybox.Math;
 //!   medidas son píxeles del diseño (pantalla de 390 px); quien dibuja las escala.
 //! - **Ping** del punto de "Guardia activa": un círculo detrás del punto crece de 1× a
 //!   2,6× su radio y se desvanece de 0,8 a 0 de opacidad en 1,6 s, y vuelve a empezar.
+//! - **Dos puntos de la hora**: cambian cada segundo entre opacidad 1 y 0,25 (no
+//!   desaparecen del todo). Siguen al segundo del reloj, así que también parpadean en
+//!   pausa con un solo redibujo por segundo.
 module GuardVisuals {
+
+    //! Opacidad (milésimas) de los dos puntos de la hora en los segundos impares.
+    const COLON_DIM_ALPHA = 250;
 
     //! Arco de escaneo: radio y trazo (px del diseño), largo (px a lo largo del arco),
     //! duración de una vuelta (ms) y opacidad (milésimas).
@@ -61,6 +67,12 @@ module GuardVisuals {
     //! Opacidad del ping (milésimas, 800 → 0) para un avance 0–1.
     function pingAlpha(progress as Float) as Number {
         return (PING_ALPHA_FROM + (PING_ALPHA_TO - PING_ALPHA_FROM) * clamp01(progress) + 0.5f).toNumber();
+    }
+
+    //! Opacidad de los dos puntos de la hora (milésimas) en el segundo second del
+    //! reloj: 1000 en los pares y COLON_DIM_ALPHA en los impares.
+    function colonAlpha(second as Number) as Number {
+        return second % 2 == 0 ? 1000 : COLON_DIM_ALPHA;
     }
 
     //! Ángulo en 0..359.
