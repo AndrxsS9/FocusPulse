@@ -62,9 +62,9 @@ class NoFeedbackView extends WatchUi.View {
         var top = layout.scaled(BODY_TOP);
         var bottom = layout.scaled(BODY_BOTTOM);
         var width = layout.safeWidthBetween(top, bottom);
-        var text = Graphics.fitTextToArea(_body, Typography.label, width, bottom - top, true);
+        var text = Graphics.fitTextToArea(_body, Typography.body, width, bottom - top, true);
         dc.setColor(Palette.TEXT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, (top + bottom) / 2, Typography.label, text,
+        dc.drawText(cx, (top + bottom) / 2, Typography.body, text,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 }

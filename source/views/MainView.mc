@@ -515,11 +515,11 @@ class MainView extends WatchUi.View {
         dc.drawRoundedRectangle(rect.x, rect.y, rect.width, rect.height, corner);
         dc.setPenWidth(1);
 
-        var line = dc.getFontHeight(Typography.label);
+        var line = dc.getFontHeight(Typography.body);
         var cy = rect.centerY();
-        Draw.centeredText(dc, layout.centerX, cy - line / 2, Typography.label, _bannerTitle,
+        Draw.centeredText(dc, layout.centerX, cy - line / 2, Typography.bodyStrong, _bannerTitle,
             Palette.AMBER);
-        Draw.centeredText(dc, layout.centerX, cy + line / 2, Typography.label, _bannerAction,
+        Draw.centeredText(dc, layout.centerX, cy + line / 2, Typography.body, _bannerAction,
             Palette.TEXT);
     }
 
@@ -561,12 +561,12 @@ class MainView extends WatchUi.View {
         }
         var pad = layout.scaled(TOAST_PADDING);
         var titleHeight = dc.getFontHeight(Typography.label);
-        // El ancho disponible se mide con el alto máximo (valor en BODY): la caja final
-        // solo puede ser igual o más baja, así que también cabe.
-        var height = 2 * pad + titleHeight + dc.getFontHeight(Typography.body);
+        // El ancho disponible se mide con el alto máximo (valor en Inter Bold 18): la caja
+        // final solo puede ser igual o más baja, así que también cabe.
+        var height = 2 * pad + titleHeight + dc.getFontHeight(Typography.button);
         var top = layout.centerY - height / 2;
         var maxWidth = layout.safeWidthBetween(top, top + height);
-        var valueFont = Draw.fittingFont(dc, _toastText, maxWidth - 2 * pad, Typography.body);
+        var valueFont = Draw.fittingFont(dc, _toastText, maxWidth - 2 * pad, Typography.button);
         var valueHeight = dc.getFontHeight(valueFont);
         height = 2 * pad + titleHeight + valueHeight;
         top = layout.centerY - height / 2;

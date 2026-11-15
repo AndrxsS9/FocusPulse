@@ -87,13 +87,13 @@ class BreakView extends WatchUi.View {
         var cx = layout.centerX;
         if (timer.isFinished()) {
             var doneY = layout.scaled(DONE_Y);
-            var font = Draw.fittingFont(dc, _done, layout.safeWidthAt(doneY), Typography.body);
+            var font = Draw.fittingFont(dc, _done, layout.safeWidthAt(doneY), Typography.title);
             Draw.centeredText(dc, cx, doneY, font, _done, Palette.TEXT);
             Draw.largeButton(dc, layout.buttonRect, _resume, Typography.button, Palette.ACCENT,
                 Palette.BACKGROUND);
             return;
         }
-        Draw.centeredText(dc, cx, layout.scaled(TITLE_Y), Typography.label, _title,
+        Draw.centeredText(dc, cx, layout.scaled(TITLE_Y), Typography.title, _title,
             Palette.TEXT_SECONDARY);
         Draw.centeredText(dc, cx, layout.scaled(COUNTDOWN_Y), Typography.clock,
             ClockFormat.countdown(timer.remainingSeconds(now)), Palette.TEXT);

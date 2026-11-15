@@ -143,7 +143,7 @@
     <string id="ModelVersion">Versión</string>
     <string id="ModelAccuracy">Exactitud</string>
     <string id="ModelFalseNods">Falsos cabeceos</string>
-    <string id="ModelPercentFormat">$1$,$2$ %</string>
+    <string id="ModelPercentFormat">$1$,$2$%</string>
     <string id="ModelSynthetic">Entrenado con datos sintéticos</string>
     <!-- Acerca de: $1$ es la versión (AppInfo.VERSION). -->
     <string id="AboutVersionFormat">Versión $1$</string>

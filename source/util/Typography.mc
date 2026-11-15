@@ -69,6 +69,29 @@ module Typography {
         numberSmall = WatchUi.loadResource(Rez.Fonts.MonoSemiBold14) as FontResource;
     }
 
+    //! Fuente de un valor en una fila (resumen, Modelo IA): las cifras solas ("3", "93,3%")
+    //! van en JetBrains Mono 14 px; si llevan letras ("1 min 11 s", "v2"), en Inter
+    //! SemiBold 15 px. La fuente de cifras solo trae dígitos, "%", "," y ".".
+    function valueFont(text as String) as FontType {
+        return isNumeric(text) ? numberSmall : bodyStrong;
+    }
+
+    //! true si text no está vacío y solo tiene dígitos, "%", "," o ".".
+    function isNumeric(text as String) as Boolean {
+        var chars = text.toCharArray();
+        if (chars.size() == 0) {
+            return false;
+        }
+        for (var i = 0; i < chars.size(); i++) {
+            // '0'..'9' (48–57), '%' (37), ',' (44), '.' (46).
+            var c = chars[i].toNumber();
+            if (!((c >= 48 && c <= 57) || c == 37 || c == 44 || c == 46)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     //! Siguiente fuente más pequeña para un texto que no cabe (Draw.fittingFont), o null
     //! si no hay. Las de texto bajan dentro de la escala de Inter (botón de la alerta →
     //! botón → cuerpo destacado → etiqueta destacada, y cuerpo → etiqueta); el título baja

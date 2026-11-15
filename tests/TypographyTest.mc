@@ -23,6 +23,20 @@ function typographyNumberFontsDoNotStepDown(logger as Logger) as Boolean {
 }
 
 (:test)
+function typographyNumericValuesUseTheNumberFont(logger as Logger) as Boolean {
+    // Solo las cifras sin letras ni espacios van en JetBrains Mono (que no tiene más glifos).
+    Test.assert(Typography.isNumeric("3"));
+    Test.assert(Typography.isNumeric("93,3%"));
+    Test.assert(Typography.isNumeric("25.0%"));
+    Test.assert(!Typography.isNumeric("93,3 %"));
+    Test.assert(!Typography.isNumeric("1 min 11 s"));
+    Test.assert(!Typography.isNumeric("v2"));
+    Test.assert(!Typography.isNumeric("—"));
+    Test.assert(!Typography.isNumeric(""));
+    return true;
+}
+
+(:test)
 function typographyScaleAlwaysEnds(logger as Logger) as Boolean {
     // Desde cualquier rol, la escala llega a null en pocos pasos (fittingFont no se
     // queda en un bucle).
