@@ -27,6 +27,9 @@
 
     <!-- Esfera principal. Formatos: $1$, $2$… son valores. -->
     <string id="PercentFormat">$1$ %</string>
+    <!-- Batería y puntaje de la esfera en JetBrains Mono, sin espacio ("78%"), como el
+         diseño web, en los dos idiomas. -->
+    <string id="PercentCompactFormat">$1$%</string>
     <!-- Fecha corta: $1$ día de la semana, $2$ día del mes, $3$ mes (abreviados por el sistema). -->
     <string id="DateFormat">$1$ $2$ $3$</string>
     <!-- No es un texto visible: "lower" pasa a minúsculas el día y el mes del sistema

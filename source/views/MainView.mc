@@ -69,19 +69,19 @@ class MainView extends WatchUi.View {
     //! Batería en o por debajo de este porcentaje: ícono y número en rojo.
     const BATTERY_LOW = 15;
 
-    //! Ícono de batería, en milésimas del lado de la pantalla (fr165: 27×14 px).
-    const BATTERY_WIDTH = 70;
-    const BATTERY_HEIGHT = 36;
+    //! Ícono de batería, en milésimas del lado de la pantalla (fr165: 22×12 px, como el
+    //! diseño web).
+    const BATTERY_WIDTH = 57;
+    const BATTERY_HEIGHT = 31;
 
-    //! Separación (px, en milésimas) entre el ícono de batería y su porcentaje.
-    const BATTERY_GAP = 15;
+    //! Separación (en milésimas) entre el ícono de batería y su porcentaje (fr165: 8 px).
+    const BATTERY_GAP = 21;
 
-    //! Separación (en milésimas) entre "ALERTA" y el porcentaje.
-    const SCORE_GAP = 20;
+    //! Separación (en milésimas) entre "ALERTA" y el porcentaje (fr165: 10 px).
+    const SCORE_GAP = 26;
 
-    //! Fuente del porcentaje de alerta. Es de texto (no FONT_NUMBER_*) porque lleva "%",
-    //! que las fuentes numéricas del reloj quizá no tengan (docs/PENDIENTES.md).
-    const SCORE_FONT = Graphics.FONT_SMALL;
+    //! Espaciado entre las letras de "ALERTA" (px; letter-spacing del diseño web).
+    const LABEL_TRACKING = 1;
 
     private var _guard as GuardController;
     private var _layout as RoundLayout?;
@@ -107,6 +107,7 @@ class MainView extends WatchUi.View {
     private var _timerPeriod as Number = 0;
 
     private var _percentFormat as String = "";
+    private var _alertLabelWidth as Number = 0;
     private var _alertLabel as String = "";
     private var _dateFormat as String = "";
     private var _dateLowercase as Boolean = false;
@@ -148,8 +149,9 @@ class MainView extends WatchUi.View {
 
     function onLayout(dc as Dc) as Void {
         _layout = new RoundLayout(dc.getWidth(), dc.getHeight());
-        _percentFormat = WatchUi.loadResource(Rez.Strings.PercentFormat) as String;
+        _percentFormat = WatchUi.loadResource(Rez.Strings.PercentCompactFormat) as String;
         _alertLabel = WatchUi.loadResource(Rez.Strings.LabelAlertShort) as String;
+        _alertLabelWidth = Draw.trackedWidth(dc, _alertLabel, Typography.label, LABEL_TRACKING);
         _dateFormat = WatchUi.loadResource(Rez.Strings.DateFormat) as String;
         _dateLowercase = (WatchUi.loadResource(Rez.Strings.DateCase) as String).equals("lower");
         _statusPaused = WatchUi.loadResource(Rez.Strings.StatusPaused) as String;
@@ -359,22 +361,23 @@ class MainView extends WatchUi.View {
         drawToast(dc, layout);
     }
 
-    //! Ícono de batería y porcentaje real, centrados en topY.
+    //! Ícono de batería (22×12 px) y porcentaje real ("78%", JetBrains Mono 14 px, sin
+    //! espacio), centrados juntos en topY, en TEXT_SOFT (#C9D1DB) o en rojo si queda poca.
     private function drawBattery(dc as Dc, layout as RoundLayout) as Void {
         var percent = ClockFormat.batteryPercent(System.getSystemStats().battery);
-        var color = percent <= BATTERY_LOW ? Palette.RED : Palette.TEXT_SECONDARY;
+        var color = percent <= BATTERY_LOW ? Palette.RED : Palette.TEXT_SOFT;
         var text = Lang.format(_percentFormat, [percent]);
 
         var iconWidth = layout.scaled(BATTERY_WIDTH);
         var iconHeight = layout.scaled(BATTERY_HEIGHT);
         var gap = layout.scaled(BATTERY_GAP);
-        var textWidth = dc.getTextWidthInPixels(text, Typography.label);
+        var textWidth = dc.getTextWidthInPixels(text, Typography.numberSmall);
         var left = layout.centerX - (iconWidth + gap + textWidth) / 2;
 
         Draw.battery(dc, new Rect(left, layout.topY - iconHeight / 2, iconWidth, iconHeight),
             percent, color);
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(left + iconWidth + gap, layout.topY, Typography.label, text,
+        dc.drawText(left + iconWidth + gap, layout.topY, Typography.numberSmall, text,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
@@ -429,19 +432,24 @@ class MainView extends WatchUi.View {
         dc.drawText(left + hoursWidth, layout.timeY, font, separator, justify);
     }
 
-    //! "ALERTA" en etiqueta pequeña y el porcentaje en el color del anillo, centrados
-    //! juntos en scoreY.
+    //! "ALERTA" (Inter 13 px, TEXT_SECONDARY, con espaciado entre letras) y el porcentaje
+    //! ("85%", JetBrains Mono SemiBold 22 px, del color del anillo), centrados juntos y
+    //! alineados por la línea base: el número va centrado en scoreY y la etiqueta apoya
+    //! en su misma línea base.
     private function drawScore(dc as Dc, layout as RoundLayout, score as Number) as Void {
         var text = Lang.format(_percentFormat, [score]);
+        var number = Typography.number;
         var gap = layout.scaled(SCORE_GAP);
-        var labelWidth = dc.getTextWidthInPixels(_alertLabel, Typography.label);
-        var left = layout.centerX - (labelWidth + gap + dc.getTextWidthInPixels(text, SCORE_FONT)) / 2;
-        var justify = Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER;
+        var left = layout.centerX
+            - (_alertLabelWidth + gap + dc.getTextWidthInPixels(text, number)) / 2;
+        var baseline = layout.scoreY - dc.getFontHeight(number) / 2 + Graphics.getFontAscent(number);
 
         dc.setColor(Palette.TEXT_SECONDARY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(left, layout.scoreY, Typography.label, _alertLabel, justify);
+        Draw.trackedText(dc, left, baseline - Graphics.getFontAscent(Typography.label),
+            Typography.label, _alertLabel, LABEL_TRACKING, Graphics.TEXT_JUSTIFY_LEFT);
         dc.setColor(AlertnessColors.colorForAlertness(score), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(left + labelWidth + gap, layout.scoreY, SCORE_FONT, text, justify);
+        dc.drawText(left + _alertLabelWidth + gap, layout.scoreY, number, text,
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
     //! Píldora de estado: en pausa (gris), guardia activa (cian, con un punto cian claro

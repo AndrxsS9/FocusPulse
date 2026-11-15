@@ -34,6 +34,9 @@ module Palette {
     //! Texto secundario (estados, ayudas, etiquetas).
     const TEXT_SECONDARY = 0x9AA4B2;
 
+    //! Texto suave, entre TEXT y TEXT_SECONDARY: porcentaje de la batería (diseño web).
+    const TEXT_SOFT = 0xC9D1DB;
+
     //! Negro puro: texto, borde y botón de las alertas de nivel 1 y 2, y color con el
     //! que se mezcla el fondo de la alerta en su pulso de brillo (diseño web).
     const BLACK = 0x000000;

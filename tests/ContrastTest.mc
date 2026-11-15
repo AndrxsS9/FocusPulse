@@ -10,7 +10,8 @@ function textPairsReachMinimumContrast(logger as Logger) as Boolean {
     // [texto, fondo]
     var pairs = [
         [Palette.TEXT, Palette.BACKGROUND],              // hora, valores
-        [Palette.TEXT_SECONDARY, Palette.BACKGROUND],    // fecha, "ALERTA", batería, etiquetas
+        [Palette.TEXT_SECONDARY, Palette.BACKGROUND],    // fecha, "ALERTA", etiquetas
+        [Palette.TEXT_SOFT, Palette.BACKGROUND],         // batería
         [Palette.TEXT_SECONDARY, Palette.SURFACE],       // píldora "Monitoreo en pausa"
         [Palette.ACCENT, Palette.BACKGROUND],            // "DEMO · …", títulos
         [Palette.ACCENT, Palette.SURFACE],               // píldora "Guardia activa"

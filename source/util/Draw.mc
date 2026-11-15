@@ -31,6 +31,30 @@ module Draw {
         dc.drawText(x, y, font, text, JUSTIFY_CENTER);
     }
 
+    //! Ancho de text con tracking píxeles de espaciado entre letras (trackedText).
+    function trackedWidth(dc as Dc, text as String, font as FontType, tracking as Number) as Number {
+        var chars = text.toCharArray();
+        var width = 0;
+        for (var i = 0; i < chars.size(); i++) {
+            width += dc.getTextWidthInPixels(chars[i].toString(), font);
+        }
+        return chars.size() > 1 ? width + tracking * (chars.size() - 1) : width;
+    }
+
+    //! Texto con espaciado entre letras (letter-spacing del diseño web): lo dibuja letra
+    //! a letra desde x (borde izquierdo), con y según justify (TEXT_JUSTIFY_VCENTER o
+    //! arriba). Para rótulos cortos en mayúsculas ("ALERTA").
+    function trackedText(dc as Dc, x as Number, y as Number, font as FontType, text as String,
+            tracking as Number, justify as Number) as Void {
+        var chars = text.toCharArray();
+        var left = x;
+        for (var i = 0; i < chars.size(); i++) {
+            var glyph = chars[i].toString();
+            dc.drawText(left, y, font, glyph, Graphics.TEXT_JUSTIFY_LEFT | justify);
+            left += dc.getTextWidthInPixels(glyph, font) + tracking;
+        }
+    }
+
     //! Anillo de progreso: pista completa en trackColor y avance en color,
     //! empezando a las 12 en punto y en sentido horario, con extremos redondos.
     //!
