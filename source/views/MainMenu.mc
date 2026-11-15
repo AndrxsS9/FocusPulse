@@ -10,7 +10,8 @@ import Toybox.WatchUi;
 //! - Guion automático (solo con el modo demo): lo inicia (y la guardia, si estaba en
 //!   pausa) o, si ya corre, lo detiene. Cierra el menú en ambos casos.
 //! - Probar alerta (solo con el modo demo): submenú nivel 1 / 2 / 3; cierra los menús y
-//!   abre la alerta sobre la esfera, como una alerta real.
+//!   abre la alerta sobre la esfera, como una alerta real (y como cualquier alerta del
+//!   detector que llegue con un menú abierto).
 //! - Tomar descanso (solo con la guardia activa): cierra el menú y abre el descanso
 //!   guiado, igual que tocar el aviso de fatiga de la esfera.
 //! - Ajustes: sensibilidad, vibración, sonido, animaciones reducidas, confirmación por
@@ -179,9 +180,9 @@ module TestAlertMenu {
     }
 }
 
-//! Cierra el submenú y el menú principal y abre la alerta del nivel elegido sobre la
-//! esfera: al responder "Estoy despierto" se vuelve a la esfera, como con una alerta
-//! real. El motivo es el cabeceo (el texto más largo).
+//! Abre la alerta del nivel elegido: como cualquier alerta, cierra el submenú y el menú
+//! principal (ViewStack.popToMain) y se abre sobre la esfera, así que al responder
+//! "Estoy despierto" se vuelve a la esfera. El motivo es el cabeceo (el texto más largo).
 class TestAlertMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     private var _guard as GuardController;
@@ -192,8 +193,6 @@ class TestAlertMenuDelegate extends WatchUi.Menu2InputDelegate {
     }
 
     function onSelect(item as MenuItem) as Void {
-        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
-        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
         _guard.triggerAlert(item.getId() as Number, DrowsinessEvent.NOD);
     }
 }

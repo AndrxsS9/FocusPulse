@@ -25,7 +25,8 @@ import Toybox.WatchUi;
 //! leen el estado, el puntaje y el snapshot; los delegados llaman a toggle().
 //!
 //! Alerta (fase 7): un evento del detector pasa a AlertController; si abre una alerta,
-//! se apila AlertView y Haptics empieza a vibrar. Mientras está abierta, los eventos
+//! se cierran los menús abiertos (fase 12), se apila AlertView sobre la esfera y Haptics
+//! empieza a vibrar. Mientras está abierta, los eventos
 //! nuevos se ignoran y la esfera no se redibuja. "Estoy despierto" (dismissAlert) para
 //! la vibración, sube el puntaje a SCORE_AFTER_ALERT y guarda la alerta en AlertLog con
 //! su tiempo de respuesta. Pausar la guardia (o cerrar la app) la cierra sin respuesta.
@@ -116,6 +117,16 @@ class GuardController {
     private var _alerts as AlertController;
     private var _haptics as Haptics;
 
+    //! Cierra los menús abiertos antes de mostrar la alerta, y si la vista de la alerta
+    //! ya está en pantalla (para quitarla al pausar o al cambiar de modo).
+    private var _unwinder as ViewUnwinder;
+    private var _alertViewShown as Boolean = false;
+
+    //! La vibración de la alerta empieza en su primer cuadro (onAlertTick), no al
+    //! apilarla: el reloj admite 3 timers a la vez y en ese instante todavía pueden
+    //! correr el de la fuente simulada, el de la esfera y el de ViewUnwinder.
+    private var _hapticsPending as Boolean = false;
+
     //! true si la alerta abierta (o la última) la abrió el detector: es un episodio.
     private var _alertFromDetector as Boolean = false;
 
@@ -164,6 +175,7 @@ class GuardController {
         _alerts = new AlertController();
         _alerts.setEscalationMs(_demo.alertEscalationMs());
         _haptics = new Haptics();
+        _unwinder = new ViewUnwinder();
         _episodes = new AlertLog();
         _break = new BreakTimer();
         _history = new SessionHistory();
@@ -555,17 +567,45 @@ class GuardController {
         return true;
     }
 
-    //! Apila la alerta sobre la vista actual (normalmente la esfera) y empieza a vibrar.
+    //! Cierra los menús que hubiera abiertos (ViewUnwinder, unos 50 ms por vista) y
+    //! después apila la alerta sobre la esfera. Al responder, popView vuelve
+    //! directamente a la esfera.
     private function showAlert() as Void {
+        _unwinder.start(method(:pushAlertView));
+    }
+
+    //! La esfera ya está arriba: apila la alerta, que empieza a vibrar en su primer
+    //! cuadro (50 ms después). Si la alerta se cerró mientras tanto (pausa), no hace nada.
+    function pushAlertView() as Void {
+        if (!_alerts.isActive() || _alertViewShown) {
+            return;
+        }
+        logAlertOverMenus(_unwinder.pops());
         WatchUi.pushView(new AlertView(_alerts, method(:onAlertTick), _haptics.alertVibration(),
             _settings.reducedAnimations),
             new AlertDelegate(method(:dismissAlert)), WatchUi.SLIDE_IMMEDIATE);
-        _haptics.start(_alerts.level());
+        _alertViewShown = true;
+        _hapticsPending = true;
+    }
+
+    (:debug)
+    private function logAlertOverMenus(closed as Number) as Void {
+        if (closed > 0) {
+            System.println("ALERTA cierra " + closed + " vistas sobre la esfera");
+        }
+    }
+
+    (:release)
+    private function logAlertOverMenus(closed as Number) as Void {
     }
 
     //! Reloj de la alerta abierta (lo llama la vista de la alerta en cada cuadro): la
     //! escala aunque la guardia esté en pausa (alertas de prueba) y sin esperar al lote.
     function onAlertTick() as Void {
+        if (_hapticsPending) {
+            _hapticsPending = false;
+            _haptics.start(_alerts.level());
+        }
         updateAlert();
         checkSensorData();
     }
@@ -602,11 +642,13 @@ class GuardController {
             return;
         }
         _haptics.stop();
+        _hapticsPending = false;
         if (_state.isActive()) {
             _score.raiseTo(SCORE_AFTER_ALERT);
         }
         recordEpisode(response);
         logDismiss(response);
+        _alertViewShown = false;
         WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
         if (_script.onAlertDismissed(System.getTimer())) {
             onScriptStep();
@@ -614,17 +656,21 @@ class GuardController {
         WatchUi.requestUpdate();
     }
 
-    //! Cierra la alerta sin respuesta (pausa o cierre de la app). Devuelve true si había
-    //! una abierta; quien llama decide si quita la vista.
+    //! Cierra la alerta sin respuesta (pausa o cierre de la app). Devuelve true si su
+    //! vista estaba en pantalla; quien llama decide si la quita.
     private function cancelAlert() as Boolean {
+        _unwinder.cancel();
         if (!_alerts.cancel()) {
             return false;
         }
         _haptics.stop();
+        _hapticsPending = false;
         // El episodio cuenta igual, sin respuesta y con el nivel al que llegó.
         recordEpisode(null);
         logCancel();
-        return true;
+        var shown = _alertViewShown;
+        _alertViewShown = false;
+        return shown;
     }
 
     //! Guarda la alerta que acaba de cerrarse como episodio de la guardia (solo las del
