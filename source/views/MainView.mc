@@ -51,22 +51,6 @@ class MainView extends WatchUi.View {
     //! Grosor de cada contorno (px del diseño web, escalados con la pantalla).
     const ORB_PEN = [2.5f, 2.0f, 2.0f];
 
-    //! Arco de escaneo: largo total (grados), número de tramos (el de la cabeza más
-    //! brillante, la cola se desvanece), duración de una vuelta (ms) y opacidad de la
-    //! cabeza (milésimas).
-    const SCAN_LENGTH = 15;
-    const SCAN_SEGMENTS = 3;
-    const SCAN_PERIOD_MS = 3000;
-    const SCAN_ALPHA = 550;
-
-    //! Grosor del arco de escaneo y separación con el borde interior del anillo de
-    //! alerta, en milésimas del lado (fr165: 3 px y 3 px).
-    const SCAN_PEN = 8;
-    const SCAN_INSET = 8;
-
-    //! Periodo del latido del punto de "Guardia activa" (ms).
-    const HEARTBEAT_PERIOD_MS = 1600;
-
     //! dt máximo (s) entre cuadros: tras un onHide largo la animación no da un salto.
     const MAX_FRAME_DT = 0.25f;
 
@@ -337,33 +321,21 @@ class MainView extends WatchUi.View {
             score, Palette.RING_TRACK, AlertnessColors.colorForAlertness(score));
     }
 
-    //! Arco corto cian tenue que gira en sentido horario por dentro del anillo de
-    //! alerta, una vuelta cada SCAN_PERIOD_MS: indica que la guardia está vigilando.
-    //! Se dibuja en SCAN_SEGMENTS tramos; la cabeza es la más opaca.
+    //! Arco de escaneo del diseño web (GuardVisuals): cian al 55 %, 46 px de largo y
+    //! 3 px de trazo sobre un círculo de radio 164 px, una vuelta en sentido horario cada
+    //! 2,8 s. Indica que la guardia está vigilando.
     private function drawScanArc(dc as Dc, layout as RoundLayout) as Void {
-        var pen = layout.scaled(SCAN_PEN);
-        var radius = layout.ringInnerRadius - layout.scaled(SCAN_INSET) - pen / 2;
-        // drawArc: 0° = 3 en punto, crece en sentido antihorario. La cabeza parte de las
-        // 12 (90°) y avanza en sentido horario.
-        var head = 90 - (System.getTimer() % SCAN_PERIOD_MS) * 360 / SCAN_PERIOD_MS;
-        var segment = SCAN_LENGTH / SCAN_SEGMENTS;
-
-        dc.setPenWidth(pen);
-        for (var i = 0; i < SCAN_SEGMENTS; i++) {
-            var alpha = SCAN_ALPHA * (SCAN_SEGMENTS - i) / SCAN_SEGMENTS;
-            dc.setColor(ColorMath.blend(Palette.ACCENT, Palette.BACKGROUND, alpha),
-                Graphics.COLOR_TRANSPARENT);
-            var start = head + i * segment;
-            dc.drawArc(layout.centerX, layout.centerY, radius, Graphics.ARC_CLOCKWISE,
-                normalizeDegrees(start + segment), normalizeDegrees(start));
-        }
+        var k = layout.size / OrbModel.DESIGN_SIZE.toFloat();
+        var head = GuardVisuals.scanHeadDegrees(System.getTimer());
+        var tail = GuardVisuals.normalizeDegrees(head + GuardVisuals.scanLengthDegrees());
+        dc.setPenWidth(GuardVisuals.SCAN_PEN * k);
+        dc.setColor(ColorMath.blend(Palette.ACCENT, Palette.BACKGROUND, GuardVisuals.SCAN_ALPHA),
+            Graphics.COLOR_TRANSPARENT);
+        // drawArc: 0° = 3 en punto, crece en sentido antihorario. De la cola a la cabeza
+        // en sentido horario.
+        dc.drawArc(layout.centerX, layout.centerY, GuardVisuals.SCAN_RADIUS * k,
+            Graphics.ARC_CLOCKWISE, tail, head);
         dc.setPenWidth(1);
-    }
-
-    //! Ángulo en 0..359.
-    private static function normalizeDegrees(degrees as Number) as Number {
-        var d = degrees % 360;
-        return d < 0 ? d + 360 : d;
     }
 
     private function drawContent(dc as Dc, layout as RoundLayout, score as Number,
@@ -436,8 +408,8 @@ class MainView extends WatchUi.View {
         dc.drawText(left + labelWidth + gap, layout.scoreY, SCORE_FONT, text, justify);
     }
 
-    //! Píldora de estado: en pausa (gris), guardia activa (cian, con un punto que late
-    //! cada HEARTBEAT_PERIOD_MS; "Calibrando…" mientras el detector aprende la línea
+    //! Píldora de estado: en pausa (gris), guardia activa (cian, con un punto cian claro
+    //! y su "ping", GuardVisuals; "Calibrando…" mientras el detector aprende la línea
     //! base), sin datos del sensor (ámbar, sin punto: más de 5 s sin lotes con la
     //! guardia activa; se quita sola al volver los datos) o sensor no disponible (ámbar).
     private function drawStatus(dc as Dc, layout as RoundLayout, animate as Boolean) as Void {
@@ -456,12 +428,10 @@ class MainView extends WatchUi.View {
             text = _statusSensorUnavailable;
             color = Palette.AMBER;
         }
-        // Latido: fase 0–1 dentro de cada periodo; -1 (sin halo) si no se anima.
-        var pulse = animate
-            ? (System.getTimer() % HEARTBEAT_PERIOD_MS) / HEARTBEAT_PERIOD_MS.toFloat()
-            : -1.0f;
+        // Ping: avance 0–1 dentro de su ciclo; -1 (sin ping) si no se anima.
+        var ping = animate ? GuardVisuals.pingProgress(System.getTimer()) : -1.0f;
         Draw.statusPill(dc, layout.centerX, layout.pillY, text, Typography.LABEL, color,
-            Palette.SURFACE, Palette.BORDER_STRONG, active, pulse);
+            Palette.SURFACE, Palette.BORDER_STRONG, active ? Palette.ACCENT_LIGHT : null, ping);
     }
 
     //! Aviso de fatiga alta en lugar del puntaje y la píldora: caja SURFACE con borde
