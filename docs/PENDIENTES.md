@@ -1,9 +1,17 @@
 # Pendientes de verificar
 
 Las fases 1 y 2 se compilaron, probaron y revisaron en el simulador con el **Connect IQ SDK
-9.3.0** (2026-11-12), las fases 3 a 8 el 2026-11-13 y las fases 9, 10 y 11 el 2026-11-14. La primera sección resume lo que quedó confirmado; el resto del
-documento lista **solo lo que sigue abierto**. Al cerrar un punto, muévelo a la sección de
-datos confirmados o bórralo, y corrige el código si algo no coincide.
+9.3.0** (2026-11-12), las fases 3 a 8 el 2026-11-13, las fases 9, 10 y 11 el 2026-11-14 y
+la fase 12 (versión 1.0.0) el 2026-11-15.
+
+El documento tiene tres partes:
+
+1. **Datos confirmados**: lo que se comprobó con el SDK y el simulador.
+2. **Requiere reloj real**: lo que solo se puede cerrar con un Forerunner 165 en la muñeca.
+3. **Trabajo futuro**: mejoras y tareas que no bloquean la 1.0 (datos reales, publicación).
+
+Al cerrar un punto, muévelo a la sección de datos confirmados o bórralo, y corrige el
+código si algo no coincide.
 
 ## Datos confirmados (SDK 9.3.0)
 
@@ -284,9 +292,9 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
   sus textos: se cargan al iniciar la app; hay que volver a cargarla
   (`run.ps1 -Release -NoBuild`). Una vez el clic en el idioma no se aplicó y hubo que
   repetirlo. Está en [GUIA_DEMO.md](GUIA_DEMO.md).
-- Con el **menú principal abierto**, una alerta del detector se apila encima; al
-  responderla se vuelve al menú, no a la esfera (comportamiento de `pushView`, ya existía
-  en la fase 8). No molesta en la demo, pero ver el punto de la sección 3.
+- Con el **menú principal abierto**, una alerta del detector se apilaba encima y al
+  responderla se volvía al menú. **Resuelto en la fase 12**: la alerta cierra los menús
+  (`ViewUnwinder`).
 
 ### IA entrenada (fase 10, Python y simulador)
 
@@ -388,215 +396,175 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
     (1 min 15 s / 1 min 14 s, 3 episodios, nivel máximo 3 de 3, fatiga Alto / High).
   - Al terminar, el simulador quedó en español con los ajustes por defecto.
 
-## 1. Entorno
+### Pulido final y versión 1.0.0 (fase 12, simulador)
 
-- [ ] **Hacer copia de seguridad de la llave** `%USERPROFILE%\Downloads\FocusPulse-keys\`
-      fuera del equipo. Sin ella no se pueden publicar actualizaciones.
-- [ ] El `id` de la app (`6600d3c23b8a4e89827e17ef16db01e8`) **no debe cambiar** después de
-      publicar en la tienda (recordatorio permanente).
+- Las **205 pruebas** pasan (11 nuevas: 6 de `SensorWatchdog` y del detector tras un corte,
+  3 de `PixelShift`/`RoundLayout.shiftTo` y 2 de contraste). `build.ps1`, `build.ps1
+  -Release` y `export.ps1` (fr165 y fr165m) sin advertencias con `-l 3`. Release:
+  `FocusPulse-release.prg` 86,9 kB (88,6 antes de sacar de release los auxiliares de
+  pruebas y los pesos v1); `bin\FocusPulse.iq` **198,6 kB**, versión 1.0.0.
+- Todo sin usar el ratón ni el teclado reales: botones y toques con `PostMessage`, menús
+  del simulador con `WM_COMMAND`, capturas con `PrintWindow` y un cambio **temporal y no
+  versionado** para que DOWN abriera el menú (mantener UP no funciona por mensajes).
+- **Sin datos del sensor**: con el sensor real del simulador (no entrega lotes), la píldora
+  pasa a "Sin datos del sensor" a los 5,08 s y la consola de depuración lo registra. Con
+  un corte temporal de 8 s cada 30 s en la fuente simulada (cambio no versionado): aviso a
+  los 5,06 s del corte, se quita solo con el primer lote y, en inactividad, la siguiente
+  alerta llega 7,1 s después del regreso (no en el acto). Con la fatiga en Alto, el aviso
+  de sin datos se ve en lugar del de fatiga.
+- **Alerta sobre menús**: `popView` **no cambia `WatchUi.getCurrentView()` hasta el
+  siguiente ciclo de eventos** (traza: tras un `popView`, `getCurrentView` devolvía el
+  mismo objeto), así que no se pueden cerrar los menús en un bucle. `ViewUnwinder` cierra
+  una vista cada 50 ms. Verificado con "Probar alerta" (2 vistas), Ajustes → Sensibilidad
+  (3), Historial → detalle (3), Modelo IA (2) y Escenario (2): consola "ALERTA cierra N
+  vistas", alerta sobre la esfera y, al responder, la esfera.
+- **Límite de 3 timers** (doc del SDK: "default 3"): la primera versión tumbó la app con
+  *Too Many Timers Error* (fuente simulada + esfera + `ViewUnwinder` + vibración). La
+  vibración empieza ahora en el primer cuadro de la alerta, cuando la esfera ya paró su
+  timer.
+- **Anti quemado**: en capturas de minutos seguidos la batería se movió (0,0) → (2,0) →
+  (2,2) px, la secuencia de `PixelShift`.
+- **Textos**: todas las pantallas revisadas a 390×390 en español e inglés (capturas en
+  `docs/img/`). En inglés se acortaron "Glance at watch", "Long inactivity" y "max
+  vibration". Contraste mínimo de los textos importantes: 6,51:1.
+- **Alerta en el fr165m**: vista en el simulador del 165 Music (nivel 3, inglés), igual que
+  en el fr165.
+- **Memoria pico** (*File > View Memory* del simulador, compilación de release, recorrido
+  completo: guardia, alertas 1–3, menús, ajustes, historial, resumen): **98,8 kB de
+  763,6 kB** en el fr165 y **98,8 kB de 763,6 kB** en el fr165m (13 %). Código 47,5 kB,
+  datos 17,8 kB. En depuración la memoria en uso ronda 104–105 kB.
 
-## 2. Sensores y vibración (antes de las fases 3 y 6)
+## Requiere reloj real
 
-- [ ] **Orientación de los ejes** x/y/z del acelerómetro con el reloj puesto en la muñeca
-      izquierda y en la derecha, en el reloj real (telemetría en vivo del menú de depuración).
-      Los escenarios simulados suponen Z ≈ +1 g con la esfera hacia arriba y el brazo
-      colgando en (−240, −940, 240); si los signos no coinciden, corregir las constantes de
-      `SimulatedAccelSource` (y luego el detector).
-- [ ] **Pantalla apagada mientras graba**: con la guardia activa (grabando actividad), si
-      la `watch-app` sigue recibiendo lotes a 25 Hz y puede vibrar cuando la pantalla AMOLED
-      se apaga o atenúa. Mirar los Hz efectivos en la telemetría al volver a encender la
-      pantalla. El simulador no lo reproduce.
-- [ ] **App inactiva grabando** (selector de tareas): confirmar en el reloj que sigue a
-      25 Hz gracias a la actividad, y que con `recordActivity` desactivado baja a ≤10 Hz.
-- [ ] **Actividad en Garmin Connect**: que aparezca como "Otro" con el nombre
-      "Guardia focus"/"Focus guard", y ver si cuenta para carga de entrenamiento, Body
-      Battery o minutos de intensidad (`SPORT_GENERIC` se eligió por ser el más neutro).
-- [ ] **Cierre por el sistema con la guardia activa** (batería, otra app, apagado): en ese
-      caso solo corre `onStop`, que es justo el camino que tumba el simulador. Comprobar en
-      el reloj que la actividad se guarda.
-- [ ] Reproducir en el simulador un FIT grabado en el reloj con `SensorLogging` (*Activity
-      Data > FIT/GPX Playable File*) para probar el sensor real con datos de muñeca reales.
-- [ ] **Sentir la vibración real en el reloj** (fase 7). Los 3 niveles ya están diseñados
-      solo con duración, pulsos y pausas ([DISENO.md](DISENO.md) §5.3). En el fr165:
-      - que se **distinguen** los tres sin mirar la pantalla (2×150 ms cada 3 s, 3×300 ms
-        cada 2 s, 800/200 ms casi continuo) y que el nivel 1 no sea tan suave que no
-        despierte;
-      - que los tramos con `dutyCycle` 0 sean **pausas** y no vibración: los Forerunner
-        ignoran el `dutyCycle`; si los 0 vibran, el patrón entero sería un zumbido continuo
-        y habría que lanzar cada pulso con su propio `Timer`;
-      - que `stop()` **corte la ráfaga en curso** (`VibeProfile(0, 10)`): en el nivel 3
-        quedan hasta 3,8 s de vibración si una llamada nueva no reemplaza a la anterior;
-      - que se siente con la **pantalla apagada o atenuada** y con la app inactiva grabando
-        (ver los puntos de arriba sobre `Attention` denegada).
-- [ ] **Luz con protección contra quemado**: `Attention.backlight(true)` en cada ráfaga
-      puede lanzar `BacklightOnTooLongException` tras ≈ 1 min de alerta en el AMOLED. Se
-      atrapa; comprobar en el reloj que la alerta sigue visible y que no se apaga la pantalla.
-- [ ] **Tono en el fr165**: si el reloj suena de verdad (tiene `playTone` según el SDK), con
-      qué volumen, y si el `ToneProfile` con silencios de 0 Hz se acepta (si lanza
-      `InvalidOptionsException`, `Haptics` pasa a `TONE_ALERT_HI`). El ajuste "Sonido"
-      (fase 11) permite apagarlo; el sonido del simulador no se escuchó.
-- [ ] **Niveles del ajuste "Vibración" en el reloj** (fase 11): que Suave, Normal y Fuerte
-      se distinguen y que Suave nivel 1 (un pulso de 150 ms cada 3 s) todavía despierta. Si
-      no, subir Suave a 2 pulsos.
-- [ ] **"Sonido" en otros relojes**: `settings.xml` muestra siempre el ajuste porque los dos
-      productos (fr165, fr165m) tienen `playTone`; el menú del reloj lo esconde si no hay
-      altavoz. Si se añade un producto sin `playTone`, usar un `settings.xml` por producto.
-- [ ] La sacudida de la vista se calcula desde el inicio de la alerta y la vibración desde
-      el `Timer` de `Haptics`: en una alerta larga podrían desfasarse unas decenas de ms.
-      Mirarlo en el reloj; si se nota, que la vista lea el ciclo de `Haptics`.
-- [ ] Desde dónde lanza el usuario la app en el fr165 (menú de apps o glance), para evitar el
-      cierre por tiempo de las apps abiertas desde glances.
-- [ ] **Modo demo en el reloj real** (fase 8): que mantener UP abra el menú principal, que
-      DOWN durante la guardia llegue como `onNextPage` y cambie de escenario, y que el modo
-      se recuerde tras reiniciar el reloj (`Storage`).
+Solo se puede cerrar con un Forerunner 165 (o 165 Music) en la muñeca.
 
-- [ ] **Validar el detector y el modelo con datos de muñeca reales** (fase 12, con
-      `SensorLogging`): la sacudida de 400 mg, los 35° de inclinación, los 50 mg de
-      "calma" y el piso de 25 mg² salen de escenarios simulados, y los **pesos v2 se
-      entrenaron solo con datos sintéticos** ([IA.md](IA.md) §9). Grabar con etiquetas
-      (vídeo o pulsador), importar con `ml/import_real.py` y reentrenar.
+### Sensores y ciclo de vida
+
+- [ ] **Orientación de los ejes** x/y/z con el reloj en la muñeca izquierda y en la derecha
+      (telemetría en vivo del menú de depuración). Los escenarios suponen Z ≈ +1 g con la
+      esfera hacia arriba y el brazo colgando en (−240, −940, 240); si los signos no
+      coinciden, corregir `SimulatedAccelSource` y luego el detector.
+- [ ] **Pantalla apagada mientras graba**: que la guardia siga recibiendo lotes a 25 Hz y
+      pueda vibrar con la pantalla AMOLED apagada o atenuada. Si el sistema corta los
+      lotes, la esfera mostrará "Sin datos del sensor" al encenderla.
+- [ ] **App inactiva grabando** (selector de tareas): sigue a 25 Hz gracias a la actividad;
+      con *Grabar actividad* apagado baja a ≤ 10 Hz.
+- [ ] **Actividad en Garmin Connect**: que aparezca como "Otro" con el nombre "Guardia
+      focus" / "Focus guard" y si cuenta para carga de entrenamiento o Body Battery.
+- [ ] **Cierre por el sistema con la guardia activa** (batería, otra app, apagado): solo
+      corre `onStop`; comprobar que la actividad se guarda y que una alerta abierta deja de
+      vibrar.
+- [ ] **Ruido del acelerómetro en reposo**: el umbral adaptativo no baja de 25 mg² (σ = 5
+      mg); si el ruido real de un brazo inerte lo supera, la quietud nunca llegaría.
+- [ ] **Sin datos del sensor**: en qué situaciones reales deja de haber lotes más de 5 s
+      (pantalla apagada, app en segundo plano, sensor ocupado) y si el aviso aparece.
+- [ ] Desde dónde se lanza la app (menú de apps o glance): las abiertas desde glances se
+      cierran solas por tiempo.
+
+### Vibración, luz y sonido
+
+- [ ] **Sentir los tres niveles** sin mirar la pantalla (2×150 ms cada 3 s, 3×300 ms cada
+      2 s, 800/200 ms casi continuo) y que el nivel 1 despierte.
+- [ ] Que los tramos con `dutyCycle` 0 sean **pausas** (los Forerunner ignoran el
+      `dutyCycle`): si vibran, lanzar cada pulso con su propio `Timer` (ojo: límite de 3).
+- [ ] Que `stop()` corte la ráfaga en curso (`VibeProfile(0, 10)`).
+- [ ] Ajuste *Vibración*: que Suave, Normal y Fuerte se distingan y que Suave nivel 1 (un
+      pulso de 150 ms cada 3 s) todavía despierte; si no, subir Suave a 2 pulsos.
+- [ ] **Luz con protección contra quemado**: `Attention.backlight(true)` puede lanzar
+      `BacklightOnTooLongException` tras ≈ 1 min de alerta; se atrapa. Ver que la alerta
+      sigue visible.
+- [ ] **Tono**: si suena, a qué volumen y si el `ToneProfile` con silencios de 0 Hz se
+      acepta (si no, `Haptics` usa `TONE_ALERT_HI`).
+- [ ] Desfase entre la sacudida de la vista y el motor en alertas largas (decenas de ms
+      esperables; ahora la vibración arranca ≈ 50 ms después del primer cuadro).
+
+### Interfaz y entrada
+
+- [ ] **Mantener UP** abre el menú principal sin *Depuración* con la app instalada desde el
+      `.iq`; DOWN durante la guardia cambia de escenario en modo demo; el modo demo se
+      recuerda tras reiniciar el reloj.
+- [ ] **Deslizar en la esfera**: un deslizamiento vertical podría llegar como
+      `onNextPage` y cambiar de escenario en modo demo; si molesta, atender solo `KEY_DOWN`.
+- [ ] Acertar el botón de la esfera (área 248×76 px) y el de la alerta (280×86 px) con el
+      reloj puesto y medio dormido; que la píldora no provoque toques no deseados.
+- [ ] **Alerta sobre menús en el reloj**: que `ViewUnwinder` cierre los menús nativos igual
+      que en el simulador y que el límite de timers del fr165 sea el mismo (3).
+- [ ] **Anti quemado**: que el salto de 2 px por minuto no se note al mirar la hora.
+- [ ] Fuentes: que `FONT_NUMBER_MEDIUM` (hora), "¡DESPIERTA!" en `FONT_LARGE` y las
+      etiquetas cortas de *Ajustes* (Menu2 corta a ≈ 13 caracteres junto al interruptor) se
+      vean igual que en el simulador (que usa Roboto).
+- [ ] "Nivel 3 de 3 · vibración máxima" (≈ 357 px) no queda demasiado cerca del borde.
+- [ ] Aviso de fatiga ("descansa 15 min") legible con brillo bajo y en el sitio previsto.
+- [ ] **Descanso de 15 min**: que la vista no se cierre sola y que la vibración del final
+      se sienta con la pantalla apagada (en el simulador solo se probó el de 30 s).
+- [ ] **Hora del historial** tras un cambio de zona horaria o de horario de verano.
+- [ ] Brillo bajo y sol: que el arco de escaneo (3 px, cian al 55 %), el orbe tenue y la
+      pista `BORDER` se distingan sin restar legibilidad, y que `ORANGE`, `ORANGE_DEEP` y
+      `RED_INTENSE` se distingan entre sí.
+
+### Rendimiento y batería
+
+- [ ] **Batería** de una guardia larga con el orbe a ≈ 12 cuadros/s frente a
+      `ANIMATIONS_ENABLED = false` (1 cuadro/s), más la grabación (25 Hz + FIT). Según el
+      resultado: bajar la tasa con la pantalla atenuada, apagar la animación tras unos
+      minutos sin mirar o hacer que "Animaciones reducidas" también baje la tasa.
+- [ ] **Tiempo de dibujo** en la CPU del fr165: si un cuadro supera ≈ 60 ms, reducir
+      `OrbModel.POINTS` (36 → 24) o la tasa, o usar un `BufferedBitmap` para la capa fija.
+- [ ] **Memoria en el reloj** frente a los 98,8 kB medidos en el simulador.
+- [ ] Si `setStroke`/`setFill` (alfa real) existen en el firmware (en el simulador no): si
+      sí, valorar usarlos con un `has`.
+
+## Trabajo futuro
+
+No necesita el reloj para empezar, o es una mejora que no bloquea la 1.0.
+
+### Datos reales y modelo
+
+- [ ] **Grabar datos de muñeca reales** con `SensorLogging` y etiquetas (vídeo o pulsador),
+      importarlos con `ml/import_real.py` y reentrenar: los pesos v2 y los umbrales del
+      detector (400 mg, 35°, 50 mg de calma, piso de 25 mg²) salen de datos sintéticos.
 - [ ] **Leer el FIT de `SensorLogging`** en `ml/import_real.py` (`load_fit`, hoy
-      `NotImplementedError`): falta un archivo real del reloj para escribirlo y probarlo, y
-      añadir el FIT SDK de Garmin para Python a los requisitos.
-- [ ] **Ruido del acelerómetro del fr165 en reposo**: el umbral adaptativo no baja de
-      25 mg² (σ = 5 mg). Si el ruido real de un brazo inerte supera eso, la quietud nunca
-      llegaría para quien calibró moviéndose poco.
-- [ ] **Confirmación por IA con datos reales** (fase 11): con datos sintéticos baja los
-      falsos cabeceos al mirar la hora de 15 a 3 de 24 sin perder cabeceos, a cambio de 2 s
-      de retraso. Revisar en el reloj el retardo (2 lotes) y el umbral (p(Normal) < 0,35):
-      si un brazo dormido real tarda más en parecer Inerte, se perderían alertas de
-      cabeceo (la inactividad las cubriría a los 60 s). Los 3 falsos que quedan son lecturas
-      con el brazo casi inmóvil ([IA.md](IA.md) §12).
-- [ ] **Sensibilidad Baja / Alta** (fase 11): los valores (440/340 mg, 45/28°, ×1,5/×0,75)
-      salen de criterio y del dataset sintético (recall 17 / 22 / 30 de 36). Validarlos con
-      datos reales.
-- [ ] **Mirar la hora en el clasificador v2**: todavía 12 de 48 episodios difíciles (todos de
-      mirar la hora) tienen algún lote Cabeceo, y al leer p(Inerte) sube hasta ≈ 0,4. Con
-      datos reales, valorar características nuevas (dirección final de la gravedad).
-- [ ] **Cabeceos lentos**: el detector solo ve el 61 % de los cabeceos sintéticos (caídas por
-      debajo de 400 mg) y v2 tiene un recall de Cabeceo de 0,48 (v1: 0,58). Revisar con datos
-      reales si la caída real es tan brusca como la simulada.
-- [ ] Con el acelerómetro del simulador (*Activity Data*, vectores de 1 g al azar) el
-      detector daría cabeceos continuos. No se probó; para la sustentación, usar la fuente
-      simulada.
-
-## 3. Interfaz
-
-- [ ] **Menú Ajustes en el reloj real** (fase 11): que las etiquetas cortas caben igual que
-      en el simulador (Menu2 corta a unos 13 caracteres junto al interruptor) y que el
-      subtítulo "Apagada · solo visual" se lee entero.
-- [ ] **Editor de ajustes del simulador**: depende del nombre con que el simulador registró
-      la app (FOCUSPULSE-TEST en este equipo). Si tras *Reset All App Data* vuelve a decir
-      "No settings file found", ejecutar `run.ps1` otra vez (copia el JSON con los tres
-      nombres) o ver el nombre del `.SET` en `%TEMP%\com.garmin.connectiq\GARMIN\APPS\SETTINGS`.
-- [ ] **Animaciones reducidas y batería**: el ajuste quita partículas y la sacudida, pero el
-      orbe sigue a ≈ 12 cuadros/s. Si la medición de batería de la fase 13 lo pide, que
-      también baje la tasa de redibujo.
-
-- [ ] **Decidir si la hora necesita una fuente personalizada** para acercarse a la demo web,
-      y si su costo en memoria es aceptable dentro de los 768 KB.
-- [ ] En el **reloj real**, si `FONT_NUMBER_MEDIUM` (la hora) se ve igual que en el
-      simulador, que usa Roboto TTF para todo. El porcentaje de la esfera usa `FONT_SMALL`
-      (fuente de texto) para no depender de que las numéricas traigan `%`.
-- [ ] En la alerta, "¡DESPIERTA!" cabe en `FONT_LARGE` en el simulador (se elige con
-      `Draw.fittingFont`) y "Estoy despierto" va en `BODY` en el botón de 258 px (fase 7).
-      Revisar en el reloj que ambos se ven igual.
-- [ ] La línea "Nivel 3 de 3 · vibración máxima" (≈ 357 px) y "Level 3 of 3 · maximum
-      vibration" (≈ 373 px) pasan del ancho seguro de 340 px; caben en la pantalla porque la
-      alerta no tiene anillo. Ver en el reloj que no se acercan demasiado al borde curvo; si
-      molesta, partir la línea en dos o abreviar.
-- [ ] Probar con el reloj puesto que el botón de la alerta (área 280×86 px) se acierta
-      medio dormido, y que nadie la cierra sin querer con BACK o deslizando (se consumen).
-- [ ] Ver la alerta en el **fr165m**: solo se revisó en el fr165 (misma pantalla).
-- [ ] **Pausar con la alerta abierta** no tiene camino en la interfaz (la alerta tapa la
-      esfera y consume BACK); solo pasa al cerrar la app el sistema (`onStop` → `shutdown`)
-      o si falla el cambio de fuente. Lo cubren `alertCancelClosesWithoutResponse` y el
-      código de `GuardController.pause`/`shutdown`; comprobar en el reloj que un cierre
-      del sistema durante una alerta detiene la vibración.
-- [ ] Ver en el simulador la píldora **"Sensor no disponible"** (ámbar) y la batería baja
-      en rojo (≤ 15 %, *Settings > Set Battery Status*). No se forzaron en la fase 4: el
-      acelerómetro del simulador siempre se registra bien.
-- [ ] Ver la hora en **12 h y 24 h** con una hora que las distinga (antes de las 10 o
-      después de las 13; *Settings > Time Display*). En la revisión eran las 11, igual en
-      ambos formatos; el formato lo cubren las pruebas de `ClockFormat`.
-- [ ] En el reloj real: que el toque en el botón (área de 248×76 px) se acierte con el reloj
-      puesto, y que la píldora, cuyo borde inferior queda 3 px dentro del área táctil del
-      botón, no provoque toques no deseados.
-- [ ] **Deslizar en la esfera** (pantalla táctil): en el reloj real, un deslizamiento
-      vertical podría llegar como `onNextPage`/`onPreviousPage`. Con el modo demo y la
-      guardia activa, deslizar hacia arriba cambiaría de escenario. En el simulador solo se
-      probaron los botones; si molesta, atender solo `KEY_DOWN` en `onKey`.
-- [ ] Con el **sensor real** y sin lotes (el simulador sin *Activity Data*, o un sensor que
-      no entrega datos), la píldora se queda en "Calibrando…" para siempre. Valorar un
-      aviso "Sin datos del sensor" tras unos segundos sin lotes (fase 12).
-- [ ] Con el modo demo activo la esfera **no muestra la fecha** (su línea pasa a "DEMO ·
-      escenario"). Aceptable para la demo; revisar si en el reloj se quiere la fecha en
-      algún otro sitio.
-- [ ] **Quemado AMOLED:** la hora en `TEXT` y la línea "DEMO · …" (cian) no se mueven. Para guardias
-      largas, valorar un desplazamiento de unos píxeles cada minuto (fase 12). El orbe y las
-      partículas sí se mueven, pero en pausa quedan fijos (tenues).
-- [ ] Revisar *Detector en vivo* en **inglés** y en el **fr165m**: solo se vio en español
-      en el fr165. Los textos en inglés son más cortos o iguales.
-- [ ] Ver en el reloj real que el arco de escaneo (3 px, cian al 55 %) y el orbe tenue en
-      pausa se distinguen con brillo bajo, y que el orbe no resta legibilidad a la hora al
-      sol.
-
-- [ ] **Alerta encima del menú** (fase 9): si llega un evento con el menú principal (o el
-      historial) abierto, la alerta se apila encima y, al responder, se vuelve al menú. En
-      el reloj la guardia normalmente corre con la esfera a la vista; valorar cerrar los
-      menús al abrir una alerta del detector.
-- [ ] **Aviso de fatiga en el reloj**: que "descansa 15 min" / "take a 15 min break" caben
-      igual que en el simulador (`FONT_XTINY` a 2 líneas en 300×72 px) y que el aviso
-      ámbar se lee con brillo bajo. Valorar recuperar la frase completa "toma un descanso de
-      15 min" con una caja más alta (tapando la fecha) o un ícono.
-- [ ] **Descanso de 15 min en el reloj real**: que la vista de descanso no se cierre sola
-      (la pantalla AMOLED se apaga antes) y que la vibración suave del final se sienta con
-      la pantalla apagada. En el simulador solo se probó el de 30 s.
+      `NotImplementedError`) y añadir el FIT SDK de Garmin para Python a los requisitos.
+- [ ] Reproducir ese FIT en el simulador (*Activity Data > FIT/GPX Playable File*) para
+      probar el sensor real con datos de muñeca.
+- [ ] **Confirmación por IA con datos reales**: revisar el retardo (2 lotes) y el umbral
+      (p(Normal) < 0,35); si un brazo dormido real tarda más en parecer Inerte se perderían
+      alertas de cabeceo (la inactividad las cubriría a los 60 s).
+- [ ] **Sensibilidad Baja / Alta** (440/340 mg, 45/28°, ×1,5/×0,75): validar con datos reales.
+- [ ] **Mirar la hora**: 12 de 48 episodios difíciles todavía tienen algún lote Cabeceo en
+      v2; valorar características nuevas (dirección final de la gravedad).
+- [ ] **Cabeceos lentos**: el detector solo ve el 61 % de los cabeceos sintéticos y v2 tiene
+      un recall de Cabeceo de 0,48 (v1: 0,58). Entrenar la decisión del evento.
 - [ ] **Umbrales del predictor de fatiga** (30 min, 3 episodios, 1 s de tendencia, nivel 3):
-      salen de criterio, no de datos. Revisarlos con guardias reales
-      ([DETECTOR.md](DETECTOR.md) §8.6).
-- [ ] **Hora del historial**: se guarda `Time.now()` al iniciar la guardia (segundos Unix) y
-      se muestra en la hora local actual del reloj. Comprobar en el reloj que cambia bien
-      tras un cambio de zona horaria o de horario de verano.
+      salen de criterio; revisarlos con guardias reales.
 
-## 4. Compilación y memoria
+### Interfaz
 
-- [ ] **Batería de la animación (fase 12):** medir en el reloj real el consumo de una guardia
-      larga con el orbe a ≈12 cuadros/s frente a `ANIMATIONS_ENABLED = false` (1 cuadro/s),
-      además del de grabar la actividad (25 Hz + FIT). Según el resultado, bajar la tasa con
-      la pantalla atenuada, apagar la animación tras unos minutos sin mirar el reloj o
-      hacer que "Animaciones reducidas" (fase 11) también baje la tasa.
-- [ ] Tiempo de dibujo **en el reloj real**: el simulador corre en el PC y no refleja la CPU
-      del fr165. Si un cuadro supera unos 60 ms, reducir `OrbModel.POINTS` (36 → 24) o la
-      tasa, o dibujar la capa fija (pista del anillo, partículas en pausa) en un
-      `BufferedBitmap`.
-- [ ] Comprobar en el reloj si `setStroke`/`setFill` (alfa real) existen en el firmware; si
-      sí, valorar usarlos con un `has` en lugar de la mezcla precalculada.
-- [ ] Comprobar **en el reloj**, con la app instalada desde el `.iq`, que mantener UP abre el
-      menú principal **sin** la entrada *Depuración*. En el simulador ya se vio con
-      `run.ps1 -Release` (mismo `-r` que el `.iq`).
-- [ ] `ClassifierWeightsV1` (24 `Float`, solo referencia) y las auxiliares sin `(:test)` de
-      `FeatureMatchTest.mc`/`StateClassifierTest.mc` (`flattenRows`, `foldV1Weights`,
-      `FEATURE_TOLERANCE`) entran también en release. Los vectores de prueba grandes
-      (`FeatureVectors`, `ModelVectors`) son clases `(:test)` y no entran.
-- [ ] Las funciones auxiliares sin `(:test)` de `tests/` (`colorsMatch`, `insideCircle`) y
-      los textos `StyleGuide*`/`TypeRole*`/`Debug*` se empaquetan también en release. Medir con el
-      perfilador de memoria del simulador si el costo importa (fase 12).
+- [ ] Decidir si la hora necesita una fuente personalizada y si su costo en memoria cabe.
+- [ ] Con el modo demo la esfera no muestra la fecha; valorar dónde ponerla.
+- [ ] *Detector en vivo* (depuración) solo se revisó en español en el fr165.
+- [ ] Forzar en el simulador la píldora "Sensor no disponible" y la batería baja en rojo
+      (*Settings > Set Battery Status*), y ver la hora en 12 h con una hora que la distinga.
+- [ ] Recuperar "toma un descanso de 15 min" completo en el aviso de fatiga (caja más alta o
+      un ícono).
+- [ ] Si se añade un producto sin `playTone`, usar un `settings.xml` por producto (hoy el
+      ajuste *Sonido* se muestra siempre en Garmin Connect).
+- [ ] Los textos `StyleGuide*`, `TypeRole*` y `Debug*` también se empaquetan en release (los
+      recursos no admiten `(:debug)`); separarlos con rutas de recursos por compilación si
+      la memoria lo pidiera (hoy sobra: 13 % de uso).
 
-## 5. AMOLED y accesibilidad (reloj real)
+### Publicación y entorno
 
-- [ ] `ORANGE`, `ORANGE_DEEP` y `RED_INTENSE` se distinguen entre sí en el reloj; en el
-      simulador sí se distinguen.
-- [ ] La pista `BORDER` del anillo se ve sin llamar la atención con brillo bajo.
-- [ ] El botón grande (226×54 px, área táctil 248×76 px) se acierta con el reloj puesto y la
-      mano en movimiento.
-
-## 6. Ícono y tienda (fase 13)
-
-- [ ] `AppInfo.VERSION` ("0.11.0", visible en *Acerca de*) debe coincidir con la versión que
-      se escriba al subir el paquete: el manifest de Connect IQ no lleva versión.
-
-- [ ] Ver el ícono de 54×54 en el menú de apps del simulador y del reloj: que el pulso se
-      lea a tamaño real.
-- [ ] Revisar los requisitos actuales de la Connect IQ Store: ícono, capturas y descripción
-      en español e inglés.
+- [ ] **Copia de seguridad de la llave** `%USERPROFILE%\Downloads\FocusPulse-keys\` fuera
+      del equipo: sin ella no se pueden publicar actualizaciones.
+- [ ] El `id` de la app (`6600d3c23b8a4e89827e17ef16db01e8`) **no debe cambiar** después de
+      publicar.
+- [ ] Subir `bin\FocusPulse.iq` a la Connect IQ Store con la ficha de
+      [STORE.md](STORE.md) (cuenta de desarrollador, versión **1.0.0** = `AppInfo.VERSION`) y
+      revisar en el formulario los requisitos actuales de ícono, capturas y textos.
+- [ ] Ver el ícono de 54×54 en el menú de apps del simulador y del reloj.
+- [ ] **Editor de ajustes del simulador**: depende del nombre con que el simulador registró
+      la app (FOCUSPULSE-TEST en este equipo); si tras *Reset All App Data* dice "No settings
+      file found", volver a ejecutar `run.ps1`.
+- [ ] Con el acelerómetro del simulador (*Activity Data*, vectores de 1 g al azar) el
+      detector daría cabeceos continuos; para la sustentación, usar la fuente simulada.

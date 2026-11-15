@@ -205,7 +205,7 @@ medir batería y vibración en el FR165, y publicar en la Connect IQ Store.
 | Cifra | Valor |
 |---|---|
 | Versión | **1.0.0** (tag local `v1.0.0`) |
-| Commits | más de 190, en 12 fases (`git rev-list --count HEAD`) |
+| Commits | **199** hasta el tag `v1.0.0`, en 12 fases (`git rev-list --count v1.0.0`) |
 | Pruebas unitarias | **205**, todas en verde |
 | Exactitud del clasificador (Python, 12 usuarios no vistos) | v1 **89,7 %** → v2 **93,3 %** |
 | Falsos cabeceos del modelo, episodios difíciles | v1 **16 de 48** → v2 **12 de 48** |

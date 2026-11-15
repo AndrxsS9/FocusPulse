@@ -247,7 +247,7 @@ los módulos de las fases siguientes:
 | 10 | IA entrenada: dataset sintético, entrenamiento en Python (regresión logística), exportación de pesos v2, métricas v1/v2, pantalla *Modelo IA* y escenario *mirar la hora*. ✅ |
 | 11 | Ajustes de usuario (sensibilidad, vibración por pulsos, sonido, animaciones reducidas, confirmación por IA, grabar actividad) en el reloj y en Garmin Connect; confirmación de los cabeceos por el modelo; transición suave entre escenarios de la demo. ✅ |
 | 12 | Pulido final y **versión 1.0.0**: aviso sin datos del sensor, alerta sobre menús, anti quemado, revisión de textos y contraste, limpieza, material de la tienda, guía de sustentación, export. ✅ |
-| 13 | Pruebas en el reloj real: ejes del acelerómetro, vibración, pantalla apagada, batería, CPU y memoria ([PENDIENTES.md](PENDIENTES.md) §1). |
+| 13 | Pruebas en el reloj real: ejes del acelerómetro, vibración, pantalla apagada, batería, CPU y memoria ([PENDIENTES.md](PENDIENTES.md), "Requiere reloj real"). |
 | 14 | Datos reales con `SensorLogging`, reentrenamiento y decisión del evento entrenada; publicación en la Connect IQ Store. |
 
 En la fase 4 se adelantó la esfera principal (antes en la 7) para la sustentación en el
