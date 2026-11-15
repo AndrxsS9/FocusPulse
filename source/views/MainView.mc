@@ -77,6 +77,11 @@ class MainView extends WatchUi.View {
     //! Separación (en milésimas) entre el ícono de batería y su porcentaje (fr165: 8 px).
     const BATTERY_GAP = 21;
 
+    //! Punto cian del modo demo junto a la batería: diámetro 5 px y separación 6 px del
+    //! porcentaje (milésimas: 13 y 15).
+    const DEMO_DOT = 13;
+    const DEMO_DOT_GAP = 15;
+
     //! Separación (en milésimas) entre "ALERTA" y el porcentaje (fr165: 10 px).
     const SCORE_GAP = 26;
 
@@ -110,7 +115,8 @@ class MainView extends WatchUi.View {
     private var _alertLabelWidth as Number = 0;
     private var _alertLabel as String = "";
     private var _dateFormat as String = "";
-    private var _dateLowercase as Boolean = false;
+    private var _weekdays as String = "";
+    private var _months as String = "";
     private var _statusPaused as String = "";
     private var _statusActive as String = "";
     private var _statusCalibrating as String = "";
@@ -125,8 +131,7 @@ class MainView extends WatchUi.View {
     private var _demoLine as String = "";
     private var _demoLineKey as Number = -1;
 
-    //! Textos del aviso breve: título y valor, rehechos solo cuando cambia el aviso.
-    private var _toastScenarioTitle as String = "";
+    //! Textos del aviso de seguridad: título y valor, rehechos solo cuando cambia.
     private var _toastKind as Number = -1;
     private var _toastValue as Number = -1;
     private var _toastTitle as String = "";
@@ -153,7 +158,8 @@ class MainView extends WatchUi.View {
         _alertLabel = WatchUi.loadResource(Rez.Strings.LabelAlertShort) as String;
         _alertLabelWidth = Draw.trackedWidth(dc, _alertLabel, Typography.label, LABEL_TRACKING);
         _dateFormat = WatchUi.loadResource(Rez.Strings.DateFormat) as String;
-        _dateLowercase = (WatchUi.loadResource(Rez.Strings.DateCase) as String).equals("lower");
+        _weekdays = WatchUi.loadResource(Rez.Strings.DateWeekdays) as String;
+        _months = WatchUi.loadResource(Rez.Strings.DateMonths) as String;
         _statusPaused = WatchUi.loadResource(Rez.Strings.StatusPaused) as String;
         _statusActive = WatchUi.loadResource(Rez.Strings.StatusActive) as String;
         _statusCalibrating = WatchUi.loadResource(Rez.Strings.StatusCalibrating) as String;
@@ -163,7 +169,6 @@ class MainView extends WatchUi.View {
         _demoBadgeFormat = WatchUi.loadResource(Rez.Strings.DemoBadgeFormat) as String;
         _scriptFormat = WatchUi.loadResource(Rez.Strings.ScriptProgressFormat) as String;
         _demoLineKey = -1;
-        _toastScenarioTitle = WatchUi.loadResource(Rez.Strings.MenuScenario) as String;
         _toastKind = -1;
         _buttonStart = WatchUi.loadResource(Rez.Strings.ButtonStartGuard) as String;
         _buttonPause = WatchUi.loadResource(Rez.Strings.ButtonPauseGuard) as String;
@@ -379,27 +384,38 @@ class MainView extends WatchUi.View {
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
         dc.drawText(left + iconWidth + gap, layout.topY, Typography.numberSmall, text,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+
+        // Modo demo: punto cian a la derecha del porcentaje (la batería sigue centrada).
+        if (_guard.isDemoMode()) {
+            var radius = layout.scaled(DEMO_DOT) / 2.0f;
+            dc.setColor(Palette.ACCENT, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(left + iconWidth + gap + textWidth + layout.scaled(DEMO_DOT_GAP) + radius,
+                layout.topY, radius);
+        }
     }
 
-    //! Hora grande (24 h o 12 h según el sistema) y, debajo, la fecha corta en el idioma
-    //! del reloj o, con el modo demo activo, la línea del modo demo.
+    //! Hora grande (24 h o 12 h según el sistema) y, debajo, la fecha corta ("Dom, 15 Nov",
+    //! Inter Medium 15 px, TEXT_SECONDARY). La fecha se ve siempre, también en modo demo;
+    //! solo durante los 2 s del aviso de escenario (Toast, al pulsar DOWN o al cambiar de
+    //! paso el guion) la reemplaza la línea del modo demo.
     private function drawClock(dc as Dc, layout as RoundLayout) as Void {
-        var now = Gregorian.info(Time.now(), Time.FORMAT_MEDIUM);
+        var now = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
         var time = ClockFormat.hoursMinutes(now.hour, now.min, System.getDeviceSettings().is24Hour);
         drawTime(dc, layout, time, GuardVisuals.colonAlpha(now.sec));
-        if (_guard.isDemoMode()) {
+        var toast = _guard.toast();
+        if (_guard.isDemoMode() && toast.kind() == ToastKind.SCENARIO
+                && toast.isVisible(System.getTimer())) {
             drawDemoLine(dc, layout);
             return;
         }
 
-        var weekday = now.day_of_week as String;
-        var month = now.month as String;
-        if (_dateLowercase) {
-            weekday = weekday.toLower();
-            month = month.toLower();
-        }
-        var date = Lang.format(_dateFormat, [weekday, now.day, month]);
-        Draw.centeredText(dc, layout.centerX, layout.dateY, Typography.label, date,
+        // FORMAT_SHORT: día de la semana 1–7 (domingo = 1) y mes 1–12.
+        var date = Lang.format(_dateFormat, [
+            ClockFormat.listItem(_weekdays, (now.day_of_week as Number) - 1),
+            now.day,
+            ClockFormat.listItem(_months, (now.month as Number) - 1)
+        ]);
+        Draw.centeredText(dc, layout.centerX, layout.dateY, Typography.body, date,
             Palette.TEXT_SECONDARY);
     }
 
@@ -525,14 +541,15 @@ class MainView extends WatchUi.View {
         }
     }
 
-    //! Aviso breve (Toast) sobre el centro de la esfera durante 1,5 s: caja SURFACE con
-    //! borde cian, título pequeño en gris ("Escenario") y el valor debajo ("Tecleo
-    //! activo"), con la fuente más grande que quepa. Tapa la fecha, el puntaje y la
-    //! píldora mientras dura; la hora y el botón siguen a la vista. El aviso de seguridad
-    //! ("Alerta solo visual", 3 s) lleva el borde y el título en ámbar, como el de fatiga.
+    //! Aviso de seguridad ("Alerta solo visual / Sin vibración ni sonido", 3 s) sobre el
+    //! centro de la esfera: caja SURFACE con borde y título ámbar, como el de fatiga, y el
+    //! valor debajo con la fuente más grande que quepa. Tapa la fecha, el puntaje y la
+    //! píldora mientras dura; la hora y el botón siguen a la vista. El aviso de escenario
+    //! no usa caja: va en el sitio de la fecha (drawClock).
     private function drawToast(dc as Dc, layout as RoundLayout) as Void {
         var toast = _guard.toast();
-        if (!toast.isVisible(System.getTimer()) || !updateToastTexts(toast)) {
+        if (toast.kind() != ToastKind.VISUAL_ONLY || !toast.isVisible(System.getTimer())
+                || !updateToastTexts(toast)) {
             return;
         }
         var pad = layout.scaled(TOAST_PADDING);
@@ -557,28 +574,24 @@ class MainView extends WatchUi.View {
 
         dc.setColor(Palette.SURFACE, Graphics.COLOR_TRANSPARENT);
         dc.fillRoundedRectangle(left, top, width, height, pad);
-        var warning = toast.kind() == ToastKind.VISUAL_ONLY;
         dc.setPenWidth(layout.scaled(TOAST_BORDER));
-        dc.setColor(warning ? Palette.AMBER : Palette.ACCENT, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Palette.AMBER, Graphics.COLOR_TRANSPARENT);
         dc.drawRoundedRectangle(left, top, width, height, pad);
         dc.setPenWidth(1);
         Draw.centeredText(dc, layout.centerX, top + pad + titleHeight / 2, Typography.label,
-            _toastTitle, warning ? Palette.AMBER : Palette.TEXT_SECONDARY);
+            _toastTitle, Palette.AMBER);
         Draw.centeredText(dc, layout.centerX, top + pad + titleHeight + valueHeight / 2,
             valueFont, _toastText, Palette.TEXT);
     }
 
-    //! Prepara el título y el valor del aviso si cambió. Devuelve false si el tipo de
-    //! aviso no tiene texto.
+    //! Prepara el título y el valor del aviso de seguridad si cambió. Devuelve false si el
+    //! tipo de aviso no tiene texto.
     private function updateToastTexts(toast as Toast) as Boolean {
         var kind = toast.kind() as Number;
         if (kind == _toastKind && toast.value() == _toastValue) {
             return true;
         }
-        if (toast.kind() == ToastKind.SCENARIO) {
-            _toastTitle = _toastScenarioTitle;
-            _toastText = DemoText.scenarioName(toast.value() as AccelScenario.Id);
-        } else if (toast.kind() == ToastKind.VISUAL_ONLY) {
+        if (toast.kind() == ToastKind.VISUAL_ONLY) {
             _toastTitle = DemoText.text(Rez.Strings.WarningVisualOnlyTitle);
             _toastText = DemoText.text(Rez.Strings.WarningVisualOnlyShort);
         } else {
@@ -589,11 +602,11 @@ class MainView extends WatchUi.View {
         return true;
     }
 
-    //! Línea del modo demo en el sitio de la fecha: "DEMO · Tecleo activo" o, con el
-    //! guion en marcha, "Guion 2/5 · Tecleo activo", en cian, para que en la
-    //! sustentación se sepa qué datos se ven y qué escenario corre. Va aquí y no en el
-    //! pie (footerY), donde la cuerda del círculo seguro solo deja unos 130 px; en dateY
-    //! hay unos 335 px. Los nombres cortos (DemoShort*) caben en ambos idiomas.
+    //! Línea del modo demo en el sitio de la fecha, solo durante los 2 s del aviso de
+    //! escenario: "DEMO · Tecleo activo" o, con el guion en marcha, "Guion 2/6 · Tecleo
+    //! activo", en cian (Inter Medium 15 px). Fuera de esos 2 s el modo demo se reconoce
+    //! por el punto cian junto a la batería. Los nombres cortos (DemoShort*) caben en ambos
+    //! idiomas a esta altura.
     private function drawDemoLine(dc as Dc, layout as RoundLayout) as Void {
         var scenario = _guard.demoScenario() as Number;
         var script = _guard.demoScript();
@@ -606,7 +619,7 @@ class MainView extends WatchUi.View {
                 : Lang.format(_demoBadgeFormat, [_badgeDemo, name]);
             _demoLineKey = key;
         }
-        Draw.centeredText(dc, layout.centerX, layout.dateY, Typography.label, _demoLine,
+        Draw.centeredText(dc, layout.centerX, layout.dateY, Typography.body, _demoLine,
             Palette.ACCENT);
     }
 }

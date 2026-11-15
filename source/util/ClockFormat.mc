@@ -32,6 +32,21 @@ module ClockFormat {
         return (s / 60).format("%d") + ":" + (s % 60).format("%02d");
     }
 
+    //! Elemento index (desde 0) de una lista separada por comas ("Dom,Lun,Mar…"), para
+    //! las abreviaturas de días y meses de los recursos. "" si no existe.
+    function listItem(list as String, index as Number) as String {
+        var rest = list;
+        for (var i = 0; i < index; i++) {
+            var comma = rest.find(",");
+            if (comma == null) {
+                return "";
+            }
+            rest = rest.substring(comma + 1, rest.length()) as String;
+        }
+        var end = rest.find(",");
+        return (end == null ? rest : rest.substring(0, end)) as String;
+    }
+
     //! Nivel de batería (0–100, Float de System.Stats) redondeado y recortado.
     function batteryPercent(battery as Float) as Number {
         var value = (battery + 0.5f).toNumber();

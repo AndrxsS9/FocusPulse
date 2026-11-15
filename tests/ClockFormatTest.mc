@@ -4,6 +4,17 @@ import Toybox.Test;
 //! Pruebas de ClockFormat (source/util): hora en 24 h y 12 h, y batería.
 
 (:test)
+function clockFormatPicksListItems(logger as Logger) as Boolean {
+    var days = "Dom,Lun,Mar,Mié,Jue,Vie,Sáb";
+    Test.assertEqual(ClockFormat.listItem(days, 0), "Dom");
+    Test.assertEqual(ClockFormat.listItem(days, 3), "Mié");
+    Test.assertEqual(ClockFormat.listItem(days, 6), "Sáb");
+    Test.assertEqual(ClockFormat.listItem(days, 7), "");
+    Test.assertEqual(ClockFormat.listItem("Nov", 0), "Nov");
+    return true;
+}
+
+(:test)
 function clockFormatUses24HourWithLeadingZeros(logger as Logger) as Boolean {
     Test.assertEqual(ClockFormat.hoursMinutes(7, 5, true), "07:05");
     Test.assertEqual(ClockFormat.hoursMinutes(0, 0, true), "00:00");

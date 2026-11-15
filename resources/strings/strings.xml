@@ -32,10 +32,16 @@
     <!-- Batería y puntaje de la esfera en JetBrains Mono, sin espacio ("78%"), como el
          diseño web, en los dos idiomas. -->
     <string id="PercentCompactFormat">$1$%</string>
-    <!-- Fecha corta: $1$ día de la semana, $2$ día del mes, $3$ mes (abreviados por el sistema). -->
-    <string id="DateFormat">$1$ $3$ $2$</string>
-    <!-- No es un texto visible: "lower" pasa a minúsculas el día y el mes del sistema
-         (en español "vie 13 nov"); "keep" los deja como vienen ("Fri Nov 13"). -->
+    <!-- Fecha corta de la esfera ("Sun, 15 Nov"): $1$ día de la semana, $2$ día del mes,
+         $3$ mes, abreviados con DateWeekdays y DateMonths. -->
+    <string id="DateFormat">$1$, $2$ $3$</string>
+    <!-- Abreviaturas separadas por comas: semana de domingo a sábado, meses de enero a
+         diciembre. Son propias (no las del sistema) para que la fecha use siempre letras que
+         tienen las fuentes de la app, sea cual sea el idioma del reloj. -->
+    <string id="DateWeekdays">Sun,Mon,Tue,Wed,Thu,Fri,Sat</string>
+    <string id="DateMonths">Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec</string>
+    <!-- No es un texto visible: "lower" pasa a minúsculas el mes de DateMonths en el
+         historial (en español "14 nov · 10:32"); "keep" lo deja igual ("Nov 14 · 10:32"). -->
     <string id="DateCase">keep</string>
 
     <!-- Alerta a pantalla completa -->

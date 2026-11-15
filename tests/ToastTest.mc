@@ -12,8 +12,8 @@ function toastIsVisibleForItsDuration(logger as Logger) as Boolean {
     Test.assertMessage(!toast.isVisible(9999), "no se ve antes de mostrarlo");
     Test.assertMessage(toast.isVisible(10000), "se ve al mostrarlo");
     Test.assertMessage(toast.isVisible(10000 + Toast.DURATION_MS - 1), "se ve hasta el final");
-    Test.assertMessage(!toast.isVisible(10000 + Toast.DURATION_MS), "desaparece a los 1,5 s");
-    Test.assertEqual(Toast.DURATION_MS, 1500);
+    Test.assertMessage(!toast.isVisible(10000 + Toast.DURATION_MS), "desaparece a los 2 s");
+    Test.assertEqual(Toast.DURATION_MS, 2000);
     Test.assertEqual(toast.kind(), ToastKind.SCENARIO);
     Test.assertEqual(toast.value(), AccelScenario.TYPING as Number);
     return true;
@@ -23,10 +23,10 @@ function toastIsVisibleForItsDuration(logger as Logger) as Boolean {
 function toastWarningStaysLonger(logger as Logger) as Boolean {
     var toast = new Toast();
     toast.show(ToastKind.VISUAL_ONLY, 0, 0);
-    Test.assertMessage(toast.isVisible(Toast.DURATION_MS), "sigue a los 1,5 s");
+    Test.assertMessage(toast.isVisible(Toast.DURATION_MS), "sigue a los 2 s");
     Test.assertMessage(toast.isVisible(Toast.WARNING_DURATION_MS - 1), "se ve 3 s");
     Test.assertMessage(!toast.isVisible(Toast.WARNING_DURATION_MS), "y luego desaparece");
-    Test.assertEqual(Toast.durationMs(ToastKind.SCENARIO), 1500);
+    Test.assertEqual(Toast.durationMs(ToastKind.SCENARIO), 2000);
     return true;
 }
 
@@ -37,7 +37,7 @@ function toastReplacedRestartsTimer(logger as Logger) as Boolean {
     toast.show(ToastKind.SCENARIO, AccelScenario.NOD as Number, 1000);
     Test.assertEqual(toast.value(), AccelScenario.NOD as Number);
     Test.assertMessage(toast.isVisible(2000), "el nuevo cuenta desde su propio inicio");
-    Test.assertMessage(!toast.isVisible(2500), "y dura lo mismo");
+    Test.assertMessage(!toast.isVisible(3000), "y dura lo mismo");
 
     toast.show(ToastKind.SCENARIO, AccelScenario.NOD as Number, 3000);
     toast.hide();

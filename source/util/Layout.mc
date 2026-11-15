@@ -21,8 +21,8 @@ class RoundLayout {
     const RING_WIDTH = 30;       // grosor del anillo de nivel de alerta
     const CONTENT_PADDING = 20;  // borde interior del anillo → contenido
     const TOP_Y = 152;           // batería / título de la pantalla (diseño web: y 59)
-    const TIME_Y = 335;          // hora grande
-    const DATE_Y = 470;          // fecha corta bajo la hora
+    const TIME_Y = 296;          // hora grande (diseño web: cifras de y 86 a 141)
+    const DATE_Y = 434;          // fecha corta bajo la hora (diseño web: y 170)
     const SCORE_Y = 527;         // "ALERTA" + porcentaje: centro de las cifras (y 205)
     const PILL_Y = 648;          // píldora de estado
     const BUTTON_TOP = 712;      // borde superior del botón grande

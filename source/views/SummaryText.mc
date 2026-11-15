@@ -70,8 +70,11 @@ module SummaryText {
     //! Inicio de la guardia: "14 nov · 10:32" (español) / "Nov 14 · 10:32" (inglés), con
     //! la hora en 24 h o 12 h según el reloj.
     function date(dateSec as Number) as String {
-        var info = Gregorian.info(new Time.Moment(dateSec), Time.FORMAT_MEDIUM);
-        var month = info.month as String;
+        var info = Gregorian.info(new Time.Moment(dateSec), Time.FORMAT_SHORT);
+        // Meses propios (DateMonths), como la fecha de la esfera: siempre con letras que
+        // tienen las fuentes de la app.
+        var month = ClockFormat.listItem(DemoText.text(Rez.Strings.DateMonths),
+            (info.month as Number) - 1);
         if (DemoText.text(Rez.Strings.DateCase).equals("lower")) {
             month = month.toLower();
         }

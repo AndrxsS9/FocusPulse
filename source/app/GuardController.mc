@@ -896,6 +896,7 @@ class GuardController {
         }
         _script.start(System.getTimer());
         logScriptStep();
+        showScenarioToast();
         WatchUi.requestUpdate();
         return true;
     }
@@ -924,6 +925,13 @@ class GuardController {
             return;
         }
         applyScenario(_script.scenario());
+        showScenarioToast();
+    }
+
+    //! Muestra 2 s el escenario actual (y el paso del guion, si corre) en el sitio de la
+    //! fecha de la esfera.
+    private function showScenarioToast() as Void {
+        _toast.show(ToastKind.SCENARIO, _demo.scenario() as Number, System.getTimer());
     }
 
     (:debug)
@@ -939,14 +947,14 @@ class GuardController {
 
     //! Atajo DOWN de la esfera: con el modo demo activo y la guardia en marcha pasa al
     //! siguiente escenario (normal → tecleo → cabeceo → inactividad → normal) y muestra
-    //! un aviso de 1,5 s con su nombre. Devuelve false, sin hacer nada, en otro caso.
+    //! su nombre 2 s en el sitio de la fecha. Devuelve false, sin hacer nada, en otro caso.
     function cycleDemoScenario() as Boolean {
         if (!_demo.handlesDownButton(_state.isActive())) {
             return false;
         }
         // Tomar el control a mano cancela el guion (setDemoScenario).
         setDemoScenario(DemoConfig.scenarioAfter(_demo.scenario()));
-        _toast.show(ToastKind.SCENARIO, _demo.scenario() as Number, System.getTimer());
+        showScenarioToast();
         return true;
     }
 

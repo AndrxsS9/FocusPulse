@@ -6,15 +6,16 @@ module ToastKind {
     enum Id {
         //! Sin aviso.
         NONE = 0,
-        //! Cambio de escenario con DOWN; el valor es el AccelScenario.Id nuevo.
+        //! Cambio de escenario (DOWN o un paso del guion); el valor es el AccelScenario.Id
+        //! nuevo. La esfera lo muestra en el sitio de la fecha.
         SCENARIO = 1,
         //! Guardia iniciada con la alerta solo visual (sin vibración ni sonido).
         VISUAL_ONLY = 2
     }
 }
 
-//! Aviso breve que se ve DURATION_MS sobre la esfera ("Escenario: Tecleo activo"), o
-//! WARNING_DURATION_MS si es un aviso de seguridad ("Alerta solo visual").
+//! Aviso breve que se ve DURATION_MS en la esfera ("DEMO · Tecleo activo" en el sitio de
+//! la fecha), o WARNING_DURATION_MS si es un aviso de seguridad ("Alerta solo visual").
 //!
 //! Guarda solo el tipo, un valor y el instante en que se mostró; la vista pone el texto
 //! localizado. Un aviso nuevo reemplaza al anterior y vuelve a contar desde cero. El
@@ -23,7 +24,7 @@ module ToastKind {
 class Toast {
 
     //! Tiempo visible (ms).
-    static const DURATION_MS = 1500;
+    static const DURATION_MS = 2000;
 
     //! Los avisos de seguridad se quedan más, para que dé tiempo a leerlos.
     static const WARNING_DURATION_MS = 3000;
