@@ -184,6 +184,19 @@ class DrowsinessDetector {
         _eventCount = 0;
     }
 
+    //! Se perdieron lotes (SensorWatchdog: más de 5 s sin datos) y acaban de volver. Lo
+    //! que se vio antes del corte ya no vale: olvida la quietud (la inactividad vuelve a
+    //! contar desde cero, para no tomar el corte por un brazo inmóvil), la caída
+    //! candidata y la postura anterior. Conserva la línea base, la calibración y el
+    //! refractario.
+    function onDataGap() as Void {
+        _hasPrevious = false;
+        _fallMs = null;
+        _fallCalm = false;
+        _stillSinceMs = null;
+        _tilt = 0.0f;
+    }
+
     //! Procesa el snapshot del lote que terminó en timeMs y devuelve el evento emitido
     //! (NONE casi siempre).
     function update(snapshot as TelemetrySnapshot, timeMs as Number) as DrowsinessEvent.Id {
