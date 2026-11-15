@@ -152,7 +152,7 @@ function orbRingPointsApplyScaleThenRotation(logger as Logger) as Boolean {
     // A a mitad de ciclo (180°, escala 1,07 × 0,93): el punto de arriba (0, -150) queda
     // abajo, a 150 × 0,93.
     model.setState(OrbState.NORMAL);
-    model.advance(((OrbModel.CYCLE_MS as Array<Number>)[0] / 2) / 1000.0f);
+    model.advance(((OrbModel.CYCLE_NORMAL_MS as Array<Number>)[0] / 2) / 1000.0f);
     Test.assert(nearlyEqual(model.phase(0), 0.5f, 0.001f));
     model.ringPoints(0, 0, 0, 1.0f, xs, ys);
     Test.assert(nearlyEqual(xs[0], 0.0f, 0.05f));
@@ -191,7 +191,7 @@ function orbIsDeterministicForTheSameTime(logger as Logger) as Boolean {
 function orbPhasesWrapAfterAFullCycle(logger as Logger) as Boolean {
     var model = new OrbModel();
     model.setState(OrbState.NORMAL);
-    var cycle = (OrbModel.CYCLE_MS as Array<Number>)[0] / 1000.0f;
+    var cycle = (OrbModel.CYCLE_NORMAL_MS as Array<Number>)[0] / 1000.0f;
     for (var i = 0; i < 10; i++) {
         model.advance(cycle / 4.0f);
     }
@@ -228,11 +228,68 @@ function orbActiveAdvancesTwiceAsFastAsNormal(logger as Logger) as Boolean {
         active.advance(0.25f);
         drowsy.advance(0.25f);
     }
-    Test.assert(nearlyEqual(active.phase(0), 2.0f * normal.phase(0), 0.001f));
-    Test.assert(drowsy.phase(0) < normal.phase(0));
+    for (var ring = 0; ring < OrbModel.RINGS; ring++) {
+        Test.assert(nearlyEqual(active.phase(ring), 2.0f * normal.phase(ring), 0.001f));
+        Test.assert(drowsy.phase(ring) < normal.phase(ring));
+    }
     // B gira al revés.
     Test.assert(normal.ringRotation(1) < 0.0f);
     Test.assert(normal.ringRotation(0) > 0.0f);
+    return true;
+}
+
+(:test)
+function orbCycleDurationsFollowTheState(logger as Logger) as Boolean {
+    // Duraciones del diseño web (A / B / C), en ms.
+    var expected = {
+        OrbState.ACTIVE => [4500, 6000, 7500],
+        OrbState.NORMAL => [9000, 12000, 15000],
+        OrbState.DROWSY => [22000, 28000, 34000]
+    } as Dictionary<OrbState.Id, Array<Number> >;
+    var states = [OrbState.ACTIVE, OrbState.NORMAL, OrbState.DROWSY] as Array<OrbState.Id>;
+    for (var i = 0; i < states.size(); i++) {
+        var cycles = expected[states[i]] as Array<Number>;
+        for (var ring = 0; ring < OrbModel.RINGS; ring++) {
+            Test.assertEqual(OrbModel.cycleMs(states[i], ring), cycles[ring]);
+            // Tras medio ciclo la fase es 0,5.
+            var model = new OrbModel();
+            model.setState(states[i]);
+            model.advance(cycles[ring] / 2000.0f);
+            Test.assert(nearlyEqual(model.phase(ring), 0.5f, 0.001f));
+        }
+    }
+    Test.assertEqual(OrbModel.cycleMs(OrbState.PAUSED, 0), 0);
+    return true;
+}
+
+(:test)
+function orbStateChangeKeepsThePhase(logger as Logger) as Boolean {
+    // Cambiar de estado cambia la velocidad, no la posición: sin saltos.
+    var model = new OrbModel();
+    model.setState(OrbState.NORMAL);
+    model.advance(2.25f);
+    var before = model.phase(0);
+    model.setState(OrbState.DROWSY);
+    Test.assert(nearlyEqual(model.phase(0), before, 0.0001f));
+    model.advance(1.1f);
+    Test.assert(nearlyEqual(model.phase(0), before + 0.05f, 0.0001f));
+    return true;
+}
+
+(:test)
+function orbOpacityFollowsTheState(logger as Logger) as Boolean {
+    Test.assertEqual(OrbModel.opacityFor(OrbState.PAUSED), 300);
+    Test.assertEqual(OrbModel.opacityFor(OrbState.ACTIVE), 1000);
+    Test.assertEqual(OrbModel.opacityFor(OrbState.NORMAL), 900);
+    Test.assertEqual(OrbModel.opacityFor(OrbState.DROWSY), 750);
+    // Opacidad de cada contorno (0,6 / 0,45 / 0,35) por la del estado.
+    Test.assertEqual(OrbModel.ringAlpha(OrbState.ACTIVE, 0), 600);
+    Test.assertEqual(OrbModel.ringAlpha(OrbState.ACTIVE, 1), 450);
+    Test.assertEqual(OrbModel.ringAlpha(OrbState.ACTIVE, 2), 350);
+    Test.assertEqual(OrbModel.ringAlpha(OrbState.NORMAL, 0), 540);
+    Test.assertEqual(OrbModel.ringAlpha(OrbState.DROWSY, 0), 450);
+    Test.assertEqual(OrbModel.ringAlpha(OrbState.PAUSED, 0), 180);
+    Test.assertEqual(OrbModel.ringAlpha(OrbState.PAUSED, 2), 105);
     return true;
 }
 
@@ -269,7 +326,15 @@ function orbPaletteFollowsScoreBands(logger as Logger) as Boolean {
     Test.assertEqual(OrbModel.paletteFor(60)[2], Palette.VIOLET);
     Test.assertEqual(OrbModel.paletteFor(59)[0], Palette.AMBER);
     Test.assertEqual(OrbModel.paletteFor(35)[0], Palette.AMBER);
+    Test.assertEqual(OrbModel.paletteFor(35)[1], 0xFFD27A);
+    Test.assertEqual(OrbModel.paletteFor(35)[2], 0xFF8A1F);
     Test.assertEqual(OrbModel.paletteFor(34)[0], Palette.RED);
+    Test.assertEqual(OrbModel.paletteFor(34)[0], 0xFF5A5A);
+    Test.assertEqual(OrbModel.paletteFor(34)[1], 0xFF8A8A);
+    Test.assertEqual(OrbModel.paletteFor(34)[2], 0xFFB020);
+    Test.assertEqual(OrbModel.paletteFor(60)[0], 0x4CC9F0);
+    Test.assertEqual(OrbModel.paletteFor(60)[1], 0x8BDDF5);
+    Test.assertEqual(OrbModel.paletteFor(60)[2], 0xC3A6FF);
     return true;
 }
 

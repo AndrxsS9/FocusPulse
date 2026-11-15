@@ -61,8 +61,8 @@ function colorForAlertnessClampsOutOfRange(logger as Logger) as Boolean {
 
 (:test)
 function orbPaletteFollowsBands(logger as Logger) as Boolean {
-    var low = [Palette.RED, Palette.RED_INTENSE, Palette.ORANGE] as Array<Number>;
-    var medium = [Palette.AMBER, Palette.ORANGE, Palette.VIOLET] as Array<Number>;
+    var low = [Palette.RED, Palette.RED_LIGHT, Palette.AMBER] as Array<Number>;
+    var medium = [Palette.AMBER, Palette.AMBER_LIGHT, Palette.ORANGE] as Array<Number>;
     var high = [Palette.ACCENT, Palette.ACCENT_LIGHT, Palette.VIOLET] as Array<Number>;
 
     Test.assertMessage(colorsMatch(AlertnessColors.orbPalette(0), low), "orbe 0");

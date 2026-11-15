@@ -54,8 +54,14 @@ module Palette {
     //! Ámbar: nivel de alerta medio (atención).
     const AMBER = 0xFFB020;
 
+    //! Ámbar claro: segundo contorno del orbe IA con el puntaje en la banda ámbar.
+    const AMBER_LIGHT = 0xFFD27A;
+
     //! Rojo: nivel de alerta bajo (somnolencia) sobre fondo oscuro.
     const RED = 0xFF5A5A;
+
+    //! Rojo claro: segundo contorno del orbe IA con el puntaje en la banda roja.
+    const RED_LIGHT = 0xFF8A8A;
 
     //! Rojo intenso: fondo de la alerta de nivel 3.
     const RED_INTENSE = 0xE01E1E;

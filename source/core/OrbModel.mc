@@ -45,6 +45,18 @@ module OrbState {
 //! después la rotación, como "rotate(θ) scale(sx, sy)" en CSS; θ > 0 gira en sentido
 //! horario porque y crece hacia abajo), con k = lado de la pantalla / DESIGN_SIZE.
 //!
+//! **Estados.** La duración del ciclo de cada contorno (A / B / C) y la opacidad general
+//! del orbe dependen del estado:
+//!
+//!     pausa         congelado               opacidad 0,3
+//!     activo        4,5 /  6   /  7,5 s     opacidad 1
+//!     normal        9   / 12   / 15   s     opacidad 0,9
+//!     somnoliento  22   / 28   / 34   s     opacidad 0,75
+//!
+//! Cada contorno avanza su fase dt / duración, así que un cambio de estado cambia la
+//! velocidad sin saltos. La opacidad de cada contorno (0,6 / 0,45 / 0,35) se multiplica
+//! por la del estado (ringAlpha).
+//!
 //! El tiempo entra como parámetro (advance(dt)): el modelo no lee el reloj.
 //!
 //! Partículas: PARTICLES puntos en posiciones fijas sobre un anillo (radio que elige
@@ -97,10 +109,21 @@ class OrbModel {
     static const SCALE_MID_X = [1070, 1050, 920];
     static const SCALE_MID_Y = [930, 950, 1060];
 
-    //! Duración de un ciclo de cada contorno a velocidad normal (ms).
-    static const CYCLE_MS = [9000, 12000, 15000];
+    //! Duración de un ciclo de cada contorno (A, B, C) por estado (ms).
+    static const CYCLE_ACTIVE_MS = [4500, 6000, 7500];
+    static const CYCLE_NORMAL_MS = [9000, 12000, 15000];
+    static const CYCLE_DROWSY_MS = [22000, 28000, 34000];
 
-    //! Multiplicadores de velocidad por estado.
+    //! Opacidad propia de cada contorno (milésimas).
+    static const RING_ALPHA = [600, 450, 350];
+
+    //! Opacidad general del orbe por estado (milésimas).
+    static const OPACITY_PAUSED = 300;
+    static const OPACITY_ACTIVE = 1000;
+    static const OPACITY_NORMAL = 900;
+    static const OPACITY_DROWSY = 750;
+
+    //! Multiplicadores de velocidad por estado (tiempo de animación de las partículas).
     static const SPEED_PAUSED = 0.0f;
     static const SPEED_NORMAL = 1.0f;
     static const SPEED_ACTIVE = 2.0f;
@@ -222,6 +245,40 @@ class OrbModel {
         }
     }
 
+    //! Duración del ciclo del contorno en un estado (ms); 0 en pausa (congelado).
+    static function cycleMs(state as OrbState.Id, ring as Number) as Number {
+        switch (state) {
+            case OrbState.ACTIVE:
+                return (CYCLE_ACTIVE_MS as Array<Number>)[ring];
+            case OrbState.NORMAL:
+                return (CYCLE_NORMAL_MS as Array<Number>)[ring];
+            case OrbState.DROWSY:
+                return (CYCLE_DROWSY_MS as Array<Number>)[ring];
+            default:
+                return 0;
+        }
+    }
+
+    //! Opacidad general del orbe en un estado (milésimas).
+    static function opacityFor(state as OrbState.Id) as Number {
+        switch (state) {
+            case OrbState.ACTIVE:
+                return OPACITY_ACTIVE;
+            case OrbState.NORMAL:
+                return OPACITY_NORMAL;
+            case OrbState.DROWSY:
+                return OPACITY_DROWSY;
+            default:
+                return OPACITY_PAUSED;
+        }
+    }
+
+    //! Opacidad con la que se dibuja el contorno en un estado (milésimas): la suya por la
+    //! general del estado.
+    static function ringAlpha(state as OrbState.Id, ring as Number) as Number {
+        return (RING_ALPHA as Array<Number>)[ring] * opacityFor(state) / 1000;
+    }
+
     //! Colores de los 3 contornos (A, B, C) según el puntaje: los de
     //! AlertnessColors.orbPalette (cian / ámbar / rojo con sus acompañantes).
     static function paletteFor(score as Number) as Array<Number> {
@@ -236,20 +293,15 @@ class OrbModel {
         return _state;
     }
 
-    //! Avanza la animación dt segundos reales a la velocidad del estado. En pausa no
-    //! avanza: el orbe queda quieto donde estaba.
+    //! Avanza la animación dt segundos reales: cada contorno, dt / duración de su ciclo
+    //! en el estado actual. En pausa no avanza: el orbe queda quieto donde estaba.
     function advance(dt as Float) as Void {
-        if (dt <= 0.0f) {
+        if (dt <= 0.0f || _state == OrbState.PAUSED) {
             return;
         }
-        var speed = speedFor(_state);
-        if (speed <= 0.0f) {
-            return;
-        }
-        _time += dt * speed;
-        var cycles = CYCLE_MS as Array<Number>;
+        _time += dt * speedFor(_state);
         for (var ring = 0; ring < RINGS; ring++) {
-            _phases[ring] = wrap(_phases[ring] + dt * speed * 1000.0f / cycles[ring]);
+            _phases[ring] = wrap(_phases[ring] + dt * 1000.0f / cycleMs(_state, ring));
         }
     }
 

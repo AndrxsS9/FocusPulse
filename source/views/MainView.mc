@@ -25,7 +25,7 @@ import Toybox.WatchUi;
 //! quieto) y cada REFRESH_ACTIVE_MS con la guardia activa (unos 12 cuadros por segundo
 //! para el orbe, el arco y el latido). Con ANIMATIONS_ENABLED = false la guardia activa
 //! también redibuja una vez por segundo y nada se anima. Con el ajuste "Animaciones
-//! reducidas" el orbe sigue latiendo pero sin sus 16 partículas. Se detiene en onHide y se
+//! reducidas" el orbe queda congelado y sin sus 16 partículas. Se detiene en onHide y se
 //! reanuda en onShow. El puntaje no depende del timer: se actualiza con cada lote de
 //! telemetría (GuardController.onBatch), que además pide su propio redibujo.
 //!
@@ -47,13 +47,6 @@ class MainView extends WatchUi.View {
     //! 1 redibujo por segundo). El ajuste "Animaciones reducidas" solo quita las
     //! partículas (drawOrb).
     const ANIMATIONS_ENABLED = true;
-
-    //! Opacidad (milésimas) de cada contorno del orbe (A, B, C). En el fr165 no hay trazos
-    //! con alfa: se mezcla el color con el fondo (ColorMath).
-    const ORB_ALPHA = [600, 450, 350];
-
-    //! En pausa el orbe se ve más tenue: opacidad × ORB_PAUSED_DIM / 1000.
-    const ORB_PAUSED_DIM = 450;
 
     //! Grosor de cada contorno (px del diseño web, escalados con la pantalla).
     const ORB_PEN = [2.5f, 2.0f, 2.0f];
@@ -294,8 +287,9 @@ class MainView extends WatchUi.View {
         var last = _lastFrameMs;
         _lastFrameMs = now;
         _orb.setState(OrbModel.stateFor(_guard.isActive(), _guard.topClass(), score));
-        if (!animate) {
-            // Sin animación el orbe no avanza, pero conserva el color de su estado.
+        if (!animate || _guard.settings().reducedAnimations) {
+            // Sin animación (o con animaciones reducidas) el orbe queda congelado, pero
+            // conserva el color y la opacidad de su estado.
             return;
         }
         if (last != null) {
@@ -305,20 +299,21 @@ class MainView extends WatchUi.View {
     }
 
     //! Orbe IA detrás del contenido: 3 contornos de Bézier (OrbModel) centrados en la
-    //! pantalla, en los colores de orbPalette(score), atenuados, y 16 partículas que
-    //! titilan en un anillo cerca del borde (no con animaciones reducidas). En pausa está
-    //! quieto y más tenue.
+    //! pantalla, en los colores de orbPalette(score) y con la opacidad del estado
+    //! (OrbModel.ringAlpha), y 16 partículas que titilan en un anillo cerca del borde (no
+    //! con animaciones reducidas). En pausa está quieto y al 30 %.
     private function drawOrb(dc as Dc, layout as RoundLayout, score as Number) as Void {
         var palette = OrbModel.paletteFor(score);
-        var paused = _orb.state() == OrbState.PAUSED;
-        var alphas = ORB_ALPHA as Array<Number>;
+        var state = _orb.state();
+        var paused = state == OrbState.PAUSED;
         var pens = ORB_PEN as Array<Float>;
         var k = layout.size / OrbModel.DESIGN_SIZE.toFloat();
         var last = OrbModel.POINTS - 1;
 
         for (var ring = 0; ring < OrbModel.RINGS; ring++) {
-            var alpha = paused ? alphas[ring] * ORB_PAUSED_DIM / 1000 : alphas[ring];
-            dc.setColor(ColorMath.blend(palette[ring], Palette.BACKGROUND, alpha),
+            // En el fr165 no hay trazos con alfa: se mezcla el color con el fondo.
+            dc.setColor(ColorMath.blend(palette[ring], Palette.BACKGROUND,
+                OrbModel.ringAlpha(state, ring)),
                 Graphics.COLOR_TRANSPARENT);
             dc.setPenWidth(pens[ring] * k);
             _orb.ringPoints(ring, layout.centerX, layout.centerY, k, _xs, _ys);

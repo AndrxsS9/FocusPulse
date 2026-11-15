@@ -62,8 +62,10 @@ module AlertnessColors {
         return Palette.RED;
     }
 
-    //! Los 3 colores de los anillos del orbe IA, del exterior al interior.
-    //! El primero siempre coincide con colorForAlertness(score).
+    //! Los 3 colores de los contornos del orbe IA (A, B, C), los del diseño web:
+    //! cian / cian claro / violeta (>= 60), ámbar / ámbar claro / naranja (35–59) y
+    //! rojo / rojo claro / ámbar (< 35). El primero siempre coincide con
+    //! colorForAlertness(score).
     //! Devuelve un arreglo nuevo en cada llamada (el llamador puede modificarlo).
     function orbPalette(score as Number) as Array<Number> {
         var band = bandForScore(score);
@@ -71,9 +73,9 @@ module AlertnessColors {
             return [Palette.ACCENT, Palette.ACCENT_LIGHT, Palette.VIOLET] as Array<Number>;
         }
         if (band == BAND_MEDIUM) {
-            return [Palette.AMBER, Palette.ORANGE, Palette.VIOLET] as Array<Number>;
+            return [Palette.AMBER, Palette.AMBER_LIGHT, Palette.ORANGE] as Array<Number>;
         }
-        return [Palette.RED, Palette.RED_INTENSE, Palette.ORANGE] as Array<Number>;
+        return [Palette.RED, Palette.RED_LIGHT, Palette.AMBER] as Array<Number>;
     }
 
     //! Recorta el nivel de alerta al rango 1..3.
