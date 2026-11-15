@@ -42,7 +42,7 @@
     <string id="AlertLevel3">Level 3 of 3</string>
     <string id="AlertVibrationSoft">soft vibration</string>
     <string id="AlertVibrationMedium">medium vibration</string>
-    <string id="AlertVibrationMax">maximum vibration</string>
+    <string id="AlertVibrationMax">max vibration</string>
     <!-- Con el ajuste "Vibración" apagado (o sin motor). -->
     <string id="AlertVibrationOff">no vibration</string>
     <!-- Segunda línea de la alerta: $1$ nivel (AlertLevelN), $2$ vibración (AlertVibration*, en minúsculas porque va después del punto medio). -->
@@ -101,11 +101,11 @@
     <string id="DemoTitle">Demo mode</string>
     <string id="DemoSimulateNod">Simulate nod</string>
     <string id="DemoActiveTyping">Active typing</string>
-    <string id="DemoProlongedInactivity">Prolonged inactivity</string>
+    <string id="DemoProlongedInactivity">Long inactivity</string>
     <string id="DemoMaxAlert">Maximum alert</string>
     <string id="DemoNormalMovement">Normal movement</string>
     <string id="DemoManual">Manual (fixed X/Y/Z)</string>
-    <string id="DemoGlance">Glance at the watch</string>
+    <string id="DemoGlance">Glance at watch</string>
 
     <!-- Nombres cortos de los escenarios para la línea de la esfera (unos 25 caracteres en total). -->
     <string id="DemoShortNormal">Normal</string>
