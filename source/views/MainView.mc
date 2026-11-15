@@ -29,6 +29,10 @@ import Toybox.WatchUi;
 //! reanuda en onShow. El puntaje no depende del timer: se actualiza con cada lote de
 //! telemetría (GuardController.onBatch), que además pide su propio redibujo.
 //!
+//! Anti quemado (AMOLED): cada minuto toda la esfera se desplaza a la siguiente posición
+//! del ciclo de PixelShift (±2 px), aplicada a su RoundLayout con shiftTo. El área
+//! táctil del botón (MainDelegate) no se mueve: le sobran 12 px de margen.
+//!
 //! En depuración, FrameStats mide los cuadros por segundo reales y el tiempo de dibujo
 //! y los escribe en la consola cada 5 s.
 class MainView extends WatchUi.View {
@@ -221,6 +225,7 @@ class MainView extends WatchUi.View {
             return;
         }
         var start = System.getTimer();
+        applyPixelShift(layout);
         Draw.enableAntiAlias(dc);
         var score = _guard.alertness();
         var animate = isAnimating();
@@ -237,6 +242,12 @@ class MainView extends WatchUi.View {
         if (_frameStats.frame(start, System.getTimer())) {
             reportFrameStats();
         }
+    }
+
+    //! Desplaza la esfera a la posición del minuto actual (PixelShift).
+    private function applyPixelShift(layout as RoundLayout) as Void {
+        var step = PixelShift.stepAt(Time.now().value());
+        layout.shiftTo(PixelShift.offsetX(step), PixelShift.offsetY(step));
     }
 
     //! true si este cuadro anima (guardia activa y animaciones habilitadas).

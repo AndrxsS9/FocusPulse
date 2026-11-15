@@ -81,6 +81,10 @@ class RoundLayout {
     //! al botón, tan ancho como permite el círculo seguro. fr165: 300×72 px.
     var fatigueBannerRect as Rect;
 
+    //! Desplazamiento anti quemado aplicado (shiftTo, PixelShift); 0 al construirlo.
+    var offsetX as Number = 0;
+    var offsetY as Number = 0;
+
     function initialize(screenWidth as Number, screenHeight as Number) {
         width = screenWidth;
         height = screenHeight;
@@ -129,6 +133,33 @@ class RoundLayout {
         var bannerWidth = safeWidthBetween(bannerTop, bannerBottom);
         fatigueBannerRect = new Rect(centerX - bannerWidth / 2, bannerTop, bannerWidth,
             bannerBottom - bannerTop);
+    }
+
+    //! Mueve todo el diseño (centro, zonas y rectángulos) para que quede desplazado
+    //! (dx, dy) píxeles respecto a su posición original. Anti quemado de la esfera
+    //! (PixelShift): como se mueve todo junto, las distancias entre elementos y al
+    //! círculo seguro no cambian. shiftTo(0, 0) lo devuelve a su sitio.
+    function shiftTo(dx as Number, dy as Number) as Void {
+        var mx = dx - offsetX;
+        var my = dy - offsetY;
+        if (mx == 0 && my == 0) {
+            return;
+        }
+        centerX += mx;
+        centerY += my;
+        topY += my;
+        timeY += my;
+        dateY += my;
+        scoreY += my;
+        pillY += my;
+        footerY += my;
+        buttonRect.translate(mx, my);
+        buttonTouchRect.translate(mx, my);
+        alertButtonRect.translate(mx, my);
+        alertButtonTouchRect.translate(mx, my);
+        fatigueBannerRect.translate(mx, my);
+        offsetX = dx;
+        offsetY = dy;
     }
 
     //! Convierte milésimas del lado menor a píxeles.

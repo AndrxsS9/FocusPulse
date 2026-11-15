@@ -18,6 +18,12 @@ class Rect {
         height = h;
     }
 
+    //! Mueve el rectángulo (dx, dy) píxeles.
+    function translate(dx as Number, dy as Number) as Void {
+        x += dx;
+        y += dy;
+    }
+
     function right() as Number {
         return x + width;
     }
