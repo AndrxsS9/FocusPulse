@@ -38,7 +38,6 @@ class StyleGuideView extends WatchUi.View {
     private var _titles as Array<String> = [] as Array<String>;
     private var _roleTime as String = "";
     private var _roleNumber as String = "";
-    private var _roleAlert as String = "";
     private var _roleTitle as String = "";
     private var _roleBody as String = "";
     private var _roleLabel as String = "";
@@ -71,7 +70,6 @@ class StyleGuideView extends WatchUi.View {
 
         _roleTime = text(Rez.Strings.TypeRoleTime);
         _roleNumber = text(Rez.Strings.TypeRoleNumber);
-        _roleAlert = text(Rez.Strings.TypeRoleAlert);
         _roleTitle = text(Rez.Strings.TypeRoleTitle);
         _roleBody = text(Rez.Strings.TypeRoleBody);
         _roleLabel = text(Rez.Strings.TypeRoleLabel);
@@ -113,7 +111,7 @@ class StyleGuideView extends WatchUi.View {
         // El título va cerca del borde, donde la pantalla es estrecha: si no cabe
         // (p. ej. "Componentes" en el fr165), se reduce la fuente.
         var titleWidth = 2 * layout.halfChord(layout.topY, layout.radius - layout.scaled(30));
-        var titleFont = Draw.fittingFont(dc, _titles[_page], titleWidth, Typography.TITLE);
+        var titleFont = Draw.fittingFont(dc, _titles[_page], titleWidth, Typography.title);
         Draw.centeredText(dc, layout.centerX, layout.topY, titleFont, _titles[_page], Palette.TEXT);
 
         if (_page == PAGE_PALETTE_BASE) {
@@ -136,7 +134,7 @@ class StyleGuideView extends WatchUi.View {
             drawTextTypography(dc, layout);
         } else if (_page == PAGE_TEXTS) {
             drawStack(dc, layout,
-                [Typography.ALERT, Typography.BODY, Typography.LABEL] as Array<FontDefinition>,
+                [Typography.alertTitle, Typography.body, Typography.label] as Array<FontType>,
                 [_wakeUp, _causeNod, _microsleeps] as Array<String>,
                 [Palette.ORANGE, Palette.TEXT, Palette.TEXT_SECONDARY] as Array<Number>);
         } else if (_page == PAGE_COMPONENTS) {
@@ -162,14 +160,14 @@ class StyleGuideView extends WatchUi.View {
         for (var i = 0; i < colors.size(); i++) {
             var label = colors[i].format("%06X");
             labels.add(label);
-            var width = dc.getTextWidthInPixels(label, Typography.LABEL);
+            var width = dc.getTextWidthInPixels(label, Typography.label);
             if (width > labelWidth) {
                 labelWidth = width;
             }
         }
 
         var swatchRadius = layout.scaled(60);
-        var labelHeight = dc.getFontHeight(Typography.LABEL);
+        var labelHeight = dc.getFontHeight(Typography.label);
         var unitHeight = 2 * swatchRadius + labelHeight;
         var widest = labelWidth > 2 * swatchRadius ? labelWidth : 2 * swatchRadius;
         var columnSpacing = widest + layout.scaled(30);
@@ -194,7 +192,7 @@ class StyleGuideView extends WatchUi.View {
                 dc.setColor(Palette.TEXT_SECONDARY, Graphics.COLOR_TRANSPARENT);
                 dc.drawCircle(x, swatchY, swatchRadius);
 
-                Draw.centeredText(dc, x, labelY, Typography.LABEL, labels[index],
+                Draw.centeredText(dc, x, labelY, Typography.label, labels[index],
                     Palette.TEXT_SECONDARY);
                 index++;
             }
@@ -209,16 +207,17 @@ class StyleGuideView extends WatchUi.View {
         var time = clock.hour.format("%02d") + ":" + clock.min.format("%02d");
 
         drawStack(dc, layout,
-            [Typography.LABEL, Typography.TIME, Typography.LABEL, Typography.NUMBER] as Array<FontDefinition>,
-            [_roleTime, time, _roleNumber, SAMPLE_SCORE.format("%d")] as Array<String>,
+            [Typography.label, Typography.clock, Typography.label, Typography.number] as Array<FontType>,
+            [_roleTime, time, _roleNumber, SAMPLE_SCORE.format("%d") + "%"] as Array<String>,
             [Palette.TEXT_SECONDARY, Palette.TEXT, Palette.TEXT_SECONDARY, Palette.ACCENT] as Array<Number>);
     }
 
-    //! Roles de texto: cada nombre de rol escrito con su propia fuente.
+    //! Roles de texto: cada nombre de rol escrito con su propia fuente. El de la alerta
+    //! muestra "¡DESPIERTA!": su fuente solo trae esas letras (Typography.alertTitle).
     private function drawTextTypography(dc as Dc, layout as RoundLayout) as Void {
         drawStack(dc, layout,
-            [Typography.ALERT, Typography.TITLE, Typography.BODY, Typography.LABEL] as Array<FontDefinition>,
-            [_roleAlert, _roleTitle, _roleBody, _roleLabel] as Array<String>,
+            [Typography.alertTitle, Typography.title, Typography.body, Typography.label] as Array<FontType>,
+            [_wakeUp, _roleTitle, _roleBody, _roleLabel] as Array<String>,
             [Palette.TEXT, Palette.TEXT, Palette.TEXT, Palette.TEXT_SECONDARY] as Array<Number>);
     }
 
@@ -227,11 +226,11 @@ class StyleGuideView extends WatchUi.View {
     //!   fuente con Draw.fittingFont.
     //! - Una frase que no cabe en una línea se parte con fitTextToArea, hasta
     //!   MAX_LINES líneas, dentro del ancho seguro de la zona central.
-    private function drawStack(dc as Dc, layout as RoundLayout, fonts as Array<FontDefinition>,
+    private function drawStack(dc as Dc, layout as RoundLayout, fonts as Array<FontType>,
             texts as Array<String>, colors as Array<Number>) as Void {
         var gap = layout.scaled(12);
         var width = layout.safeWidthAt(layout.centerY + layout.scaled(150));
-        var shownFonts = [] as Array<FontDefinition>;
+        var shownFonts = [] as Array<FontType>;
         var shownTexts = [] as Array<String>;
         var heights = [] as Array<Number>;
         var total = gap * (fonts.size() - 1);
@@ -294,7 +293,7 @@ class StyleGuideView extends WatchUi.View {
         var dotRadius = layout.scaled(10);
 
         var button = layout.buttonRect;
-        var pillHeight = Draw.pillHeight(dc, Typography.BODY);
+        var pillHeight = Draw.pillHeight(dc, Typography.body);
         var pillY = button.y - gap - pillHeight / 2;
         var dotsY = pillY - pillHeight / 2 - gap - dotRadius;
         var ringY = dotsY - dotRadius - gap - ringRadius - penWidth / 2;
@@ -305,7 +304,7 @@ class StyleGuideView extends WatchUi.View {
             var color = AlertnessColors.colorForAlertness(score);
 
             Draw.progressRing(dc, x, ringY, ringRadius, penWidth, score, Palette.BORDER, color);
-            Draw.centeredText(dc, x, ringY, Typography.LABEL, score.format("%d") + "%", color);
+            Draw.centeredText(dc, x, ringY, Typography.label, score.format("%d") + "%", color);
 
             var orb = AlertnessColors.orbPalette(score);
             for (var j = 0; j < orb.size(); j++) {
@@ -314,9 +313,9 @@ class StyleGuideView extends WatchUi.View {
             }
         }
 
-        Draw.pill(dc, layout.centerX, pillY, _statusActive, Typography.BODY,
+        Draw.pill(dc, layout.centerX, pillY, _statusActive, Typography.body,
             Palette.ACCENT, Palette.SURFACE, Palette.BORDER_STRONG);
-        Draw.largeButton(dc, button, _startGuard, Typography.BODY, Palette.ACCENT, Palette.BACKGROUND);
+        Draw.largeButton(dc, button, _startGuard, Typography.button, Palette.ACCENT, Palette.BACKGROUND);
     }
 
     // --- Página: alertas -----------------------------------------------------
@@ -328,7 +327,7 @@ class StyleGuideView extends WatchUi.View {
         var count = _alertLevels.size();
         var areaTop = titleBottom(dc, layout);
         var available = layout.buttonRect.y - areaTop;
-        var bandHeight = dc.getFontHeight(Typography.BODY) + layout.scaled(30);
+        var bandHeight = dc.getFontHeight(Typography.body) + layout.scaled(30);
         var gap = (available - count * bandHeight) / (count + 1);
         var top = areaTop + gap;
 
@@ -338,18 +337,18 @@ class StyleGuideView extends WatchUi.View {
 
             dc.setColor(AlertnessColors.alertBackgroundColor(level), Graphics.COLOR_TRANSPARENT);
             dc.fillRoundedRectangle(band.x, band.y, band.width, band.height, bandHeight / 4);
-            Draw.centeredText(dc, band.centerX(), band.centerY(), Typography.BODY,
+            Draw.centeredText(dc, band.centerX(), band.centerY(), Typography.body,
                 _alertLevels[level - 1], AlertnessColors.alertTextColor(level));
 
             top += bandHeight + gap;
         }
 
-        Draw.largeButton(dc, layout.buttonRect, _imAwake, Typography.BODY, Palette.TEXT, Palette.BACKGROUND);
+        Draw.largeButton(dc, layout.buttonRect, _imAwake, Typography.alertButton, Palette.TEXT, Palette.BACKGROUND);
     }
 
     //! Borde inferior del título de la página.
     private function titleBottom(dc as Dc, layout as RoundLayout) as Number {
-        return layout.topY + dc.getFontHeight(Typography.TITLE) / 2;
+        return layout.topY + dc.getFontHeight(Typography.title) / 2;
     }
 
     private function text(id as ResourceId) as String {

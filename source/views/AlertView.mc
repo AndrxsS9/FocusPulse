@@ -11,7 +11,7 @@ import Toybox.WatchUi;
 //! De arriba abajo (fr165, 390×390):
 //!   - ícono de vibración: un círculo con un teléfono vibrando dentro y dos ondas
 //!     circulares que crecen de 1× a 1,25× y se desvanecen (y ≈ 70);
-//!   - "¡DESPIERTA!" grande (Typography.ALERT; baja con Draw.fittingFont si no cabe);
+//!   - "¡DESPIERTA!" grande (Typography.alertTitle; baja con Draw.fittingFont si no cabe);
 //!   - "Nivel N de 3 · vibración suave/media/máxima" (LABEL);
 //!   - el motivo: "Cabeceo / pérdida de tono muscular" o "Inactividad prolongada"
 //!     (LABEL, partido en dos líneas si no cabe);
@@ -112,7 +112,7 @@ class AlertView extends WatchUi.View {
     private var _imAwake as String = "";
 
     //! Medidas calculadas en onLayout con las fuentes reales.
-    private var _titleFont as FontDefinition = Typography.ALERT;
+    private var _titleFont as FontType = Graphics.FONT_MEDIUM;
     private var _levelY as Number = 0;
     private var _reasonY as Number = 0;
 
@@ -139,13 +139,13 @@ class AlertView extends WatchUi.View {
 
         // Título: la fuente más grande que quepa en la cuerda a su altura.
         var titleY = layout.scaled(TITLE_Y);
-        var titleHeight = dc.getFontHeight(Typography.ALERT);
+        var titleHeight = dc.getFontHeight(Typography.alertTitle);
         _titleFont = Draw.fittingFont(dc, _wakeUp,
             layout.safeWidthBetween(titleY - titleHeight / 2, titleY + titleHeight / 2),
-            Typography.ALERT);
+            Typography.alertTitle);
 
         // Nivel justo debajo del título; el motivo, centrado entre el nivel y el botón.
-        var labelHeight = dc.getFontHeight(Typography.LABEL);
+        var labelHeight = dc.getFontHeight(Typography.label);
         var gap = layout.scaled(LINE_GAP);
         _levelY = titleY + dc.getFontHeight(_titleFont) / 2 + labelHeight / 2 + gap;
         var reasonTop = _levelY + labelHeight / 2 + gap;
@@ -154,8 +154,8 @@ class AlertView extends WatchUi.View {
         // Motivo en una línea si cabe; si no, en dos (fitTextToArea necesita algo más de
         // dos alturas de fuente para dar dos líneas, docs/DISENO.md §3).
         var reasonWidth = layout.safeWidthBetween(_reasonY - labelHeight, _reasonY + labelHeight);
-        if (dc.getTextWidthInPixels(_reason, Typography.LABEL) > reasonWidth) {
-            var wrapped = Graphics.fitTextToArea(_reason, Typography.LABEL, reasonWidth,
+        if (dc.getTextWidthInPixels(_reason, Typography.label) > reasonWidth) {
+            var wrapped = Graphics.fitTextToArea(_reason, Typography.label, reasonWidth,
                 labelHeight * 5 / 2, true);
             if (wrapped != null) {
                 _reason = wrapped;
@@ -288,8 +288,8 @@ class AlertView extends WatchUi.View {
         var cx = layout.centerX + dx;
         drawIcon(dc, layout, cx, elapsed, background, foreground);
         Draw.centeredText(dc, cx, layout.scaled(TITLE_Y), _titleFont, _wakeUp, foreground);
-        Draw.centeredText(dc, cx, _levelY, Typography.LABEL, _levelLine, foreground);
-        Draw.centeredText(dc, cx, _reasonY, Typography.LABEL, _reason, foreground);
+        Draw.centeredText(dc, cx, _levelY, Typography.label, _levelLine, foreground);
+        Draw.centeredText(dc, cx, _reasonY, Typography.label, _reason, foreground);
 
         var b = layout.alertButtonRect;
         var w = (b.width * buttonScale).toNumber();
@@ -299,7 +299,7 @@ class AlertView extends WatchUi.View {
         }
         // Botón blanco con borde y texto negros en los tres niveles (diseño web).
         var rect = new Rect(b.centerX() - w / 2 + dx, b.centerY() - h / 2, w, h);
-        Draw.largeButton(dc, rect, _imAwake, Typography.BODY, Palette.WHITE, Palette.BLACK);
+        Draw.largeButton(dc, rect, _imAwake, Typography.alertButton, Palette.WHITE, Palette.BLACK);
         var pen = layout.scaled(BUTTON_BORDER);
         var inset = pen / 2;
         dc.setPenWidth(pen);

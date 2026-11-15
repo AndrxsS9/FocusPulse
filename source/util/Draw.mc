@@ -129,23 +129,26 @@ module Draw {
         return fontHeight + fontHeight / 3;
     }
 
-    //! Fuente más grande, desde preferred hacia abajo, con la que text cabe en
-    //! maxWidth píxeles. Solo para fuentes de texto (FONT_XTINY..FONT_LARGE), que
-    //! el SDK numera de menor a mayor. Si ni FONT_XTINY cabe, devuelve FONT_XTINY.
+    //! Fuente más grande, desde preferred hacia abajo (Typography.smaller), con la que
+    //! text cabe en maxWidth píxeles. Si ni la más pequeña cabe, devuelve esa.
     function fittingFont(dc as Dc, text as String, maxWidth as Number,
-            preferred as FontDefinition) as FontDefinition {
+            preferred as FontType) as FontType {
         var font = preferred;
-        while (font > Graphics.FONT_XTINY && dc.getTextWidthInPixels(text, font) > maxWidth) {
-            font = (font - 1) as FontDefinition;
+        while (dc.getTextWidthInPixels(text, font) > maxWidth) {
+            var next = Typography.smaller(font);
+            if (next == null) {
+                break;
+            }
+            font = next;
         }
         return font;
     }
 
     //! Botón grande con extremos redondos dentro de rect, con el texto centrado.
-    //! Si el texto no cabe con font (p. ej. "Iniciar guardia" en el fr165), se
-    //! usa la fuente más grande que sí quepa. El área táctil no es rect sino una
-    //! mayor (RoundLayout.buttonTouchRect).
-    function largeButton(dc as Dc, rect as Rect, text as String, font as FontDefinition,
+    //! Si el texto no cabe con font, se usa la fuente más grande que sí quepa
+    //! (fittingFont). El área táctil no es rect sino una mayor
+    //! (RoundLayout.buttonTouchRect).
+    function largeButton(dc as Dc, rect as Rect, text as String, font as FontType,
             fillColor as Number, textColor as Number) as Void {
         dc.setColor(fillColor, Graphics.COLOR_TRANSPARENT);
         dc.fillRoundedRectangle(rect.x, rect.y, rect.width, rect.height, rect.height / 2);

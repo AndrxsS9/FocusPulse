@@ -22,6 +22,8 @@ class FocusPulseApp extends Application.AppBase {
 
     //! Se llama al iniciar la app, antes de mostrar la vista inicial.
     function onStart(state as Dictionary?) as Void {
+        // Fuentes propias (Space Grotesk, Inter, JetBrains Mono): se cargan una sola vez.
+        Typography.load();
         // Ajustes de usuario (Application.Properties, editables desde Garmin Connect).
         _guard.applySettings(AppSettings.load());
         // El modo demo y su escenario se recuerdan entre arranques (DemoStore).

@@ -76,7 +76,7 @@ class SummaryView extends WatchUi.View {
         var titleY = layout.scaled(TITLE_Y);
         // LABEL para los dos títulos ("Resumen de la guardia" no cabe más grande a esta
         // altura); la fecha del detalle va igual, así no se pega a la raya.
-        Draw.centeredText(dc, cx, titleY, Typography.LABEL, _title, Palette.ACCENT);
+        Draw.centeredText(dc, cx, titleY, Typography.label, _title, Palette.ACCENT);
         var rule = layout.scaled(RULE_WIDTH);
         var ruleY = layout.scaled(RULE_Y);
         dc.setPenWidth(2);
@@ -98,16 +98,16 @@ class SummaryView extends WatchUi.View {
         for (var i = 0; i < rows.size(); i++) {
             var y = layout.scaled(rows[i]);
             dc.setColor(Palette.TEXT_SECONDARY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx - half, y, Typography.LABEL, _labels[i],
+            dc.drawText(cx - half, y, Typography.label, _labels[i],
                 Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
             var color = i == rows.size() - 1 ? SummaryText.fatigueColor(_summary.fatigue) : Palette.TEXT;
             dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx + half, y, Typography.LABEL, _values[i],
+            dc.drawText(cx + half, y, Typography.label, _values[i],
                 Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
         }
 
         if (_summary.demo) {
-            Draw.centeredText(dc, cx, layout.scaled(DEMO_Y), Typography.LABEL, _demo, Palette.ACCENT);
+            Draw.centeredText(dc, cx, layout.scaled(DEMO_Y), Typography.label, _demo, Palette.ACCENT);
         }
     }
 }

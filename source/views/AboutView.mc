@@ -43,9 +43,9 @@ class AboutView extends WatchUi.View {
         var cx = layout.centerX;
 
         var nameY = y(layout, NAME_Y);
-        var nameFont = Draw.fittingFont(dc, _name, layout.safeWidthAt(nameY), Typography.TITLE);
+        var nameFont = Draw.fittingFont(dc, _name, layout.safeWidthAt(nameY), Typography.title);
         Draw.centeredText(dc, cx, nameY, nameFont, _name, Palette.TEXT);
-        Draw.centeredText(dc, cx, y(layout, VERSION_Y), Typography.LABEL, _version,
+        Draw.centeredText(dc, cx, y(layout, VERSION_Y), Typography.label, _version,
             Palette.TEXT_SECONDARY);
 
         var rule = layout.scaled(RULE_WIDTH);
@@ -58,9 +58,9 @@ class AboutView extends WatchUi.View {
         var top = y(layout, DESCRIPTION_TOP);
         var bottom = y(layout, DESCRIPTION_BOTTOM);
         var width = layout.safeWidthBetween(top, bottom);
-        var text = Graphics.fitTextToArea(_description, Typography.LABEL, width, bottom - top, true);
+        var text = Graphics.fitTextToArea(_description, Typography.label, width, bottom - top, true);
         dc.setColor(Palette.TEXT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, (top + bottom) / 2, Typography.LABEL, text,
+        dc.drawText(cx, (top + bottom) / 2, Typography.label, text,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 

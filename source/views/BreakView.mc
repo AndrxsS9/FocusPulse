@@ -12,7 +12,7 @@ import Toybox.WatchUi;
 //!   - anillo en el borde (mismas medidas que el de la esfera): ACCENT de las 12 en
 //!     sentido horario, tan largo como la fracción que queda, sobre la pista RING_TRACK;
 //!   - "Descanso" (LABEL, secundario) arriba;
-//!   - el tiempo que queda, "14:59", grande (Typography.NUMBER) en el centro;
+//!   - el tiempo que queda, "14:59", grande (Typography.clock) en el centro;
 //!   - "BACK · cancelar" (LABEL, secundario) debajo.
 //! Al terminar: el anillo queda vacío, "Descanso terminado" (BODY) y el botón grande
 //! "Reanudar guardia" (ACCENT, como "Iniciar guardia"). La app vibra suave una vez.
@@ -87,17 +87,17 @@ class BreakView extends WatchUi.View {
         var cx = layout.centerX;
         if (timer.isFinished()) {
             var doneY = layout.scaled(DONE_Y);
-            var font = Draw.fittingFont(dc, _done, layout.safeWidthAt(doneY), Typography.BODY);
+            var font = Draw.fittingFont(dc, _done, layout.safeWidthAt(doneY), Typography.body);
             Draw.centeredText(dc, cx, doneY, font, _done, Palette.TEXT);
-            Draw.largeButton(dc, layout.buttonRect, _resume, Typography.BODY, Palette.ACCENT,
+            Draw.largeButton(dc, layout.buttonRect, _resume, Typography.button, Palette.ACCENT,
                 Palette.BACKGROUND);
             return;
         }
-        Draw.centeredText(dc, cx, layout.scaled(TITLE_Y), Typography.LABEL, _title,
+        Draw.centeredText(dc, cx, layout.scaled(TITLE_Y), Typography.label, _title,
             Palette.TEXT_SECONDARY);
-        Draw.centeredText(dc, cx, layout.scaled(COUNTDOWN_Y), Typography.NUMBER,
+        Draw.centeredText(dc, cx, layout.scaled(COUNTDOWN_Y), Typography.clock,
             ClockFormat.countdown(timer.remainingSeconds(now)), Palette.TEXT);
-        Draw.centeredText(dc, cx, layout.scaled(HINT_Y), Typography.LABEL, _hint,
+        Draw.centeredText(dc, cx, layout.scaled(HINT_Y), Typography.label, _hint,
             Palette.TEXT_SECONDARY);
     }
 }

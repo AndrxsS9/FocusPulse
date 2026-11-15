@@ -368,13 +368,13 @@ class MainView extends WatchUi.View {
         var iconWidth = layout.scaled(BATTERY_WIDTH);
         var iconHeight = layout.scaled(BATTERY_HEIGHT);
         var gap = layout.scaled(BATTERY_GAP);
-        var textWidth = dc.getTextWidthInPixels(text, Typography.LABEL);
+        var textWidth = dc.getTextWidthInPixels(text, Typography.label);
         var left = layout.centerX - (iconWidth + gap + textWidth) / 2;
 
         Draw.battery(dc, new Rect(left, layout.topY - iconHeight / 2, iconWidth, iconHeight),
             percent, color);
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(left + iconWidth + gap, layout.topY, Typography.LABEL, text,
+        dc.drawText(left + iconWidth + gap, layout.topY, Typography.label, text,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
@@ -396,7 +396,7 @@ class MainView extends WatchUi.View {
             month = month.toLower();
         }
         var date = Lang.format(_dateFormat, [weekday, now.day, month]);
-        Draw.centeredText(dc, layout.centerX, layout.dateY, Typography.LABEL, date,
+        Draw.centeredText(dc, layout.centerX, layout.dateY, Typography.label, date,
             Palette.TEXT_SECONDARY);
     }
 
@@ -408,13 +408,13 @@ class MainView extends WatchUi.View {
             colonAlpha as Number) as Void {
         var colon = time.find(":");
         if (colon == null) {
-            Draw.centeredText(dc, layout.centerX, layout.timeY, Typography.TIME, time, Palette.TEXT);
+            Draw.centeredText(dc, layout.centerX, layout.timeY, Typography.clock, time, Palette.TEXT);
             return;
         }
         var hours = time.substring(0, colon) as String;
         var minutes = time.substring(colon + 1, time.length()) as String;
         var separator = ":";
-        var font = Typography.TIME;
+        var font = Typography.clock;
         var hoursWidth = dc.getTextWidthInPixels(hours, font);
         var colonWidth = dc.getTextWidthInPixels(separator, font);
         var left = layout.centerX
@@ -434,12 +434,12 @@ class MainView extends WatchUi.View {
     private function drawScore(dc as Dc, layout as RoundLayout, score as Number) as Void {
         var text = Lang.format(_percentFormat, [score]);
         var gap = layout.scaled(SCORE_GAP);
-        var labelWidth = dc.getTextWidthInPixels(_alertLabel, Typography.LABEL);
+        var labelWidth = dc.getTextWidthInPixels(_alertLabel, Typography.label);
         var left = layout.centerX - (labelWidth + gap + dc.getTextWidthInPixels(text, SCORE_FONT)) / 2;
         var justify = Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER;
 
         dc.setColor(Palette.TEXT_SECONDARY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(left, layout.scoreY, Typography.LABEL, _alertLabel, justify);
+        dc.drawText(left, layout.scoreY, Typography.label, _alertLabel, justify);
         dc.setColor(AlertnessColors.colorForAlertness(score), Graphics.COLOR_TRANSPARENT);
         dc.drawText(left + labelWidth + gap, layout.scoreY, SCORE_FONT, text, justify);
     }
@@ -466,7 +466,7 @@ class MainView extends WatchUi.View {
         }
         // Ping: avance 0–1 dentro de su ciclo; -1 (sin ping) si no se anima.
         var ping = animate ? GuardVisuals.pingProgress(System.getTimer()) : -1.0f;
-        Draw.statusPill(dc, layout.centerX, layout.pillY, text, Typography.LABEL, color,
+        Draw.statusPill(dc, layout.centerX, layout.pillY, text, Typography.label, color,
             Palette.SURFACE, Palette.BORDER_STRONG, active ? Palette.ACCENT_LIGHT : null, ping);
     }
 
@@ -484,11 +484,11 @@ class MainView extends WatchUi.View {
         dc.drawRoundedRectangle(rect.x, rect.y, rect.width, rect.height, corner);
         dc.setPenWidth(1);
 
-        var line = dc.getFontHeight(Typography.LABEL);
+        var line = dc.getFontHeight(Typography.label);
         var cy = rect.centerY();
-        Draw.centeredText(dc, layout.centerX, cy - line / 2, Typography.LABEL, _bannerTitle,
+        Draw.centeredText(dc, layout.centerX, cy - line / 2, Typography.label, _bannerTitle,
             Palette.AMBER);
-        Draw.centeredText(dc, layout.centerX, cy + line / 2, Typography.LABEL, _bannerAction,
+        Draw.centeredText(dc, layout.centerX, cy + line / 2, Typography.label, _bannerAction,
             Palette.TEXT);
     }
 
@@ -501,7 +501,7 @@ class MainView extends WatchUi.View {
     private function drawButton(dc as Dc, layout as RoundLayout) as Void {
         var rect = layout.buttonRect;
         if (_guard.isActive()) {
-            Draw.largeButton(dc, rect, _buttonPause, Typography.BODY, Palette.BORDER, Palette.TEXT);
+            Draw.largeButton(dc, rect, _buttonPause, Typography.button, Palette.BORDER, Palette.TEXT);
             if (_focus.isHighlighted(System.getTimer())) {
                 var pen = layout.scaled(FOCUS_BORDER);
                 var inset = pen / 2;
@@ -512,7 +512,7 @@ class MainView extends WatchUi.View {
                 dc.setPenWidth(1);
             }
         } else {
-            Draw.largeButton(dc, rect, _buttonStart, Typography.BODY, Palette.ACCENT,
+            Draw.largeButton(dc, rect, _buttonStart, Typography.button, Palette.ACCENT,
                 Palette.BACKGROUND);
         }
     }
@@ -528,19 +528,19 @@ class MainView extends WatchUi.View {
             return;
         }
         var pad = layout.scaled(TOAST_PADDING);
-        var titleHeight = dc.getFontHeight(Typography.LABEL);
+        var titleHeight = dc.getFontHeight(Typography.label);
         // El ancho disponible se mide con el alto máximo (valor en BODY): la caja final
         // solo puede ser igual o más baja, así que también cabe.
-        var height = 2 * pad + titleHeight + dc.getFontHeight(Typography.BODY);
+        var height = 2 * pad + titleHeight + dc.getFontHeight(Typography.body);
         var top = layout.centerY - height / 2;
         var maxWidth = layout.safeWidthBetween(top, top + height);
-        var valueFont = Draw.fittingFont(dc, _toastText, maxWidth - 2 * pad, Typography.BODY);
+        var valueFont = Draw.fittingFont(dc, _toastText, maxWidth - 2 * pad, Typography.body);
         var valueHeight = dc.getFontHeight(valueFont);
         height = 2 * pad + titleHeight + valueHeight;
         top = layout.centerY - height / 2;
 
         var textWidth = dc.getTextWidthInPixels(_toastText, valueFont);
-        var titleWidth = dc.getTextWidthInPixels(_toastTitle, Typography.LABEL);
+        var titleWidth = dc.getTextWidthInPixels(_toastTitle, Typography.label);
         var width = (textWidth > titleWidth ? textWidth : titleWidth) + 4 * pad;
         if (width > maxWidth) {
             width = maxWidth;
@@ -554,7 +554,7 @@ class MainView extends WatchUi.View {
         dc.setColor(warning ? Palette.AMBER : Palette.ACCENT, Graphics.COLOR_TRANSPARENT);
         dc.drawRoundedRectangle(left, top, width, height, pad);
         dc.setPenWidth(1);
-        Draw.centeredText(dc, layout.centerX, top + pad + titleHeight / 2, Typography.LABEL,
+        Draw.centeredText(dc, layout.centerX, top + pad + titleHeight / 2, Typography.label,
             _toastTitle, warning ? Palette.AMBER : Palette.TEXT_SECONDARY);
         Draw.centeredText(dc, layout.centerX, top + pad + titleHeight + valueHeight / 2,
             valueFont, _toastText, Palette.TEXT);
@@ -598,7 +598,7 @@ class MainView extends WatchUi.View {
                 : Lang.format(_demoBadgeFormat, [_badgeDemo, name]);
             _demoLineKey = key;
         }
-        Draw.centeredText(dc, layout.centerX, layout.dateY, Typography.LABEL, _demoLine,
+        Draw.centeredText(dc, layout.centerX, layout.dateY, Typography.label, _demoLine,
             Palette.ACCENT);
     }
 }

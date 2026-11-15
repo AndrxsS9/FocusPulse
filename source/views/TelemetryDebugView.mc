@@ -86,7 +86,7 @@ class TelemetryDebugView extends WatchUi.View {
 
     //! Dibuja la línea index centrada, bajando la fuente si no cabe en el círculo.
     private function line(dc as Dc, layout as RoundLayout, index as Number, text as String,
-            font as FontDefinition, color as Number) as Void {
+            font as FontType, color as Number) as Void {
         var y = layout.height * (LINE_Y as Array<Number>)[index] / 1000;
         var h = dc.getFontHeight(font);
         var maxWidth = layout.safeWidthBetween(y - h / 2, y + h / 2);

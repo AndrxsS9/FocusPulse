@@ -87,12 +87,12 @@ class DetectorDebugView extends WatchUi.View {
 
         _labelWidth = 0;
         for (var k = 0; k < _classNames.size(); k++) {
-            var w = dc.getTextWidthInPixels(_classNames[k], Typography.LABEL);
+            var w = dc.getTextWidthInPixels(_classNames[k], Typography.label);
             if (w > _labelWidth) {
                 _labelWidth = w;
             }
         }
-        _percentWidth = dc.getTextWidthInPixels(Lang.format(_percentFmt, [100]), Typography.LABEL);
+        _percentWidth = dc.getTextWidthInPixels(Lang.format(_percentFmt, [100]), Typography.label);
     }
 
     function onUpdate(dc as Dc) as Void {
@@ -153,7 +153,7 @@ class DetectorDebugView extends WatchUi.View {
     //! Fila de una clase: nombre, barra con la probabilidad y porcentaje.
     private function drawBar(dc as Dc, layout as RoundLayout, y as Number, k as Number,
             probability as Float, isTop as Boolean) as Void {
-        var font = Typography.LABEL;
+        var font = Typography.label;
         var h = dc.getFontHeight(font);
         var width = layout.safeWidthBetween(y - h / 2, y + h / 2);
         var maxWidth = layout.scaled(ROW_MAX_WIDTH);
@@ -208,7 +208,7 @@ class DetectorDebugView extends WatchUi.View {
     private function line(dc as Dc, layout as RoundLayout, yPermille as Number, text as String,
             color as Number) as Void {
         var y = layout.height * yPermille / 1000;
-        var font = Typography.LABEL;
+        var font = Typography.label;
         var h = dc.getFontHeight(font);
         var maxWidth = layout.safeWidthBetween(y - h / 2, y + h / 2);
         Draw.centeredText(dc, layout.centerX, y, Draw.fittingFont(dc, text, maxWidth, font), text, color);

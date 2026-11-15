@@ -56,15 +56,15 @@ class NoFeedbackView extends WatchUi.View {
         dc.fillCircle(cx, iconY + bar / 2, barWidth * 2 / 3);
 
         var titleY = layout.scaled(TITLE_Y);
-        var titleFont = Draw.fittingFont(dc, _title, layout.safeWidthAt(titleY), Typography.TITLE);
+        var titleFont = Draw.fittingFont(dc, _title, layout.safeWidthAt(titleY), Typography.title);
         Draw.centeredText(dc, cx, titleY, titleFont, _title, Palette.AMBER);
 
         var top = layout.scaled(BODY_TOP);
         var bottom = layout.scaled(BODY_BOTTOM);
         var width = layout.safeWidthBetween(top, bottom);
-        var text = Graphics.fitTextToArea(_body, Typography.LABEL, width, bottom - top, true);
+        var text = Graphics.fitTextToArea(_body, Typography.label, width, bottom - top, true);
         dc.setColor(Palette.TEXT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, (top + bottom) / 2, Typography.LABEL, text,
+        dc.drawText(cx, (top + bottom) / 2, Typography.label, text,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 }

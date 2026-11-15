@@ -71,7 +71,7 @@ class ModelInfoView extends WatchUi.View {
         Draw.clear(dc, Palette.BACKGROUND);
         var cx = layout.centerX;
 
-        Draw.centeredText(dc, cx, layout.scaled(TITLE_Y), Typography.LABEL, _title, Palette.ACCENT);
+        Draw.centeredText(dc, cx, layout.scaled(TITLE_Y), Typography.label, _title, Palette.ACCENT);
         var rule = layout.scaled(RULE_WIDTH);
         var ruleY = layout.scaled(RULE_Y);
         dc.setPenWidth(2);
@@ -80,7 +80,7 @@ class ModelInfoView extends WatchUi.View {
         dc.setPenWidth(1);
 
         var typeY = layout.scaled(TYPE_Y);
-        var typeFont = Draw.fittingFont(dc, _type, layout.safeWidthAt(typeY), Typography.LABEL);
+        var typeFont = Draw.fittingFont(dc, _type, layout.safeWidthAt(typeY), Typography.label);
         Draw.centeredText(dc, cx, typeY, typeFont, _type, Palette.TEXT);
 
         // Filas con el ancho de la más estrecha, para alinear las dos columnas.
@@ -96,19 +96,19 @@ class ModelInfoView extends WatchUi.View {
         for (var i = 0; i < rows.size(); i++) {
             var y = layout.scaled(rows[i]);
             dc.setColor(Palette.TEXT_SECONDARY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx - half, y, Typography.LABEL, _labels[i],
+            dc.drawText(cx - half, y, Typography.label, _labels[i],
                 Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
             dc.setColor(Palette.TEXT, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx + half, y, Typography.LABEL, _values[i],
+            dc.drawText(cx + half, y, Typography.label, _values[i],
                 Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
         }
 
         var top = layout.scaled(NOTE_TOP);
         var bottom = layout.scaled(NOTE_BOTTOM);
-        var note = Graphics.fitTextToArea(_note, Typography.LABEL, layout.safeWidthBetween(top, bottom),
+        var note = Graphics.fitTextToArea(_note, Typography.label, layout.safeWidthBetween(top, bottom),
             bottom - top, true);
         dc.setColor(Palette.ACCENT, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, (top + bottom) / 2, Typography.LABEL, note,
+        dc.drawText(cx, (top + bottom) / 2, Typography.label, note,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 }
