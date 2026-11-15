@@ -9,7 +9,8 @@ import Toybox.WatchUi;
 //! de las TTF con licencia OFL de assets/fonts/):
 //!
 //!   - Space Grotesk Bold: la hora (76 px), "¡DESPIERTA!" (42 px) y los títulos (22 px);
-//!   - Inter: textos (SemiBold 13 y 15 px) y botones (Bold 18 px, ExtraBold 22 px);
+//!   - Inter: textos (Medium 13 y 15 px), énfasis (SemiBold 13 y 15 px) y botones (Bold
+//!     18 px, ExtraBold 22 px);
 //!   - JetBrains Mono SemiBold: cifras con "%" (14 y 22 px).
 //!
 //! Las vistas piden un rol (Typography.clock, Typography.body…) y nunca una fuente
@@ -29,11 +30,17 @@ module Typography {
     //! Títulos de pantalla: Space Grotesk Bold 22 px.
     var title as FontType = Graphics.FONT_SMALL;
 
-    //! Texto corrido, fecha, nivel de la alerta, filas: Inter SemiBold 15 px.
+    //! Texto corrido, fecha y filas: Inter Medium 15 px.
     var body as FontType = Graphics.FONT_TINY;
 
-    //! Etiquetas pequeñas, píldora, motivo de la alerta: Inter SemiBold 13 px.
+    //! Texto destacado (nivel de la alerta, valores, avisos): Inter SemiBold 15 px.
+    var bodyStrong as FontType = Graphics.FONT_TINY;
+
+    //! Etiquetas pequeñas ("ALERTA", motivo de la alerta, ayudas): Inter Medium 13 px.
     var label as FontType = Graphics.FONT_XTINY;
+
+    //! Etiqueta destacada (píldora de estado): Inter SemiBold 13 px.
+    var labelStrong as FontType = Graphics.FONT_XTINY;
 
     //! Botón grande de la esfera y de las pantallas secundarias: Inter Bold 18 px.
     var button as FontType = Graphics.FONT_SMALL;
@@ -52,8 +59,10 @@ module Typography {
         clock = WatchUi.loadResource(Rez.Fonts.TimeBold76) as FontResource;
         alertTitle = WatchUi.loadResource(Rez.Fonts.AlertBold42) as FontResource;
         title = WatchUi.loadResource(Rez.Fonts.TitleBold22) as FontResource;
-        body = WatchUi.loadResource(Rez.Fonts.InterSemiBold15) as FontResource;
-        label = WatchUi.loadResource(Rez.Fonts.InterSemiBold13) as FontResource;
+        body = WatchUi.loadResource(Rez.Fonts.InterMedium15) as FontResource;
+        bodyStrong = WatchUi.loadResource(Rez.Fonts.InterSemiBold15) as FontResource;
+        label = WatchUi.loadResource(Rez.Fonts.InterMedium13) as FontResource;
+        labelStrong = WatchUi.loadResource(Rez.Fonts.InterSemiBold13) as FontResource;
         button = WatchUi.loadResource(Rez.Fonts.InterBold18) as FontResource;
         alertButton = WatchUi.loadResource(Rez.Fonts.InterExtraBold22) as FontResource;
         number = WatchUi.loadResource(Rez.Fonts.MonoSemiBold22) as FontResource;
@@ -62,7 +71,8 @@ module Typography {
 
     //! Siguiente fuente más pequeña para un texto que no cabe (Draw.fittingFont), o null
     //! si no hay. Las de texto bajan dentro de la escala de Inter (botón de la alerta →
-    //! botón → cuerpo → etiqueta); el título baja a Inter 15. Las de un solo uso (hora,
+    //! botón → cuerpo destacado → etiqueta destacada, y cuerpo → etiqueta); el título baja
+    //! al cuerpo destacado. Las de un solo uso (hora,
     //! "¡DESPIERTA!", cifras) no bajan: no hay otra fuente con sus glifos. Una fuente del
     //! sistema (FONT_XTINY..FONT_LARGE, numeradas de menor a mayor) baja a la anterior.
     function smaller(font as FontType) as FontType? {
@@ -75,7 +85,10 @@ module Typography {
             return button;
         }
         if (font == button || font == title) {
-            return body;
+            return bodyStrong;
+        }
+        if (font == bodyStrong) {
+            return labelStrong;
         }
         if (font == body) {
             return label;

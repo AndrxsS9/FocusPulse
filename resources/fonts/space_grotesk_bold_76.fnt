@@ -2,14 +2,14 @@ info face="Space Grotesk" size=-76 bold=1 italic=0 charset="" unicode=1 stretchH
 common lineHeight=98 base=75 scaleW=256 scaleH=112 pages=1 packed=0 alphaChnl=1 redChnl=0 greenChnl=0 blueChnl=0
 page id=0 file="space_grotesk_bold_76.png"
 chars count=11
-char id=48 x=0 y=0 width=49 height=56 xoffset=0 yoffset=20 xadvance=49 page=0 chnl=15
-char id=49 x=95 y=57 width=35 height=54 xoffset=0 yoffset=22 xadvance=35 page=0 chnl=15
-char id=50 x=192 y=0 width=45 height=55 xoffset=0 yoffset=20 xadvance=45 page=0 chnl=15
-char id=51 x=0 y=57 width=47 height=55 xoffset=0 yoffset=21 xadvance=47 page=0 chnl=15
-char id=52 x=131 y=57 width=48 height=54 xoffset=0 yoffset=21 xadvance=48 page=0 chnl=15
-char id=53 x=48 y=57 width=46 height=55 xoffset=0 yoffset=21 xadvance=46 page=0 chnl=15
-char id=54 x=50 y=0 width=47 height=56 xoffset=0 yoffset=20 xadvance=47 page=0 chnl=15
-char id=55 x=180 y=57 width=42 height=54 xoffset=0 yoffset=21 xadvance=42 page=0 chnl=15
-char id=56 x=98 y=0 width=45 height=56 xoffset=0 yoffset=20 xadvance=45 page=0 chnl=15
-char id=57 x=144 y=0 width=47 height=56 xoffset=0 yoffset=20 xadvance=47 page=0 chnl=15
-char id=58 x=223 y=57 width=22 height=40 xoffset=0 yoffset=36 xadvance=22 page=0 chnl=15
+char id=48 x=0 y=0 width=49 height=56 xoffset=0 yoffset=20 xadvance=46 page=0 chnl=15
+char id=49 x=95 y=57 width=35 height=54 xoffset=0 yoffset=22 xadvance=32 page=0 chnl=15
+char id=50 x=192 y=0 width=45 height=55 xoffset=0 yoffset=20 xadvance=42 page=0 chnl=15
+char id=51 x=0 y=57 width=47 height=55 xoffset=0 yoffset=21 xadvance=44 page=0 chnl=15
+char id=52 x=131 y=57 width=48 height=54 xoffset=0 yoffset=21 xadvance=45 page=0 chnl=15
+char id=53 x=48 y=57 width=46 height=55 xoffset=0 yoffset=21 xadvance=43 page=0 chnl=15
+char id=54 x=50 y=0 width=47 height=56 xoffset=0 yoffset=20 xadvance=44 page=0 chnl=15
+char id=55 x=180 y=57 width=42 height=54 xoffset=0 yoffset=21 xadvance=39 page=0 chnl=15
+char id=56 x=98 y=0 width=45 height=56 xoffset=0 yoffset=20 xadvance=42 page=0 chnl=15
+char id=57 x=144 y=0 width=47 height=56 xoffset=0 yoffset=20 xadvance=44 page=0 chnl=15
+char id=58 x=223 y=57 width=22 height=40 xoffset=0 yoffset=36 xadvance=19 page=0 chnl=15

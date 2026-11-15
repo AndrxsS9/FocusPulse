@@ -27,8 +27,8 @@ function typographyScaleAlwaysEnds(logger as Logger) as Boolean {
     // Desde cualquier rol, la escala llega a null en pocos pasos (fittingFont no se
     // queda en un bucle).
     var roles = [Typography.clock, Typography.alertTitle, Typography.title, Typography.body,
-        Typography.label, Typography.button, Typography.alertButton, Typography.number,
-        Typography.numberSmall] as Array<FontType>;
+        Typography.bodyStrong, Typography.label, Typography.labelStrong, Typography.button,
+        Typography.alertButton, Typography.number, Typography.numberSmall] as Array<FontType>;
     for (var i = 0; i < roles.size(); i++) {
         var font = roles[i] as FontType?;
         var steps = 0;

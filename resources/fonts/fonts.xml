@@ -8,7 +8,9 @@
         <font id="TimeBold76" filename="space_grotesk_bold_76.fnt" antialias="true"/>
         <font id="AlertBold42" filename="space_grotesk_bold_42.fnt" antialias="true"/>
         <font id="TitleBold22" filename="space_grotesk_bold_22.fnt" antialias="true"/>
+        <font id="InterMedium13" filename="inter_medium_13.fnt" antialias="true"/>
         <font id="InterSemiBold13" filename="inter_semibold_13.fnt" antialias="true"/>
+        <font id="InterMedium15" filename="inter_medium_15.fnt" antialias="true"/>
         <font id="InterSemiBold15" filename="inter_semibold_15.fnt" antialias="true"/>
         <font id="InterBold18" filename="inter_bold_18.fnt" antialias="true"/>
         <font id="InterExtraBold22" filename="inter_extrabold_22.fnt" antialias="true"/>

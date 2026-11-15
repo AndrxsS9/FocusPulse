@@ -50,17 +50,28 @@ NUMBER_CHARS = DIGITS + '%,.'
 # Título de la alerta: solo las letras de "¡DESPIERTA!" y "WAKE UP!".
 ALERT_TITLE_CHARS = '¡DESPIERTA!' + 'WAKE UP!'
 
-# (id del recurso, archivo de salida, TTF, peso, tamaño en px, caracteres)
+# (id del recurso, archivo de salida, TTF, peso, tamaño en px, caracteres, espaciado en px)
+#
+# El espaciado (letter-spacing) se suma al avance de cada glifo antes de redondearlo; es
+# el que se midió en las referencias del diseño web (docs/img/referencia/, a 390 px):
+#   - hora "10:50": 189 px de ancho con 56 px de alto; Space Grotesk 76 sin espaciado mide
+#     201 px → −3 px por carácter;
+#   - "¡DESPIERTA!": 231 px; a 42 px mide 238 → −0,7 px;
+#   - "Iniciar guardia": 123 px; Inter Bold 18 mide 130 → −0,5 px.
+# Inter Medium (500) es el peso que coincide con la fecha ("Dom, 15 De Nov", 111 px: 119 en
+# SemiBold), "ALERTA" y el motivo de la alerta (223 px: 236 en SemiBold).
 FONTS = [
-    ('TimeBold76', 'space_grotesk_bold_76', SPACE_GROTESK, 700, 76, DIGITS + ':'),
-    ('AlertBold42', 'space_grotesk_bold_42', SPACE_GROTESK, 700, 42, ALERT_TITLE_CHARS),
-    ('TitleBold22', 'space_grotesk_bold_22', SPACE_GROTESK, 700, 22, TEXT_CHARS),
-    ('InterSemiBold13', 'inter_semibold_13', INTER, 600, 13, TEXT_CHARS),
-    ('InterSemiBold15', 'inter_semibold_15', INTER, 600, 15, TEXT_CHARS),
-    ('InterBold18', 'inter_bold_18', INTER, 700, 18, TEXT_CHARS),
-    ('InterExtraBold22', 'inter_extrabold_22', INTER, 800, 22, TEXT_CHARS),
-    ('MonoSemiBold14', 'jetbrains_mono_semibold_14', JETBRAINS_MONO, 600, 14, NUMBER_CHARS),
-    ('MonoSemiBold22', 'jetbrains_mono_semibold_22', JETBRAINS_MONO, 600, 22, NUMBER_CHARS),
+    ('TimeBold76', 'space_grotesk_bold_76', SPACE_GROTESK, 700, 76, DIGITS + ':', -3.0),
+    ('AlertBold42', 'space_grotesk_bold_42', SPACE_GROTESK, 700, 42, ALERT_TITLE_CHARS, -0.7),
+    ('TitleBold22', 'space_grotesk_bold_22', SPACE_GROTESK, 700, 22, TEXT_CHARS, 0.0),
+    ('InterMedium13', 'inter_medium_13', INTER, 500, 13, TEXT_CHARS, 0.0),
+    ('InterSemiBold13', 'inter_semibold_13', INTER, 600, 13, TEXT_CHARS, 0.0),
+    ('InterMedium15', 'inter_medium_15', INTER, 500, 15, TEXT_CHARS, 0.0),
+    ('InterSemiBold15', 'inter_semibold_15', INTER, 600, 15, TEXT_CHARS, 0.0),
+    ('InterBold18', 'inter_bold_18', INTER, 700, 18, TEXT_CHARS, -0.5),
+    ('InterExtraBold22', 'inter_extrabold_22', INTER, 800, 22, TEXT_CHARS, 0.0),
+    ('MonoSemiBold14', 'jetbrains_mono_semibold_14', JETBRAINS_MONO, 600, 14, NUMBER_CHARS, 0.0),
+    ('MonoSemiBold22', 'jetbrains_mono_semibold_22', JETBRAINS_MONO, 600, 22, NUMBER_CHARS, 0.0),
 ]
 
 # Ancho de página del PNG y separación entre glifos (px).
@@ -93,12 +104,12 @@ def load_font(ttf, weight, size):
     return font
 
 
-def render_glyph(font, char):
+def render_glyph(font, char, tracking):
     """Bitmap en escala de grises del glifo y sus medidas BMFont (respecto a la línea
-    base y al origen del trazo)."""
+    base y al origen del trazo). El avance incluye el espaciado (tracking, px)."""
     left, top, right, bottom = font.getbbox(char, anchor='ls')
     width, height = right - left, bottom - top
-    advance = round(font.getlength(char))
+    advance = round(font.getlength(char) + tracking)
     if width <= 0 or height <= 0:
         return None, 0, 0, advance
     image = Image.new('L', (width, height), 0)
@@ -124,12 +135,12 @@ def pack(glyphs):
     return y + row
 
 
-def build(resource_id, name, ttf, weight, size, chars):
+def build(resource_id, name, ttf, weight, size, chars, tracking):
     font = load_font(ttf, weight, size)
     ascent, descent = font.getmetrics()
     glyphs = []
     for char in unique(chars):
-        image, left, top, advance = render_glyph(font, char)
+        image, left, top, advance = render_glyph(font, char, tracking)
         glyphs.append({'id': ord(char), 'image': image, 'xoffset': left,
                        'yoffset': ascent + top, 'advance': advance, 'x': 0, 'y': 0})
     height = max(1, pack(glyphs))
@@ -157,7 +168,7 @@ def build(resource_id, name, ttf, weight, size, chars):
     (OUTPUT / f'{name}.fnt').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
 
     inked = sum(g['image'].width * g['image'].height for g in glyphs if g['image'] is not None)
-    print(f'{resource_id:18} {family} {weight} {size:>2} px: {len(glyphs):>3} glifos, '
+    print(f'{resource_id:18} {family} {weight} {size:>2} px ({tracking:+.1f}): {len(glyphs):>3} glifos, '
           f'alto de línea {ascent + descent}, base {ascent}, página {PAGE_WIDTH}×{height}, '
           f'{inked} px de glifos')
     return inked
