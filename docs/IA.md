@@ -334,5 +334,5 @@ el cabeceo se confirmó con p(Normal) 0,14. El guion automático sigue dando ale
 pasos 3 y 5 y nivel 3 en el 6.
 
 **Límites.** Datos sintéticos; el retraso de 2 s y el umbral se revisarán con datos
-reales (fase 12). Los 3 falsos que quedan son lecturas con el brazo casi inmóvil, que el
+reales (trabajo futuro, [PENDIENTES.md](PENDIENTES.md)). Los 3 falsos que quedan son lecturas con el brazo casi inmóvil, que el
 modelo ve como Inerte.

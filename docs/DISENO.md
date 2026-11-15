@@ -26,7 +26,12 @@ En AMOLED cada píxel negro está apagado: no consume batería ni se desgasta.
    solo se animan con la guardia activa y la vista en primer plano (el timer se detiene en
    `onHide`); en pausa el orbe queda quieto y tenue. Ver la sección 5.2.
 5. **Nada fijo durante mucho tiempo en la misma posición y a brillo alto** (quemado):
-   la hora y el anillo cambian, y los elementos estáticos usan colores apagados.
+   la hora y el anillo cambian, los elementos estáticos usan colores apagados y, desde la
+   fase 12, **la esfera entera se desplaza cada minuto** a la siguiente de 9 posiciones
+   alrededor del centro (±2 px por eje, saltos de 2 px como mucho, media cero; `PixelShift`
+   y `RoundLayout.shiftTo`). Se mueve todo junto, así que el diseño redondo no cambia y el
+   anillo queda dentro de la pantalla. Las áreas táctiles no se mueven (les sobran 12 px).
+   No aplica a la alerta, que dura segundos.
 
 ## 2. Paleta
 
@@ -193,7 +198,7 @@ en español e inglés. Medidas reales en el fr165 (390×390):
 | Hora (`timeY` 130) | `HH:MM` en 24 h si el sistema la usa (`is24Hour`), si no `H:MM` en 12 h sin a. m./p. m. | `TIME` (109 px de caja) | `TEXT` |
 | Fecha (`dateY` 183) | Día de la semana, día y mes abreviados por el sistema: "vie 13 nov" (español, en minúsculas) / "Fri Nov 13" (inglés). | `LABEL` | `TEXT_SECONDARY` |
 | Puntaje (`scoreY` 217) | "ALERTA" + porcentaje, centrados juntos con 7 px de separación. | `LABEL` + `FONT_SMALL` (45 px) | etiqueta `TEXT_SECONDARY`; número del color del anillo |
-| Píldora (`pillY` 252) | "Monitoreo en pausa" / "Guardia activa" (con punto delante; "Calibrando…" mientras el detector aprende la línea base, 30 s o 5 s en demo) / "Sensor no disponible". 40 px de alto. | `LABEL` | `TEXT_SECONDARY` / `ACCENT` / `AMBER`; relleno `SURFACE`, borde `BORDER_STRONG` |
+| Píldora (`pillY` 252) | "Monitoreo en pausa" / "Guardia activa" (con punto delante; "Calibrando…" mientras el detector aprende la línea base, 30 s o 5 s en demo) / "Sensor no disponible" / "Sin datos del sensor" (fase 12: más de 5 s sin lotes con la guardia activa, sin punto; se quita sola y tiene prioridad sobre el aviso de fatiga). 40 px de alto. | `LABEL` | `TEXT_SECONDARY` / `ACCENT` / `AMBER`; relleno `SURFACE`, borde `BORDER_STRONG` |
 | Botón (`buttonRect`) | "Iniciar guardia" o "Pausar guardia"; `fittingFont` baja de `BODY` si no cabe ("Iniciar guardia" va en `FONT_TINY`). | `BODY` → `TINY` | inicio: `ACCENT` con texto `BACKGROUND`; pausa: `SURFACE` + borde `BORDER_STRONG`, texto `TEXT` |
 | Línea del modo demo (`dateY` 183, fase 8) | Con el modo demo activo reemplaza a la fecha: "DEMO · Tecleo activo" o, con el guion, "Guion 2/5 · Tecleo activo". Nombres cortos (`DemoShort*`) para que quepa en los ≈ 335 px de esa altura en ambos idiomas; en `footerY` solo había ≈ 130 px. | `LABEL` | `ACCENT` |
 | Aviso breve (centro, fase 8) | 1,5 s al cambiar de escenario con DOWN ("Escenario / Tecleo activo"). (Hasta la fase 8 también salía "Guion automático / Completado" al terminar el guion; desde la fase 9 el guion termina en el resumen de la guardia.) Caja de esquinas redondas centrada en la pantalla; el valor baja de `BODY` hasta que cabe ("Inactividad prolongada"). Tapa la fecha y el puntaje mientras dura. | `LABEL` + `BODY` → `XTINY` | relleno `SURFACE`, borde `ACCENT`, título `TEXT_SECONDARY`, valor `TEXT` |
@@ -273,7 +278,10 @@ con la guardia activa y 7–12 ms de dibujo medio; ver `PENDIENTES.md`.
 ### 5.3 Alerta a pantalla completa (fase 7)
 
 `AlertView` (`source/views/AlertView.mc`) se apila sobre la esfera con `pushView` cuando el
-detector emite un cabeceo o una inactividad, y solo se cierra con "Estoy despierto". La
+detector emite un cabeceo o una inactividad, y solo se cierra con "Estoy despierto". Si en
+ese momento hay menús abiertos (Ajustes, Historial, Modelo IA, demo…), primero se cierran
+(`ViewUnwinder`, fase 12): la alerta siempre queda sobre la esfera y al responder se vuelve
+a ella, sin pantallas apiladas. La
 lógica vive en `core` (`AlertController`, `VibePatterns`, `AlertVisuals`, `AlertLog`) y la
 vibración en `source/platform/Haptics.mc`.
 
@@ -293,7 +301,7 @@ vibración en `source/platform/Haptics.mc`.
 | Fondo | `alertPulseColor(nivel, pulso)` | Naranja / naranja intenso / rojo intenso que late (§2.2). La única pantalla con fondo claro: dura segundos. |
 | Ícono | Contorno de un reloj y dos ondas (arcos de ±35°) a cada lado que crecen de 21 a 38 px de radio y se desvanecen hacia el fondo, desfasadas medio periodo (1,2 s). | Del color del texto. |
 | Título | "¡DESPIERTA!" / "WAKE UP!" | `FONT_LARGE` cabe en ambos idiomas; `Draw.fittingFont` lo bajaría si no. |
-| Nivel | "Nivel N de 3 · vibración suave/media/máxima" (`AlertLevelLineFormat`). | La vibración va en minúsculas porque sigue al punto medio. "Nivel 3 de 3 · vibración máxima" mide ≈ 357 px y "Level 3 of 3 · maximum vibration" ≈ 373 px: más que la cuerda segura (340 px) pero dentro de la pantalla, que aquí no tiene anillo. |
+| Nivel | "Nivel N de 3 · vibración suave/media/máxima" (`AlertLevelLineFormat`). | La vibración va en minúsculas porque sigue al punto medio. "Nivel 3 de 3 · vibración máxima" mide ≈ 357 px: más que la cuerda segura (340 px) pero dentro de la pantalla, que aquí no tiene anillo. En inglés "maximum vibration" rozaba el borde y desde la fase 12 es "max vibration". |
 | Motivo | "Cabeceo / pérdida de tono muscular" o "Inactividad prolongada". | `fitTextToArea` en dos líneas cuando no cabe en una. |
 | Botón | "Estoy despierto" / "I'm awake": `TEXT` con texto `BACKGROUND`. | `RoundLayout.alertButtonRect`, 258×64 px (el de la esfera es 226×54); el texto cabe en `BODY`. Área táctil 280×86 px (`alertButtonTouchRect`). |
 
@@ -494,6 +502,9 @@ Funciones en `source/util/Draw.mc`:
 - Todos los colores de texto sobre `BACKGROUND` cumplen 4,5:1 (el menor es `RED`, 6,5:1),
   y todos los textos de la alerta a pantalla completa también (el menor es 4,8:1).
 - `BORDER` y `BORDER_STRONG` son decorativos: nunca llevan información por sí solos.
+- Lo comprueban las pruebas: `tests/ContrastTest.mc` (textos de la esfera, píldoras,
+  avisos, botón y todas las bandas del puntaje; mínimo 6,51:1) y `AlertVisualsTest` (la
+  alerta en todo el ciclo del pulso).
 - Contraste de la alerta: tabla de la sección 2.2.
 
 ### Áreas táctiles
@@ -537,6 +548,9 @@ Funciones en `source/util/Draw.mc`:
   ("ALERTA" / "ALERT" y "DEMO"), que son rótulos pequeños, no frases.
 - Formatos con valores (`PercentFormat`, `DateFormat`) viven también en los recursos: el
   español separa el `%` con un espacio ("88 %") y el inglés no ("88%").
+- Revisión final (fase 12) de todas las pantallas a 390×390 en ambos idiomas: en inglés se
+  acortaron "Glance at watch" y "Long inactivity" (nombres de escenario, que en el submenú
+  rozaban el borde redondo) y "max vibration".
 - `DateCase` no es un texto visible: `lower` (español) pasa a minúsculas el día y el mes que
   da el sistema ("Vie", "Nov" → "vie", "nov"); `keep` (inglés) los deja igual.
 

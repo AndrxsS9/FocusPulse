@@ -4,7 +4,9 @@ Paso a paso para presentar FocusPulse AI en el simulador del **Forerunner 165** 
 **compilación de release** (la misma app que se publica, sin menú de depuración). Todo lo
 que aparece aquí se probó en el simulador del SDK 9.3.0, en español y en inglés, el
 2026-11-13 (fase 8) y el 2026-11-14 (fase 9: escalamiento, fatiga, descanso, resumen e
-historial; fase 11: ajustes, confirmación por IA y transición entre escenarios).
+historial; fase 11: ajustes, confirmación por IA y transición entre escenarios) y el
+2026-11-15 (fase 12, versión 1.0.0: aviso sin datos del sensor, alerta sobre menús y
+desplazamiento anti quemado).
 
 Duración recomendada: **10–12 minutos** (unos 6 de demo en vivo y el resto de explicación).
 
@@ -264,12 +266,13 @@ son la precisión en una muñeca real, que se medirá con datos del reloj." (Det
 
 **Qué hacer:** mantener **UP** → **START** sobre *Modo demo* (subtítulo "Sensor real"). Los
 ítems de la demo desaparecen. **BACK**: vuelve la fecha. Si la guardia estaba activa, se
-reinicia sola con el acelerómetro real (puntaje a 88 y "Calibrando…").
+reinicia sola con el acelerómetro real (puntaje a 88 y "Calibrando…"); a los 5 s sin lotes
+la píldora pasa a **"Sin datos del sensor"** (ámbar).
 
 **Qué decir:** "Fuera del modo demo la app lee el acelerómetro real a 25 Hz, calibra 30
 segundos y la inactividad salta a los 60. En el simulador no hay muñeca: el acelerómetro
-del simulador no entrega datos por sí solo, por eso se queda en Calibrando. En el reloj
-esto es lo que corre."
+del simulador no entrega datos por sí solo, y la app lo avisa: «Sin datos del sensor». Un
+corte así nunca cuenta como inactividad. En el reloj esto es lo que corre."
 
 Para terminar, **START** (pausar) y **BACK** (salir).
 
@@ -287,7 +290,8 @@ Para terminar, **START** (pausar) y **BACK** (salir).
 | No aparece el resumen al pausar | La guardia duró menos de 1 min y no tuvo episodios: a propósito no se muestra ni se guarda. |
 | El aviso de fatiga no aparece | Hacen falta 3 episodios en 5 min (modo demo) con la guardia activa. Las alertas de *Probar alerta* no cuentan. Tras un descanso completo la cuenta vuelve a empezar. |
 | Tocar el aviso no abre el descanso | Toca el centro de la caja ámbar, no el botón de abajo. O usa mantener UP → *Tomar descanso*. |
-| "Calibrando…" no termina | Estás con el **sensor real** (sin "DEMO" en la esfera): el simulador no entrega datos. Activa el modo demo. |
+| "Calibrando…" no termina o sale "Sin datos del sensor" | Estás con el **sensor real** (sin "DEMO" en la esfera): el simulador no entrega datos. Activa el modo demo. |
+| Llegó una alerta con un menú abierto | Es normal: la alerta cierra los menús y se abre sobre la esfera; al responder vuelves a la esfera. |
 | La app aparece en inglés (o en español) | *Settings > Language* con la app cargada, y luego `run.ps1 -Release -NoBuild`: los textos se cargan al abrir la app y no cambian hasta volver a abrirla. Si el clic en el idioma no se aplica (el punto sigue en el anterior), repítelo. |
 | El simulador muestra "CIQ Simulator" sin reloj | Se ejecutaron las pruebas o se cerró la app: `scripts\run.ps1 -Release -NoBuild`. El modo demo sigue como estaba. |
 | El simulador se cerró con un error | Ocurre si la app termina con una guardia **grabando** y no se pausó antes. Vuelve a abrirlo con `run.ps1 -Release -NoBuild`. Para salir, pausa primero (START) y luego BACK. |

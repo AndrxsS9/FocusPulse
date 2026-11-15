@@ -114,6 +114,13 @@ iniciar la guardia, y nunca antes.
   caducó): dos cabeceos seguidos dan eventos a los 6 y 16 s.
 - Al **pausar** la guardia se borra todo (estado, candidata, quietud, línea base); al
   reanudar vuelve a calibrar.
+- **Cortes de datos (fase 12).** Si la fuente deja de entregar lotes más de 5 s
+  (`SensorWatchdog`), la esfera avisa "Sin datos del sensor" y el detector no recibe nada.
+  Al volver los datos, `onDataGap()` olvida la quietud, la caída candidata y la postura
+  anterior, y `GuardController` vacía la ventana: la inactividad vuelve a contar desde cero
+  (otros 60 s, u 8 s en demo). Sin esto, 50 s quieto + 20 s de corte daban una inactividad
+  en el primer lote de vuelta (`dataGapDoesNotTriggerInactivity`). La línea base y el
+  refractario se conservan.
 
 ### 3.5 Estados
 

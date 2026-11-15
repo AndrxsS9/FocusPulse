@@ -67,6 +67,15 @@ detector está explicado en [DETECTOR.md](DETECTOR.md) y la alerta en [DISENO.md
   demo usa exactamente el mismo código que el sensor real.
 - **El tiempo entra como parámetro** (`System.getTimer()` en la app, valores fijos en las
   pruebas): el núcleo no lee el reloj.
+- **Sin datos del sensor (fase 12).** `SensorWatchdog` cuenta el tiempo desde el último
+  lote; los timers de la esfera y de la alerta lo revisan. Pasados 5 s la píldora muestra
+  "Sin datos del sensor" (ámbar) y el detector no recibe nada. Con el primer lote de vuelta,
+  `GuardController.onSensorDataBack` vacía la ventana y el detector olvida la quietud, así
+  que la inactividad vuelve a contar desde cero.
+- **Alerta sobre menús (fase 12).** Si una alerta se abre con menús encima de la esfera,
+  `ViewUnwinder` los cierra y luego se apila la alerta; al responder se vuelve a la esfera.
+  El reloj admite **3 timers** a la vez (fuente simulada, vista y vibración), así que la
+  vibración arranca en el primer cuadro de la alerta.
 - `GuardController` arranca la fuente al iniciar la guardia y, si el ajuste
   `recordActivity` está activo (por defecto), la grabación. Al pausar o salir detiene
   ambas y guarda la actividad.
@@ -177,7 +186,7 @@ pruebas son reproducibles.
 | `source/views` | `BreakView`, `SummaryView`, `HistoryMenu`, `SummaryText` | Descanso guiado, resumen y detalle, lista del historial y formatos. | 9 ✅ |
 | `source/platform` | `Haptics` | `Attention.vibrate` con `VibeProfile` según el patrón, repetido con un `Timer`; respeta `vibrateOn`, enciende la luz y toca un tono por pulso si hay tonos. | 7 ✅ |
 | `source/views` | `AlertView`, `AlertDelegate` | Alerta a pantalla completa: "¡DESPIERTA!", nivel, motivo y "Estoy despierto" (botón o START; BACK no la cierra). Ver [DISENO.md](DISENO.md) §5.3. | 7 ✅ |
-| `source/core` | `AlertEscalator` | Escalamiento automático entre niveles (1 suave → 3 máxima) si el usuario no responde. En la fase 7 los niveles 2 y 3 solo se abren desde depuración. | siguiente |
+| `source/core` | `AlertController` (escalamiento) | Sin respuesta, la alerta sube del nivel 1 (suave) al 3 (máxima) cada 10 s (6 s en demo). Vive en `AlertController`; no hay un módulo `AlertEscalator` aparte. | 9 ✅ |
 | `source/core` | `DemoConfig` | Modo demo activo o no y escenario: decide la fuente (simulada o real), la calibración (5 s / 30 s) y la inactividad (8 s / 60 s), el ciclo de escenarios de DOWN y su diccionario para `Storage`. | 8 ✅ |
 | `source/core` | `DemoScript` | Guion automático de 5 pasos (normal 10 s → tecleo 10 s → cabeceo hasta responder → normal 8 s → inactividad hasta responder); se congela con una alerta abierta y se cancela en cualquier momento. | 8 ✅ |
 | `source/core` | `Toast`, `ToastKind` | Aviso breve de 1,5 s (cambio de escenario, fin del guion); la vista pone el texto. | 8 ✅ |
@@ -194,7 +203,10 @@ pruebas son reproducibles.
 | `source/views` | `SettingsMenu`, `NoFeedbackView` | Pantalla *Ajustes* del menú principal (Menu2: submenús de sensibilidad y vibración, interruptores) y aviso "Alerta solo visual". | 11 ✅ |
 | `resources/settings` | `properties.xml`, `settings.xml` | Sensibilidad, vibración, sonido, animaciones reducidas, confirmación por IA y grabar actividad, editables desde Garmin Connect. | 3 ✅, 11 ✅ |
 | `ml/` | `confirmation.py` | Reproduce la regla y la confirmación sobre el dataset sintético, elige retardo y umbral con el entrenamiento y mide el efecto (también por sensibilidad). | 11 ✅ |
-| `ml/` + `source/core` | `ClassifierWeights` | Captura de datos **reales** con `SensorLogging`, reentrenamiento con `import_real.py` y decisión del evento entrenada. | 12 |
+| `ml/` + `source/core` | `ClassifierWeights` | Captura de datos **reales** con `SensorLogging`, reentrenamiento con `import_real.py` y decisión del evento entrenada. | futuro |
+| `source/core` | `SensorWatchdog` | Más de 5 s sin lotes con la guardia activa → "sin datos"; al volver, `DrowsinessDetector.onDataGap` olvida la quietud, la caída y la postura (un corte no cuenta como inactividad). | 12 ✅ |
+| `source/views` | `ViewUnwinder` | Cierra los menús abiertos (una vista cada 50 ms: `popView` no cambia `getCurrentView` hasta el siguiente ciclo) antes de apilar una alerta sobre la esfera. | 12 ✅ |
+| `source/util` | `PixelShift`, `RoundLayout.shiftTo` | Anti quemado: la esfera entera se desplaza cada minuto por 9 posiciones (±2 px, media cero). | 12 ✅ |
 
 `source/platform/` es la carpeta de adaptadores de hardware (sensores, grabación,
 vibración), creada en la fase 3. Igual que las vistas, puede importar `Toybox.Sensor`,
@@ -234,9 +246,9 @@ los módulos de las fases siguientes:
 | 9 | Escalamiento de la alerta, predictor de fatiga por reglas, descanso guiado, resumen de la guardia e historial persistente; guion con escalamiento. ✅ |
 | 10 | IA entrenada: dataset sintético, entrenamiento en Python (regresión logística), exportación de pesos v2, métricas v1/v2, pantalla *Modelo IA* y escenario *mirar la hora*. ✅ |
 | 11 | Ajustes de usuario (sensibilidad, vibración por pulsos, sonido, animaciones reducidas, confirmación por IA, grabar actividad) en el reloj y en Garmin Connect; confirmación de los cabeceos por el modelo; transición suave entre escenarios de la demo. ✅ |
-| 12 | Captura de datos reales, reentrenamiento y detector basado en modelo. |
-| 13 | Rendimiento, memoria, batería y pruebas en dispositivo real. |
-| 14 | Preparación para la Connect IQ Store: íconos finales, capturas, textos de tienda es/en, export. |
+| 12 | Pulido final y **versión 1.0.0**: aviso sin datos del sensor, alerta sobre menús, anti quemado, revisión de textos y contraste, limpieza, material de la tienda, guía de sustentación, export. ✅ |
+| 13 | Pruebas en el reloj real: ejes del acelerómetro, vibración, pantalla apagada, batería, CPU y memoria ([PENDIENTES.md](PENDIENTES.md) §1). |
+| 14 | Datos reales con `SensorLogging`, reentrenamiento y decisión del evento entrenada; publicación en la Connect IQ Store. |
 
 En la fase 4 se adelantó la esfera principal (antes en la 7) para la sustentación en el
 simulador; las características de inclinación pasan a la fase 6 junto al detector.
@@ -245,7 +257,9 @@ La fase 2 se insertó como sistema de diseño, así que las fases siguientes se 
 número respecto al plan inicial. En la fase 9 se adelantaron el resumen y el historial
 (antes en la 10) junto al escalamiento y la fatiga; los ajustes de usuario pasan a la 10.
 En la fase 10 se adelantó el entrenamiento del modelo, con datos sintéticos; los ajustes
-pasan a la 11 y los datos reales a la 12.
+pasan a la 11 y los datos reales a la 12. En la fase 12 se adelantó la preparación de la
+tienda (antes en la 14) y se cerró la versión 1.0.0; las pruebas en el reloj y los datos
+reales pasan a las fases 13 y 14 (trabajo futuro).
 
 ## Pruebas
 
@@ -291,3 +305,9 @@ pasan a la 11 y los datos reales a la 12.
   alerta, mirar la hora tras teclear descartado, desactivada como antes, inactividad sin
   modelo) y el cambio de escenario sin cabeceo de más. El recorrido del guion con
   `DetectorRig` pasa ya por la confirmación.
+- Fase 12: 205 pruebas. Las nuevas cubren `SensorWatchdog` (aviso a los 5 s, una sola vez,
+  fin del corte con y sin `check`, pausa) y el detector tras un corte (sin inactividad falsa
+  en 60 s y en demo), `PixelShift` (posiciones, saltos, media cero, una por minuto) y
+  `RoundLayout.shiftTo`, y el contraste ≥ 4,5:1 de los textos de la esfera y de todas las
+  bandas del puntaje. Los auxiliares de `tests/` van anotados `(:debug)` y no entran en
+  release.
