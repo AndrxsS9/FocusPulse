@@ -149,3 +149,22 @@ Lo marcado con 👤 lo haces tú a mano; el resto ya está hecho en el repo.
 **Actualizaciones:** sube `AppInfo.VERSION`, vuelve a ejecutar `scripts\export.ps1` y sube
 el `.iq` nuevo a la **misma** app del portal. El `id` del manifest
 (`6600d3c23b8a4e89827e17ef16db01e8`) y la llave no deben cambiar nunca.
+
+## 7. Galería
+
+| | Español | English |
+|---|---|---|
+| Esfera en pausa | ![](img/es-esfera.png) | ![](img/en-esfera.png) |
+| Orbe activo (modo demo) | ![](img/es-orbe-activo.png) | ![](img/en-orbe-activo.png) |
+| Alerta nivel 1 | ![](img/es-alerta-nivel1.png) | ![](img/en-alerta-nivel1.png) |
+| Alerta nivel 2 | ![](img/es-alerta-nivel2.png) | ![](img/en-alerta-nivel2.png) |
+| Alerta nivel 3 | ![](img/es-alerta-nivel3.png) | ![](img/en-alerta-nivel3.png) |
+| Ajustes | ![](img/es-ajustes.png) | ![](img/en-ajustes.png) |
+| Modelo IA | ![](img/es-modelo-ia.png) | ![](img/en-modelo-ia.png) |
+| Resumen de la guardia | ![](img/es-resumen.png) | ![](img/en-resumen.png) |
+| Historial | ![](img/es-historial.png) | ![](img/en-historial.png) |
+| Sin datos del sensor | ![](img/es-sin-datos.png) | ![](img/en-sin-datos.png) |
+
+Las alertas de nivel 1 a 3 son "Probar alerta" (motivo: cabeceo). La de nivel 3 en inglés
+se tomó después de acortar "max vibration". El historial contiene guardias de prueba del
+modo demo.
