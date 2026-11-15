@@ -240,6 +240,7 @@ function demoScriptEscalationStepEndsAtLevelThree(logger as Logger) as Boolean {
 }
 
 //! Guion recorrido hasta el comienzo del paso 6 (a los 40 s).
+(:debug)
 function demoScriptAtLastStep() as DemoScript {
     var script = new DemoScript();
     script.start(0);

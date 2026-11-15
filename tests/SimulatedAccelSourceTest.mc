@@ -5,9 +5,11 @@ import Toybox.Test;
 //! al pasar por TelemetryEngine. Usan nextBatch(), sin temporizador.
 
 //! Semilla fija para que el ruido sea reproducible.
+(:debug)
 const SIM_TEST_SEED = 20261113;
 
 //! Pasa seconds lotes de 1 s del escenario por un motor nuevo y lo devuelve.
+(:debug)
 function runScenario(source as SimulatedAccelSource, seconds as Number) as TelemetryEngine {
     var engine = new TelemetryEngine();
     feedSeconds(source, engine, seconds, 1000);
@@ -16,6 +18,7 @@ function runScenario(source as SimulatedAccelSource, seconds as Number) as Telem
 
 //! Entrega seconds lotes de 1 s al motor empezando en startMs; devuelve el instante
 //! del siguiente lote.
+(:debug)
 function feedSeconds(source as SimulatedAccelSource, engine as TelemetryEngine, seconds as Number,
         startMs as Number) as Number {
     var t = startMs;
@@ -28,6 +31,7 @@ function feedSeconds(source as SimulatedAccelSource, engine as TelemetryEngine, 
 }
 
 //! true si |value - expected| <= tolerance.
+(:debug)
 function within(value as Number, expected as Number, tolerance as Number) as Boolean {
     var d = value - expected;
     return d <= tolerance && d >= -tolerance;

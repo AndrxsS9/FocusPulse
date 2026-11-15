@@ -57,7 +57,7 @@ class SessionRecorder {
             }
             return session.start();
         } catch (e instanceof Lang.Exception) {
-            System.println("SessionRecorder.start: " + e.getErrorMessage());
+            logError("start", e);
             return false;
         }
     }
@@ -77,7 +77,7 @@ class SessionRecorder {
             }
             ok = save ? session.save() : session.discard();
         } catch (e instanceof Lang.Exception) {
-            System.println("SessionRecorder.stop: " + e.getErrorMessage());
+            logError("stop", e);
         }
         // Liberar la referencia: solo puede existir una sesión a la vez.
         _session = null;
@@ -88,5 +88,15 @@ class SessionRecorder {
     function isRecording() as Boolean {
         var session = _session;
         return session != null && session.isRecording();
+    }
+
+    //! En depuración, el error queda en la consola; en release no se escribe nada.
+    (:debug)
+    private function logError(where as String, e as Lang.Exception) as Void {
+        System.println("SessionRecorder." + where + ": " + e.getErrorMessage());
+    }
+
+    (:release)
+    private function logError(where as String, e as Lang.Exception) as Void {
     }
 }

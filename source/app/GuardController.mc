@@ -83,8 +83,8 @@ class GuardController {
     //! System.getTimer() al arrancar el detector (para el registro de depuración).
     private var _detectionStartMs as Number = 0;
 
-    //! Último snapshot calculado (uno por lote). Las vistas lo leen en cada cuadro sin
-    //! crear objetos nuevos.
+    //! Último snapshot calculado (uno por lote), el que reciben el detector y el
+    //! clasificador.
     private var _snapshot as TelemetrySnapshot;
 
     //! Marca de tiempo del último lote, para calcular el dt del puntaje. null tras
@@ -416,10 +416,6 @@ class GuardController {
         resumeAfterBreak();
     }
 
-    function isOnBreak() as Boolean {
-        return _break.isRunning();
-    }
-
     //! Cuenta regresiva del descanso (solo lectura para su vista).
     function breakTimer() as BreakTimer {
         return _break;
@@ -739,10 +735,6 @@ class GuardController {
     private function logDismiss(responseMs as Number) as Void {
     }
 
-    function isAlertActive() as Boolean {
-        return _alerts.isActive();
-    }
-
     //! Arranca el detector (calibrando), el clasificador y la confirmación desde cero.
     private function startDetection() as Void {
         _detectionStartMs = System.getTimer();
@@ -820,11 +812,6 @@ class GuardController {
     //! Características actuales (snapshot nuevo).
     function snapshot() as TelemetrySnapshot {
         return _engine.snapshot();
-    }
-
-    //! Snapshot del último lote, sin crear objetos: para redibujos frecuentes.
-    function latestSnapshot() as TelemetrySnapshot {
-        return _snapshot;
     }
 
     function isRecording() as Boolean {

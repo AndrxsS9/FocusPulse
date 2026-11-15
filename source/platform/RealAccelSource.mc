@@ -53,7 +53,7 @@ class RealAccelSource extends AccelSource {
                 }
             });
         } catch (e instanceof Lang.Exception) {
-            System.println("RealAccelSource: " + e.getErrorMessage());
+            logError(e);
             return false;
         }
 
@@ -71,6 +71,16 @@ class RealAccelSource extends AccelSource {
 
     function sampleRateHz() as Number {
         return _sampleRate;
+    }
+
+    //! En depuración, el error del registro queda en la consola; en release, nada.
+    (:debug)
+    private function logError(e as Lang.Exception) as Void {
+        System.println("RealAccelSource: " + e.getErrorMessage());
+    }
+
+    (:release)
+    private function logError(e as Lang.Exception) as Void {
     }
 
     //! Callback del sistema con cada lote.

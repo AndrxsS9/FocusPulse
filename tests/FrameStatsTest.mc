@@ -6,6 +6,7 @@ import Toybox.Test;
 
 //! Dibuja frames cuadros cada periodMs ms, cada uno de drawMs ms, desde startMs.
 //! Devuelve cuántas ventanas se cerraron.
+(:debug)
 function feedFrames(stats as FrameStats, frames as Number, periodMs as Number, drawMs as Number,
         startMs as Number) as Number {
     var closed = 0;

@@ -8,6 +8,7 @@ import Toybox.Test;
 
 //! Pesos v1 plegados al formato de ClassifierWeights (z = coef · x + intercept):
 //! coef / escala, e intercepto − Σ coef · media / escala. Devuelve [coef, intercept].
+(:debug)
 function foldV1Weights() as Array {
     var mean = ClassifierWeightsV1.FEATURE_MEAN as Array<Float>;
     var scale = ClassifierWeightsV1.FEATURE_SCALE as Array<Float>;
@@ -29,6 +30,7 @@ function foldV1Weights() as Array {
 }
 
 //! Probabilidades crudas de unas características escritas a mano.
+(:debug)
 function classifyFeatures(logVariance as Float, peakJerk as Number, stillSeconds as Float,
         tilt as Float, fallPending as Boolean) as Array<Float> {
     var features = new Array<Float>[StateClassifier.FEATURE_COUNT];
@@ -40,6 +42,7 @@ function classifyFeatures(logVariance as Float, peakJerk as Number, stillSeconds
 }
 
 //! Índice de la mayor probabilidad.
+(:debug)
 function argmax(values as Array<Float>) as Number {
     var best = 0;
     for (var k = 1; k < values.size(); k++) {
@@ -54,6 +57,7 @@ function argmax(values as Array<Float>) as Number {
 //! cabeceo depende del momento: Normal antes de la caída; Cabeceo desde el lote de la
 //! caída hasta que la ventana de 2 s deja de contenerla; Inerte después (el usuario se
 //! quedó dormido).
+(:debug)
 function trueClass(scenario as AccelScenario.Id, timeMs as Number) as DrowsinessClass.Id {
     if (scenario == AccelScenario.TYPING) {
         return DrowsinessClass.ACTIVE;

@@ -12,9 +12,11 @@ import Toybox.Test;
 //! Tolerancia de cada característica: ln(varianza + 1), sacudida (mg, exacta), quietud
 //! (s), inclinación (grados) y caída pendiente (exacta). Python imita el Float de 32
 //! bits, así que las diferencias son de redondeo.
+(:debug)
 const FEATURE_TOLERANCE = [0.001f, 0.0f, 0.001f, 0.01f, 0.0f];
 
 //! Une las filas de FeatureVectors (el compilador no admite literales muy largos).
+(:debug)
 function flattenRows(rows as Array<Array<Number or Float>>) as Array<Number or Float> {
     var out = [] as Array<Number or Float>;
     for (var i = 0; i < rows.size(); i++) {

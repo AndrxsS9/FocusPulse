@@ -7,6 +7,7 @@ import Toybox.Test;
 
 //! Instante (ms) de la primera muestra de la caída del escenario de cabeceo: la guardia
 //! empieza en 0 y cada muestra dura 40 ms.
+(:debug)
 const NOD_DROP_MS = (SimulatedAccelSource.NOD_LEAD_SAMPLES + 1) * 1000 / SlidingWindow.SAMPLE_RATE_HZ;
 
 (:test)

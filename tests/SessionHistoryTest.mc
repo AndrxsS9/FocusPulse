@@ -6,6 +6,7 @@ import Toybox.Test;
 //! HistoryStore con el Application.Storage real del simulador.
 
 //! Resumen de prueba: guardia que empezó en dateSec, de 2 min, con `episodes` episodios.
+(:debug)
 function historySummary(dateSec as Number, episodes as Number) as GuardSummary {
     return new GuardSummary(dateSec, 120000, episodes, 2500, 2, FatigueLevel.MODERATE, false);
 }

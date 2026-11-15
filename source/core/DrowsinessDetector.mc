@@ -138,7 +138,6 @@ class DrowsinessDetector {
     private var _refractoryUntilMs as Number? = null;
 
     private var _lastEvent as DrowsinessEvent.Id = DrowsinessEvent.NONE;
-    private var _lastEventMs as Number? = null;
     private var _eventCount as Number = 0;
 
     function initialize() {
@@ -180,7 +179,6 @@ class DrowsinessDetector {
         _tilt = 0.0f;
         _refractoryUntilMs = null;
         _lastEvent = DrowsinessEvent.NONE;
-        _lastEventMs = null;
         _eventCount = 0;
     }
 
@@ -260,7 +258,6 @@ class DrowsinessDetector {
         var event = decide(timeMs, still, pending);
         if (event != DrowsinessEvent.NONE) {
             _lastEvent = event;
-            _lastEventMs = timeMs;
             _eventCount += 1;
             _refractoryUntilMs = timeMs + REFRACTORY_MS;
             _fallMs = null;
@@ -381,11 +378,6 @@ class DrowsinessDetector {
 
     function lastEvent() as DrowsinessEvent.Id {
         return _lastEvent;
-    }
-
-    //! Instante (ms) del último evento, null si aún no hubo.
-    function lastEventMs() as Number? {
-        return _lastEventMs;
     }
 
     //! Eventos emitidos desde start().

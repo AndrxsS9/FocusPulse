@@ -5,6 +5,7 @@ import Toybox.Test;
 //! pico de sacudida por lote y reset.
 
 //! Arreglo de n copias de value.
+(:debug)
 function repeatValue(n as Number, value as Number) as Array<Number> {
     var a = new Array<Number>[n];
     for (var i = 0; i < n; i++) {

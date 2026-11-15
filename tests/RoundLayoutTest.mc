@@ -6,6 +6,7 @@ import Toybox.Test;
 //! las medidas salen del tamaño real y no de números fijos.
 
 //! true si el punto (px, py) queda dentro del círculo de radio r del layout.
+(:debug)
 function insideCircle(layout as RoundLayout, px as Number, py as Number, r as Number) as Boolean {
     var dx = px - layout.centerX;
     var dy = py - layout.centerY;

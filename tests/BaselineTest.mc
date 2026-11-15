@@ -5,6 +5,7 @@ import Toybox.Test;
 //! de quietud adaptativo y adaptación lenta; y de su uso dentro del detector.
 
 //! Línea base calibrada con n ventanas de la misma varianza.
+(:debug)
 function calibratedBaseline(variance as Float, n as Number) as Baseline {
     var baseline = new Baseline();
     baseline.start(0, Baseline.CALIBRATION_DEMO_MS);

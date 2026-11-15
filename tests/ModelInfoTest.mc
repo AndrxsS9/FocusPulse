@@ -4,6 +4,7 @@ import Toybox.Test;
 //! Pruebas de la pantalla "Modelo IA": formato de las métricas. El texto depende del
 //! idioma del simulador ("93,3 %" en español, "93.3%" en inglés).
 
+(:debug)
 function percentIs(text as String, whole as String, tenth as String) as Boolean {
     return text.equals(whole + "," + tenth + " %") || text.equals(whole + "." + tenth + "%");
 }

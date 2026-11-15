@@ -7,6 +7,7 @@ import Toybox.Test;
 //! true si dos arreglos de colores tienen el mismo contenido.
 //! (Array no compara por contenido con equals.) No usa Toybox.Test para que
 //! compile también fuera del modo de pruebas, ya que tests/ está en sourcePath.
+(:debug)
 function colorsMatch(actual as Array<Number>, expected as Array<Number>) as Boolean {
     if (actual.size() != expected.size()) {
         return false;

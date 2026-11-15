@@ -17,6 +17,9 @@ import Toybox.Lang;
 //! - Columnas de COEF, FEATURE_MEAN y FEATURE_SCALE: características en el orden de
 //!   StateClassifier.FEATURE_*. La escala solo pone las características en rangos
 //!   parecidos (media 0).
+//!
+//! Anotado (:debug): no entra en la compilación de release ni en el .iq.
+(:debug)
 module ClassifierWeightsV1 {
 
     //! Identificador de los pesos (se muestra en la depuración y en las pruebas).

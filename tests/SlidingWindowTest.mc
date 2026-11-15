@@ -5,9 +5,11 @@ import Toybox.Test;
 //! sacudida y segundos de quietud.
 
 //! Periodo entre muestras a 25 Hz (ms).
+(:debug)
 const WINDOW_TEST_PERIOD_MS = 40;
 
 //! true si a y b difieren en menos de tolerance.
+(:debug)
 function nearlyEqual(a as Float, b as Float, tolerance as Float) as Boolean {
     var d = a - b;
     return d < tolerance && d > -tolerance;
@@ -15,6 +17,7 @@ function nearlyEqual(a as Float, b as Float, tolerance as Float) as Boolean {
 
 //! Empuja n muestras iguales a la ventana empezando en startMs y devuelve el
 //! instante de la siguiente muestra.
+(:debug)
 function pushConstant(window as SlidingWindow, n as Number, x as Number, y as Number, z as Number,
         startMs as Number) as Number {
     var t = startMs;

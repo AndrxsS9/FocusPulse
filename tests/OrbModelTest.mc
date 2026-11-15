@@ -6,10 +6,14 @@ import Toybox.Test;
 //! por estado, paleta y brillo de las partículas.
 
 //! Orbe del fr165: radio 97 px centrado en la hora (195, 130).
+(:debug)
 const ORB_TEST_CX = 195;
+(:debug)
 const ORB_TEST_CY = 130;
+(:debug)
 const ORB_TEST_RADIUS = 97;
 
+(:debug)
 function orbPointArray() as Array<Number> {
     return new Array<Number>[OrbModel.POINTS];
 }

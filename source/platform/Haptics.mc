@@ -148,11 +148,6 @@ class Haptics {
         return _running;
     }
 
-    //! true si la alerta en curso vibra (false: solo visual).
-    function isVibrating() as Boolean {
-        return _running && _vibes != null;
-    }
-
     //! Callback del timer: una ráfaga más.
     function onTick() as Void {
         if (_running) {

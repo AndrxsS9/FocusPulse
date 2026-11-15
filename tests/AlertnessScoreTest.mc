@@ -7,17 +7,20 @@ import Toybox.Test;
 //! pasados por el banco del detector (DetectorRig), como hace GuardController.
 
 //! Probabilidades en el orden de DrowsinessClass.
+(:debug)
 function classProbabilities(active as Float, normal as Float, nod as Float, inert as Float) as Array<Float> {
     return [active, normal, nod, inert] as Array<Float>;
 }
 
 //! Todo inerte: objetivo 10.
+(:debug)
 function inertProbabilities() as Array<Float> {
     return classProbabilities(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
 //! Puntaje activo (recién reiniciado) llevado a value (≥ 10) con probabilidades de
 //! inerte: se usa para partir de valores distintos de 88.
+(:debug)
 function scoreAt(value as Float) as AlertnessScore {
     var score = new AlertnessScore();
     score.reset();

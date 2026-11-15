@@ -4,9 +4,11 @@ import Toybox.Test;
 //! Pruebas de FatiguePredictor: cada regla por separado, sus límites y la combinación.
 //! Los tiempos son ms desde el inicio de la guardia; MIN = 1 minuto.
 
+(:debug)
 const FATIGUE_MIN = 60000;
 
 //! Episodio respondido en el nivel 1 a los startMs, con su tiempo de respuesta.
+(:debug)
 function fatigueAnswered(log as AlertLog, startMs as Number, responseMs as Number) as Void {
     log.add(new AlertRecord(DrowsinessEvent.NOD, 1, startMs, responseMs));
 }
