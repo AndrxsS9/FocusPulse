@@ -60,23 +60,25 @@ class AlertView extends WatchUi.View {
     //! pulso lento y las ondas del ícono.
     const REFRESH_REDUCED_MS = 100;
 
-    //! Ícono (milésimas del lado; fr165 en px): centro vertical (71), radio del círculo
-    //! (28) y grosor de su trazo y de las ondas (3); teléfono de 12×20 con trazo de 2 y,
-    //! a cada lado, una barra de vibración de 10 px de alto a 13 px del centro.
-    const ICON_Y = 182;
-    const ICON_RADIUS = 72;
+    //! Ícono (milésimas del lado; fr165 en px): centro vertical (76), radio del círculo
+    //! (30, como el diseño web) y grosor de su trazo y de las ondas (3); teléfono de
+    //! 13×21 con trazo de 2 y, a cada lado, una barra de vibración de 10 px de alto a
+    //! 14 px del centro.
+    const ICON_Y = 195;
+    const ICON_RADIUS = 77;
     const ICON_PEN = 8;
-    const PHONE_W = 31;
-    const PHONE_H = 51;
+    const PHONE_W = 34;
+    const PHONE_H = 56;
     const PHONE_PEN = 6;
-    const BAR_OFFSET = 33;
-    const BAR_HEIGHT = 26;
+    const BAR_OFFSET = 36;
+    const BAR_HEIGHT = 28;
 
     //! Borde negro del botón "Estoy despierto" (milésimas del lado; fr165: 3 px).
     const BUTTON_BORDER = 8;
 
-    //! Centro vertical de "¡DESPIERTA!" y separación con la línea de nivel (milésimas).
-    const TITLE_Y = 320;
+    //! Centro vertical de "¡DESPIERTA!" (fr165: 134 px) y separación con la línea de
+    //! nivel (milésimas).
+    const TITLE_Y = 346;
     const LINE_GAP = 4;
 
     //! Durante la entrada, los textos aparecen a partir de esta fracción (el disco ya

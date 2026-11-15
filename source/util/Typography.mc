@@ -16,8 +16,9 @@ module Typography {
     //! Cifras destacadas: porcentaje de alerta, contadores (solo dígitos).
     const NUMBER = Graphics.FONT_NUMBER_MILD;
 
-    //! Titular de la alerta a pantalla completa ("¡DESPIERTA!").
-    const ALERT = Graphics.FONT_LARGE;
+    //! Titular de la alerta a pantalla completa ("¡DESPIERTA!"). FONT_MEDIUM: su ancho
+    //! (≈ 250 px en el fr165) es el más cercano al del diseño web.
+    const ALERT = Graphics.FONT_MEDIUM;
 
     //! Títulos de pantalla y de sección.
     const TITLE = Graphics.FONT_MEDIUM;
