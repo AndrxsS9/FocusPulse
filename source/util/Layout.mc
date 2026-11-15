@@ -32,9 +32,9 @@ class RoundLayout {
     const BUTTON_MAX_WIDTH = 565;
     const TOUCH_PADDING = 30;    // margen extra del área táctil del botón
     const FOOTER_Y = 905;        // indicador de página
-    const ALERT_BUTTON_TOP = 670;       // "Estoy despierto" en la alerta a pantalla completa
-    const ALERT_BUTTON_HEIGHT = 165;
-    const ALERT_BUTTON_MAX_WIDTH = 720;
+    const ALERT_BUTTON_TOP = 631;       // "Estoy despierto" en la alerta a pantalla completa
+    const ALERT_BUTTON_HEIGHT = 180;    // fr165: 250×70 en y 246, como el diseño web
+    const ALERT_BUTTON_MAX_WIDTH = 642;
     const FATIGUE_TOP = 520;            // aviso de fatiga: ocupa el puntaje y la píldora
     const FATIGUE_BOTTOM = 665;
 
@@ -76,7 +76,8 @@ class RoundLayout {
     var buttonTouchRect as Rect;
 
     //! Botón "Estoy despierto" de la alerta y su área táctil. Más alto y más ancho que
-    //! el de la esfera (la alerta no tiene píldora ni marca debajo): fr165 258×64 px (área táctil 280×86).
+    //! el de la esfera (la alerta no tiene píldora ni marca debajo): fr165 250×70 px en
+    //! y 246 (área táctil 272×92), como el diseño web.
     var alertButtonRect as Rect;
     var alertButtonTouchRect as Rect;
 

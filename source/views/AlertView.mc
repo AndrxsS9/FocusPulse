@@ -10,13 +10,17 @@ import Toybox.WatchUi;
 //!
 //! De arriba abajo (fr165, 390×390):
 //!   - ícono de vibración: un círculo con un teléfono vibrando dentro y dos ondas
-//!     circulares que crecen de 1× a 1,25× y se desvanecen (y ≈ 70);
-//!   - "¡DESPIERTA!" grande (Typography.alertTitle; baja con Draw.fittingFont si no cabe);
-//!   - "Nivel N de 3 · vibración suave/media/máxima" (LABEL);
-//!   - el motivo: "Cabeceo / pérdida de tono muscular" o "Inactividad prolongada"
-//!     (LABEL, partido en dos líneas si no cabe);
-//!   - botón grande blanco "Estoy despierto" con borde negro de 3 px y texto negro en
-//!     los tres niveles (RoundLayout.alertButtonRect, 258×64 px; su área táctil, 280×86).
+//!     circulares que crecen de 1× a 1,25× y se desvanecen (centro en y 102);
+//!   - "¡DESPIERTA!" en Space Grotesk Bold 42 px (Typography.alertTitle), línea base en
+//!     y 172;
+//!   - "Nivel N de 3 · vibración suave/media/máxima" en Inter SemiBold 15 px (y 196);
+//!   - el motivo, "Cabeceo / pérdida de tono muscular" o "Inactividad prolongada", en
+//!     Inter Medium 13 px (y 221), en una línea si cabe en REASON_WIDTH (260 px) y si no
+//!     en dos;
+//!   - botón grande blanco "Estoy despierto" (Inter ExtraBold 22 px) con borde negro de
+//!     3 px y texto negro en los tres niveles (RoundLayout.alertButtonRect, 250×70 px en
+//!     y 246; su área táctil, 272×92).
+//! Posiciones medidas en las referencias del diseño web (docs/img/referencia/).
 //!
 //! Colores por nivel (diseño web): AlertnessColors.alertBackgroundColor /
 //! alertTextColor: naranja #FF8A1F y naranja intenso #FF5A1F con texto negro, y rojo
@@ -60,11 +64,11 @@ class AlertView extends WatchUi.View {
     //! pulso lento y las ondas del ícono.
     const REFRESH_REDUCED_MS = 100;
 
-    //! Ícono (milésimas del lado; fr165 en px): centro vertical (76), radio del círculo
+    //! Ícono (milésimas del lado; fr165 en px): centro vertical (102), radio del círculo
     //! (30, como el diseño web) y grosor de su trazo y de las ondas (3); teléfono de
     //! 13×21 con trazo de 2 y, a cada lado, una barra de vibración de 10 px de alto a
     //! 14 px del centro.
-    const ICON_Y = 195;
+    const ICON_Y = 263;
     const ICON_RADIUS = 77;
     const ICON_PEN = 8;
     const PHONE_W = 34;
@@ -76,10 +80,13 @@ class AlertView extends WatchUi.View {
     //! Borde negro del botón "Estoy despierto" (milésimas del lado; fr165: 3 px).
     const BUTTON_BORDER = 8;
 
-    //! Centro vertical de "¡DESPIERTA!" (fr165: 134 px) y separación con la línea de
-    //! nivel (milésimas).
-    const TITLE_Y = 346;
-    const LINE_GAP = 4;
+    //! Centros verticales (milésimas del lado) de "¡DESPIERTA!" (fr165: 157, con la línea
+    //! base en 172), de la línea de nivel (196) y del motivo (221), y ancho máximo del
+    //! motivo en una línea (260 px).
+    const TITLE_Y = 403;
+    const LEVEL_Y = 503;
+    const REASON_Y = 568;
+    const REASON_WIDTH = 667;
 
     //! Durante la entrada, los textos aparecen a partir de esta fracción (el disco ya
     //! cubre casi toda la pantalla).
@@ -113,6 +120,7 @@ class AlertView extends WatchUi.View {
 
     //! Medidas calculadas en onLayout con las fuentes reales.
     private var _titleFont as FontType = Graphics.FONT_MEDIUM;
+    private var _titleY as Number = 0;
     private var _levelY as Number = 0;
     private var _reasonY as Number = 0;
 
@@ -137,26 +145,21 @@ class AlertView extends WatchUi.View {
         _reason = text(_alerts.reason() == DrowsinessEvent.INACTIVITY
             ? Rez.Strings.AlertCauseInactivity : Rez.Strings.AlertCauseNod);
 
-        // Título: la fuente más grande que quepa en la cuerda a su altura.
-        var titleY = layout.scaled(TITLE_Y);
-        var titleHeight = dc.getFontHeight(Typography.alertTitle);
-        _titleFont = Draw.fittingFont(dc, _wakeUp,
-            layout.safeWidthBetween(titleY - titleHeight / 2, titleY + titleHeight / 2),
-            Typography.alertTitle);
+        // Título: Space Grotesk 42 (solo trae las letras de "¡DESPIERTA!" y "WAKE UP!",
+        // así que no baja a otra fuente).
+        _titleFont = Typography.alertTitle;
+        _titleY = layout.scaled(TITLE_Y);
+        _levelY = layout.scaled(LEVEL_Y);
+        _reasonY = layout.scaled(REASON_Y);
 
-        // Nivel justo debajo del título; el motivo, centrado entre el nivel y el botón.
-        var labelHeight = dc.getFontHeight(Typography.label);
-        var gap = layout.scaled(LINE_GAP);
-        _levelY = titleY + dc.getFontHeight(_titleFont) / 2 + labelHeight / 2 + gap;
-        var reasonTop = _levelY + labelHeight / 2 + gap;
-        _reasonY = (reasonTop + layout.alertButtonRect.y) / 2;
-
-        // Motivo en una línea si cabe; si no, en dos (fitTextToArea necesita algo más de
-        // dos alturas de fuente para dar dos líneas, docs/DISENO.md §3).
-        var reasonWidth = layout.safeWidthBetween(_reasonY - labelHeight, _reasonY + labelHeight);
+        // Motivo en una línea si cabe en REASON_WIDTH; si no, en dos (fitTextToArea
+        // necesita algo más de dos alturas de fuente para dar dos líneas, docs/DISENO.md §3),
+        // centradas en la misma altura.
+        var reasonWidth = layout.scaled(REASON_WIDTH);
+        var lineHeight = dc.getFontHeight(Typography.label);
         if (dc.getTextWidthInPixels(_reason, Typography.label) > reasonWidth) {
             var wrapped = Graphics.fitTextToArea(_reason, Typography.label, reasonWidth,
-                labelHeight * 5 / 2, true);
+                lineHeight * 5 / 2, true);
             if (wrapped != null) {
                 _reason = wrapped;
             }
@@ -287,8 +290,8 @@ class AlertView extends WatchUi.View {
             dx as Number, background as Number, foreground as Number, buttonScale as Float) as Void {
         var cx = layout.centerX + dx;
         drawIcon(dc, layout, cx, elapsed, background, foreground);
-        Draw.centeredText(dc, cx, layout.scaled(TITLE_Y), _titleFont, _wakeUp, foreground);
-        Draw.centeredText(dc, cx, _levelY, Typography.label, _levelLine, foreground);
+        Draw.centeredText(dc, cx, _titleY, _titleFont, _wakeUp, foreground);
+        Draw.centeredText(dc, cx, _levelY, Typography.bodyStrong, _levelLine, foreground);
         Draw.centeredText(dc, cx, _reasonY, Typography.label, _reason, foreground);
 
         var b = layout.alertButtonRect;
