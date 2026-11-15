@@ -4,14 +4,14 @@
     TTF de assets\fonts\.
 
 .DESCRIPTION
-    Llama a scripts\make_fonts.py con el Python de ml\.venv (Pillow, fijado en
-    ml\requirements.txt). Convierte Space Grotesk, Inter y JetBrains Mono (licencia SIL OFL
-    1.1) a .fnt + .png con antialias, en los tamaños del diseño y solo con los glifos que
-    usa la app, y escribe resources\fonts\fonts.xml.
+    Llama a scripts\make_fonts.py con el Python de ml\.venv (Pillow y fontTools, fijados
+    en ml\requirements.txt). Convierte Space Grotesk, Inter y JetBrains Mono (licencia SIL
+    OFL 1.1) a .fnt + .png con antialias, en los tamaños del diseño y solo con los glifos
+    que usa la app, y escribe resources\fonts\fonts.xml.
 
-    Es reproducible: con las mismas TTF y la misma versión de Pillow, git status queda
-    limpio después. Con -Check solo comprueba que los textos de strings.xml caben en el
-    juego de caracteres (no escribe nada).
+    Es reproducible: con las mismas TTF y las mismas versiones de Pillow y fontTools, git
+    status queda limpio después. Con -Check solo comprueba que los textos de strings.xml
+    caben en el juego de caracteres (no escribe nada).
 
     No usa el SDK de Connect IQ. Después, compila con scripts\build.ps1.
 

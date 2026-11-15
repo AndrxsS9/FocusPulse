@@ -5,22 +5,29 @@ Uso (desde la raíz del repositorio; normalmente lo llama scripts/make_fonts.ps1
 
     ml\\.venv\\Scripts\\python.exe -I scripts\\make_fonts.py [--check]
 
-- Lee las TTF variables oficiales de assets/fonts/ (google/fonts, sin modificar) y fija el
-  peso (y el tamaño óptico de Inter) con los ejes de variación.
+- Lee las TTF variables oficiales de assets/fonts/ (google/fonts, sin modificar) y crea
+  con fontTools una instancia estática de cada peso (y tamaño óptico, en Inter).
+- Dibuja cada glifo con Pillow (antialias de FreeType) y lo recorta a su tinta. El avance
+  de cada glifo es el exacto de la fuente (tabla hmtx, sin el redondeo del hinting) más el
+  espaciado de la tabla FONTS, redondeado al píxel.
 - Escribe en resources/fonts/ un .fnt y un .png por fuente y fonts.xml con sus <font>
   (antialias="true").
 - --check solo comprueba que los textos de resources*/strings/strings.xml caben en el
-  juego de caracteres de Inter y no escribe nada.
+  juego de caracteres y no escribe nada.
 
-Es reproducible: con las mismas TTF y la misma versión de Pillow (ml/requirements.txt)
-genera archivos idénticos byte a byte. Diseño de cada fuente: docs/DISENO.md §3.
+Es reproducible: con las mismas TTF y las mismas versiones de Pillow y fontTools
+(ml/requirements.txt) genera archivos idénticos byte a byte. Diseño de cada fuente:
+docs/DISENO.md §3.
 """
 import argparse
 import html
+import io
 import re
 import sys
 from pathlib import Path
 
+from fontTools.ttLib import TTFont
+from fontTools.varLib.instancer import instantiateVariableFont
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -52,23 +59,24 @@ ALERT_TITLE_CHARS = '¡DESPIERTA!' + 'WAKE UP!'
 
 # (id del recurso, archivo de salida, TTF, peso, tamaño en px, caracteres, espaciado en px)
 #
-# El espaciado (letter-spacing) se suma al avance de cada glifo antes de redondearlo; es
-# el que se midió en las referencias del diseño web (docs/img/referencia/, a 390 px):
-#   - hora "10:50": 189 px de ancho con 56 px de alto; Space Grotesk 76 sin espaciado mide
-#     201 px → −3 px por carácter;
-#   - "¡DESPIERTA!": 231 px; a 42 px mide 238 → −0,7 px;
-#   - "Iniciar guardia": 123 px; Inter Bold 18 mide 130 → −0,5 px.
-# Inter Medium (500) es el peso que coincide con la fecha ("Dom, 15 De Nov", 111 px: 119 en
-# SemiBold), "ALERTA" y el motivo de la alerta (223 px: 236 en SemiBold).
+# Pesos y espaciados medidos en las referencias del diseño web (docs/img/referencia/, a
+# 390 px) con los avances exactos de cada fuente:
+#   - hora "10:50": 189 px de ancho y 56 px de alto; Space Grotesk Bold 76 mide 196 px
+#     → −2 px por carácter (≈ −0,025 em);
+#   - "¡DESPIERTA!": 231 px; Space Grotesk Bold 42 mide 235 → −0,4 px;
+#   - "Iniciar guardia" (Inter Bold 18), "Nivel 1 de 3 · vibración suave" (SemiBold 15),
+#     "Monitoreo en pausa" (SemiBold 13) y "Estoy despierto" (ExtraBold 22) coinciden sin
+#     espaciado (±2 px);
+#   - la fecha y el motivo de la alerta tienen el trazo de Inter Medium (500).
 FONTS = [
-    ('TimeBold76', 'space_grotesk_bold_76', SPACE_GROTESK, 700, 76, DIGITS + ':', -3.0),
-    ('AlertBold42', 'space_grotesk_bold_42', SPACE_GROTESK, 700, 42, ALERT_TITLE_CHARS, -0.7),
+    ('TimeBold76', 'space_grotesk_bold_76', SPACE_GROTESK, 700, 76, DIGITS + ':', -2.0),
+    ('AlertBold42', 'space_grotesk_bold_42', SPACE_GROTESK, 700, 42, ALERT_TITLE_CHARS, -0.4),
     ('TitleBold22', 'space_grotesk_bold_22', SPACE_GROTESK, 700, 22, TEXT_CHARS, 0.0),
     ('InterMedium13', 'inter_medium_13', INTER, 500, 13, TEXT_CHARS, 0.0),
     ('InterSemiBold13', 'inter_semibold_13', INTER, 600, 13, TEXT_CHARS, 0.0),
     ('InterMedium15', 'inter_medium_15', INTER, 500, 15, TEXT_CHARS, 0.0),
     ('InterSemiBold15', 'inter_semibold_15', INTER, 600, 15, TEXT_CHARS, 0.0),
-    ('InterBold18', 'inter_bold_18', INTER, 700, 18, TEXT_CHARS, -0.5),
+    ('InterBold18', 'inter_bold_18', INTER, 700, 18, TEXT_CHARS, 0.0),
     ('InterExtraBold22', 'inter_extrabold_22', INTER, 800, 22, TEXT_CHARS, 0.0),
     ('MonoSemiBold14', 'jetbrains_mono_semibold_14', JETBRAINS_MONO, 600, 14, NUMBER_CHARS, 0.0),
     ('MonoSemiBold22', 'jetbrains_mono_semibold_22', JETBRAINS_MONO, 600, 22, NUMBER_CHARS, 0.0),
@@ -87,39 +95,35 @@ def unique(chars):
     return sorted(set(chars), key=ord)
 
 
-def load_font(ttf, weight, size):
-    font = ImageFont.truetype(str(SOURCES / ttf), size)
-    axes = font.get_variation_axes()
-    values = []
-    for axis in axes:
-        name = axis['name'].decode() if isinstance(axis['name'], bytes) else axis['name']
-        if name == 'Weight':
-            values.append(weight)
-        elif name == 'Optical size':
-            # Inter: tamaño óptico igual al tamaño en px, dentro de su rango (14–32).
-            values.append(min(max(size, axis['minimum']), axis['maximum']))
-        else:
-            values.append(axis['default'])
-    font.set_variation_by_axes(values)
-    return font
+def static_instance(ttf, weight, size):
+    """Instancia estática de la TTF variable con el peso dado (Inter: tamaño óptico igual
+    al tamaño en px, dentro de su rango)."""
+    font = TTFont(SOURCES / ttf)
+    location = {}
+    for axis in font['fvar'].axes:
+        if axis.axisTag == 'wght':
+            location['wght'] = weight
+        elif axis.axisTag == 'opsz':
+            location['opsz'] = min(max(size, axis.minValue), axis.maxValue)
+    return instantiateVariableFont(font, location, updateFontNames=False)
 
 
-def render_glyph(font, char, tracking):
-    """Bitmap en escala de grises del glifo y sus medidas BMFont (respecto a la línea
-    base y al origen del trazo). El avance incluye el espaciado (tracking, px)."""
-    left, top, right, bottom = font.getbbox(char, anchor='ls')
-    width, height = right - left, bottom - top
-    advance = round(font.getlength(char) + tracking)
-    if width <= 0 or height <= 0:
-        return None, 0, 0, advance
-    image = Image.new('L', (width, height), 0)
-    ImageDraw.Draw(image).text((-left, -top), char, font=font, fill=255, anchor='ls')
-    return image, left, top, advance
+def render_glyph(pil_font, char, size):
+    """Bitmap del glifo recortado a su tinta y su posición respecto al origen del trazo y
+    a la línea base (izquierda, arriba; arriba es negativo)."""
+    pad = size
+    canvas = Image.new('L', (size * 3, size * 3), 0)
+    ImageDraw.Draw(canvas).text((pad, 2 * pad), char, font=pil_font, fill=255, anchor='ls')
+    box = canvas.getbbox()
+    if box is None:
+        return None, 0, 0
+    left, top, right, bottom = box
+    return canvas.crop(box), left - pad, top - 2 * pad
 
 
 def pack(glyphs):
     """Coloca los glifos en filas dentro de una página de PAGE_WIDTH px (de más alto a
-    más bajo, para desperdiciar menos). Devuelve la posición de cada uno y el alto."""
+    más bajo, para desperdiciar menos). Devuelve el alto de la página."""
     order = sorted((g for g in glyphs if g['image'] is not None),
                    key=lambda g: (-g['image'].height, g['id']))
     x = y = row = 0
@@ -136,11 +140,25 @@ def pack(glyphs):
 
 
 def build(resource_id, name, ttf, weight, size, chars, tracking):
-    font = load_font(ttf, weight, size)
-    ascent, descent = font.getmetrics()
+    instance = static_instance(ttf, weight, size)
+    data = io.BytesIO()
+    instance.save(data)
+    pil_font = ImageFont.truetype(io.BytesIO(data.getvalue()), size)
+
+    upem = instance['head'].unitsPerEm
+    scale = size / upem
+    hhea = instance['hhea']
+    ascent = round(hhea.ascent * scale)
+    descent = round(-hhea.descent * scale)
+    cmap = instance.getBestCmap()
+    hmtx = instance['hmtx']
+
     glyphs = []
     for char in unique(chars):
-        image, left, top, advance = render_glyph(font, char, tracking)
+        if ord(char) not in cmap:
+            raise SystemExit(f'{ttf} no tiene el carácter {char!r} (U+{ord(char):04X})')
+        advance = round(hmtx[cmap[ord(char)]][0] * scale + tracking)
+        image, left, top = render_glyph(pil_font, char, size)
         glyphs.append({'id': ord(char), 'image': image, 'xoffset': left,
                        'yoffset': ascent + top, 'advance': advance, 'x': 0, 'y': 0})
     height = max(1, pack(glyphs))
@@ -150,7 +168,7 @@ def build(resource_id, name, ttf, weight, size, chars, tracking):
             page.paste(glyph['image'], (glyph['x'], glyph['y']))
     page.save(OUTPUT / f'{name}.png', optimize=True)
 
-    family = font.getname()[0]
+    family = pil_font.getname()[0]
     lines = [
         f'info face="{family}" size=-{size} bold={1 if weight >= 700 else 0} italic=0 '
         f'charset="" unicode=1 stretchH=100 smooth=1 aa=1 padding=0,0,0,0 '
@@ -168,9 +186,9 @@ def build(resource_id, name, ttf, weight, size, chars, tracking):
     (OUTPUT / f'{name}.fnt').write_text('\n'.join(lines) + '\n', encoding='utf-8', newline='\n')
 
     inked = sum(g['image'].width * g['image'].height for g in glyphs if g['image'] is not None)
-    print(f'{resource_id:18} {family} {weight} {size:>2} px ({tracking:+.1f}): {len(glyphs):>3} glifos, '
-          f'alto de línea {ascent + descent}, base {ascent}, página {PAGE_WIDTH}×{height}, '
-          f'{inked} px de glifos')
+    print(f'{resource_id:18} {family} {weight} {size:>2} px ({tracking:+.1f}): '
+          f'{len(glyphs):>3} glifos, alto de línea {ascent + descent}, base {ascent}, '
+          f'página {PAGE_WIDTH}x{height}, {inked} px de glifos')
     return inked
 
 
@@ -216,7 +234,7 @@ def main():
         print('Faltan glifos para estos caracteres de strings.xml: '
               + ' '.join(f'{c!r} (U+{ord(c):04X})' for c in missing))
         return 1
-    print('Todos los caracteres de strings.xml están en el juego de Inter.')
+    print('Todos los caracteres de strings.xml están en el juego de caracteres de texto.')
     if args.check:
         return 0
 
