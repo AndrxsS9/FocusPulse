@@ -59,9 +59,13 @@ module OrbState {
 //!
 //! El tiempo entra como parámetro (advance(dt)): el modelo no lee el reloj.
 //!
-//! Partículas: PARTICLES puntos en posiciones fijas sobre un anillo (radio que elige
-//! quien dibuja), con un pequeño desplazamiento radial propio. Su brillo (0–1) es una
-//! onda en el tiempo de animación con un desfase por partícula.
+//! **Partículas.** PARTICLES puntos fijos sobre un anillo de radio PARTICLE_RING (150 px
+//! del diseño), con un pequeño desplazamiento radial propio y radios alternos de 2,2 y
+//! 1,6 px. Titilan de opacidad 0,1 a 1 y de vuelta (onda triangular, como los fotogramas
+//! clave 0 % / 50 % / 100 % de la animación CSS) en 2,4 s; 1,2 s con actividad alta y
+//! 4,8 s somnoliento; en pausa quedan congeladas. Cada partícula va desfasada
+//! TWINKLE_STEP de ciclo respecto a la anterior y toma los colores de la paleta en
+//! rotación (A, B, C, A…).
 //!
 //! Lógica pura: no depende de WatchUi ni Graphics.
 class OrbModel {
@@ -123,12 +127,6 @@ class OrbModel {
     static const OPACITY_NORMAL = 900;
     static const OPACITY_DROWSY = 750;
 
-    //! Multiplicadores de velocidad por estado (tiempo de animación de las partículas).
-    static const SPEED_PAUSED = 0.0f;
-    static const SPEED_NORMAL = 1.0f;
-    static const SPEED_ACTIVE = 2.0f;
-    static const SPEED_DROWSY = 0.35f;
-
     //! Puntaje por debajo del cual el orbe pasa a somnoliento (= banda ámbar).
     static const DROWSY_SCORE = AlertnessColors.HIGH_THRESHOLD;
 
@@ -137,18 +135,30 @@ class OrbModel {
     static const PARTICLES = 16;
     static const PARTICLE_START = 11.25f;
 
+    //! Radio del anillo de partículas (px del diseño).
+    static const PARTICLE_RING = 150;
+
+    //! Radios alternos de las partículas (px del diseño): pares 2,2 e impares 1,6.
+    static const PARTICLE_RADIUS_LARGE = 2.2f;
+    static const PARTICLE_RADIUS_SMALL = 1.6f;
+
     //! Desplazamiento radial de cada partícula, en milésimas del radio del anillo de
     //! partículas (±1,4 %): rompe la simetría para que parezcan estrellas, no las marcas
     //! de un reloj.
     static const PARTICLE_JITTER = [8, -12, 4, -4, 14, -10, 0, 10, -14, 6, -2, 12, -8, 2, -6, 10];
 
-    //! Velocidad de la onda de brillo (grados por segundo de animación): un ciclo cada
-    //! 2,4 s a velocidad normal.
-    static const TWINKLE_SPEED = 150;
+    //! Ciclo del titileo por estado (ms).
+    static const TWINKLE_ACTIVE_MS = 1200;
+    static const TWINKLE_NORMAL_MS = 2400;
+    static const TWINKLE_DROWSY_MS = 4800;
 
-    //! Desfase de brillo entre partículas consecutivas (ángulo áureo, ≈137,5°): ninguna
-    //! titila al mismo tiempo que su vecina.
-    static const TWINKLE_OFFSET = 137.5f;
+    //! Opacidad mínima y máxima del titileo (milésimas).
+    static const TWINKLE_MIN_ALPHA = 100;
+    static const TWINKLE_MAX_ALPHA = 1000;
+
+    //! Desfase del titileo entre partículas consecutivas (fracción de ciclo): 7/16, primo
+    //! con 16, así las 16 fases son distintas y ninguna vecina titila a la vez.
+    static const TWINKLE_STEP = 0.4375f;
 
     private var _state as OrbState.Id = OrbState.PAUSED;
 
@@ -161,8 +171,8 @@ class OrbModel {
     //! Fase del ciclo de cada contorno, en 0..1.
     private var _phases as Array<Float>;
 
-    //! Segundos de animación transcurridos (brillo de las partículas).
-    protected var _time as Float = 0.0f;
+    //! Fase del titileo de las partículas, en 0..1.
+    private var _twinkle as Float = 0.0f;
 
     function initialize() {
         _trig = new TrigTable();
@@ -231,17 +241,17 @@ class OrbModel {
         return OrbState.NORMAL;
     }
 
-    //! Multiplicador de velocidad de un estado.
-    static function speedFor(state as OrbState.Id) as Float {
+    //! Duración del ciclo de titileo de las partículas en un estado (ms); 0 en pausa.
+    static function twinkleMs(state as OrbState.Id) as Number {
         switch (state) {
-            case OrbState.NORMAL:
-                return SPEED_NORMAL;
             case OrbState.ACTIVE:
-                return SPEED_ACTIVE;
+                return TWINKLE_ACTIVE_MS;
+            case OrbState.NORMAL:
+                return TWINKLE_NORMAL_MS;
             case OrbState.DROWSY:
-                return SPEED_DROWSY;
+                return TWINKLE_DROWSY_MS;
             default:
-                return SPEED_PAUSED;
+                return 0;
         }
     }
 
@@ -299,7 +309,7 @@ class OrbModel {
         if (dt <= 0.0f || _state == OrbState.PAUSED) {
             return;
         }
-        _time += dt * speedFor(_state);
+        _twinkle = wrap(_twinkle + dt * 1000.0f / twinkleMs(_state));
         for (var ring = 0; ring < RINGS; ring++) {
             _phases[ring] = wrap(_phases[ring] + dt * 1000.0f / cycleMs(_state, ring));
         }
@@ -311,9 +321,9 @@ class OrbModel {
         return f < 0.0f ? f + 1.0f : f;
     }
 
-    //! Segundos de animación transcurridos.
-    function time() as Float {
-        return _time;
+    //! Fase del titileo de las partículas, en 0..1.
+    function twinklePhase() as Float {
+        return _twinkle;
     }
 
     //! Fase del ciclo del contorno, en 0..1.
@@ -385,28 +395,36 @@ class OrbModel {
         }
     }
 
-    //! Redondeo al entero más cercano, simétrico para valores negativos.
-    static function round(value as Float) as Number {
-        return value >= 0.0f ? (value + 0.5f).toNumber() : (value - 0.5f).toNumber();
-    }
-
     //! Escribe en xs, ys (tamaño PARTICLES) las posiciones fijas de las partículas sobre
-    //! un anillo de radio radius centrado en (cx, cy).
-    function particlePoints(cx as Number, cy as Number, radius as Number,
-            xs as Array<Number>, ys as Array<Number>) as Void {
+    //! el anillo de radio PARTICLE_RING, centrado en (cx, cy), con k píxeles por unidad
+    //! del diseño.
+    function particlePoints(cx as Number, cy as Number, k as Float,
+            xs as Array<Float>, ys as Array<Float>) as Void {
         var step = 360.0f / PARTICLES;
         var jitter = PARTICLE_JITTER as Array<Number>;
         for (var i = 0; i < PARTICLES; i++) {
             var angle = PARTICLE_START + i * step;
-            var r = radius * (1000 + jitter[i]) / 1000.0f;
-            xs[i] = cx + round(r * _trig.cosDeg(angle));
-            ys[i] = cy - round(r * _trig.sinDeg(angle));
+            var r = PARTICLE_RING * k * (1000 + jitter[i]) / 1000.0f;
+            xs[i] = cx + r * _trig.cosDeg(angle);
+            ys[i] = cy - r * _trig.sinDeg(angle);
         }
     }
 
-    //! Brillo de la partícula i, de 0 (apagada) a 1 (máximo).
-    function particleBrightness(i as Number) as Float {
-        var angle = TWINKLE_SPEED * _time + TWINKLE_OFFSET * i;
-        return 0.5f + 0.5f * _trig.sinDeg(angle);
+    //! Radio de la partícula i (px del diseño): 2,2 y 1,6 alternados.
+    static function particleRadius(i as Number) as Float {
+        return i % 2 == 0 ? PARTICLE_RADIUS_LARGE : PARTICLE_RADIUS_SMALL;
+    }
+
+    //! Índice en la paleta (0–2) del color de la partícula i: rotación A, B, C.
+    static function particleColorIndex(i as Number) as Number {
+        return i % RINGS;
+    }
+
+    //! Opacidad de la partícula i en este momento del titileo (milésimas, de
+    //! TWINKLE_MIN_ALPHA a TWINKLE_MAX_ALPHA).
+    function particleAlpha(i as Number) as Number {
+        var p = wrap(_twinkle + TWINKLE_STEP * i);
+        var tri = p < 0.5f ? 2.0f * p : 2.0f * (1.0f - p);
+        return TWINKLE_MIN_ALPHA + ((TWINKLE_MAX_ALPHA - TWINKLE_MIN_ALPHA) * tri + 0.5f).toNumber();
     }
 }

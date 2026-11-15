@@ -169,7 +169,7 @@ function orbIsDeterministicForTheSameTime(logger as Logger) as Boolean {
     a.advance(2.5f);
     b.advance(1.0f);
     b.advance(1.5f);
-    Test.assert(nearlyEqual(a.time(), b.time(), 0.0001f));
+    Test.assert(nearlyEqual(a.twinklePhase(), b.twinklePhase(), 0.0001f));
 
     var ax = orbPointArray();
     var ay = orbPointArray();
@@ -209,9 +209,9 @@ function orbDoesNotMoveWhilePaused(logger as Logger) as Boolean {
     Test.assertEqual(model.state(), OrbState.PAUSED);
     var before = model.ringRotation(0);
     model.advance(10.0f);
-    Test.assert(nearlyEqual(model.time(), 0.0f, 0.0001f));
+    Test.assert(nearlyEqual(model.twinklePhase(), 0.0f, 0.0001f));
     Test.assert(nearlyEqual(model.ringRotation(0), before, 0.0001f));
-    Test.assert(nearlyEqual(OrbModel.speedFor(OrbState.PAUSED), 0.0f, 0.0001f));
+    Test.assertEqual(OrbModel.twinkleMs(OrbState.PAUSED), 0);
     return true;
 }
 
@@ -339,45 +339,92 @@ function orbPaletteFollowsScoreBands(logger as Logger) as Boolean {
 }
 
 (:test)
-function orbParticleBrightnessStaysBetween0And1(logger as Logger) as Boolean {
+function orbParticlesTwinkleBetweenTenPercentAndFull(logger as Logger) as Boolean {
     var model = new OrbModel();
-    model.setState(OrbState.ACTIVE);
-    var minSeen = 1.0f;
-    var maxSeen = 0.0f;
+    model.setState(OrbState.NORMAL);
+    var minSeen = 1000;
+    var maxSeen = 0;
     for (var step = 0; step < 60; step++) {
         model.advance(0.083f);
         for (var i = 0; i < OrbModel.PARTICLES; i++) {
-            var b = model.particleBrightness(i);
-            Test.assert(b >= 0.0f && b <= 1.0f);
-            minSeen = b < minSeen ? b : minSeen;
-            maxSeen = b > maxSeen ? b : maxSeen;
+            var a = model.particleAlpha(i);
+            Test.assert(a >= 100 && a <= 1000);
+            minSeen = a < minSeen ? a : minSeen;
+            maxSeen = a > maxSeen ? a : maxSeen;
         }
     }
-    // Titilan: recorren casi todo el rango.
-    Test.assert(minSeen < 0.1f);
-    Test.assert(maxSeen > 0.9f);
+    // Recorren todo el rango: de 0,1 a 1.
+    Test.assert(minSeen < 150);
+    Test.assert(maxSeen > 950);
+    // Onda triangular: a mitad de ciclo, la partícula 0 está al máximo.
+    var fresh = new OrbModel();
+    Test.assertEqual(fresh.particleAlpha(0), 100);
+    fresh.setState(OrbState.NORMAL);
+    fresh.advance(1.2f);
+    Test.assertEqual(fresh.particleAlpha(0), 1000);
+    return true;
+}
+
+(:test)
+function orbParticlesTwinkleFasterWhenActive(logger as Logger) as Boolean {
+    Test.assertEqual(OrbModel.twinkleMs(OrbState.NORMAL), 2400);
+    Test.assertEqual(OrbModel.twinkleMs(OrbState.ACTIVE), 1200);
+    Test.assertEqual(OrbModel.twinkleMs(OrbState.DROWSY), 4800);
+    // Activo: medio ciclo en 0,6 s. Somnoliento: en 2,4 s.
+    var active = new OrbModel();
+    active.setState(OrbState.ACTIVE);
+    active.advance(0.6f);
+    Test.assertEqual(active.particleAlpha(0), 1000);
+    var drowsy = new OrbModel();
+    drowsy.setState(OrbState.DROWSY);
+    drowsy.advance(2.4f);
+    Test.assertEqual(drowsy.particleAlpha(0), 1000);
+    // En pausa no titilan.
+    var paused = new OrbModel();
+    paused.advance(1.2f);
+    Test.assertEqual(paused.particleAlpha(0), 100);
+    return true;
+}
+
+(:test)
+function orbParticlesAreOutOfPhaseAndRotateColors(logger as Logger) as Boolean {
+    var model = new OrbModel();
+    model.setState(OrbState.NORMAL);
+    model.advance(0.7f);
+    // Vecinas desfasadas: nunca la misma opacidad que la anterior.
+    for (var i = 1; i < OrbModel.PARTICLES; i++) {
+        Test.assert(model.particleAlpha(i) != model.particleAlpha(i - 1));
+    }
+    // Colores en rotación y radios alternos.
+    Test.assertEqual(OrbModel.particleColorIndex(0), 0);
+    Test.assertEqual(OrbModel.particleColorIndex(1), 1);
+    Test.assertEqual(OrbModel.particleColorIndex(2), 2);
+    Test.assertEqual(OrbModel.particleColorIndex(3), 0);
+    Test.assert(nearlyEqual(OrbModel.particleRadius(0), 2.2f, 0.001f));
+    Test.assert(nearlyEqual(OrbModel.particleRadius(1), 1.6f, 0.001f));
+    Test.assert(nearlyEqual(OrbModel.particleRadius(14), 2.2f, 0.001f));
     return true;
 }
 
 (:test)
 function orbParticlesSitOnTheirRing(logger as Logger) as Boolean {
     var model = new OrbModel();
-    var xs = new Array<Number>[OrbModel.PARTICLES];
-    var ys = new Array<Number>[OrbModel.PARTICLES];
-    model.particlePoints(195, 195, 150, xs, ys);
+    var xs = new Array<Float>[OrbModel.PARTICLES];
+    var ys = new Array<Float>[OrbModel.PARTICLES];
+    model.particlePoints(195, 195, 1.0f, xs, ys);
     for (var i = 0; i < OrbModel.PARTICLES; i++) {
         var dx = xs[i] - 195;
         var dy = ys[i] - 195;
         var d = Math.sqrt(dx * dx + dy * dy).toFloat();
-        Test.assert(d >= 150 * 0.96f - 1 && d <= 150 * 1.04f + 1);
+        Test.assert(d >= 150 * 0.98f && d <= 150 * 1.02f);
         // Ninguna justo arriba ni abajo del centro.
-        Test.assert(xs[i] != 195);
+        Test.assert(dx > 1.0f || dx < -1.0f);
     }
     // Las posiciones no cambian con el tiempo.
     var x0 = xs[0];
     model.setState(OrbState.ACTIVE);
     model.advance(5.0f);
-    model.particlePoints(195, 195, 150, xs, ys);
-    Test.assertEqual(xs[0], x0);
+    model.particlePoints(195, 195, 1.0f, xs, ys);
+    Test.assert(nearlyEqual(xs[0], x0, 0.0001f));
     return true;
 }

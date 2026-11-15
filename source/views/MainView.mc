@@ -51,14 +51,6 @@ class MainView extends WatchUi.View {
     //! Grosor de cada contorno (px del diseño web, escalados con la pantalla).
     const ORB_PEN = [2.5f, 2.0f, 2.0f];
 
-    //! Opacidad máxima (milésimas) de una partícula en su punto más brillante, y brillo
-    //! fijo de las partículas en pausa.
-    const PARTICLE_MAX_ALPHA = 700;
-    const PARTICLE_PAUSED_BRIGHTNESS = 0.3f;
-
-    //! Radio de cada partícula, en milésimas del lado (fr165: 2 px).
-    const PARTICLE_SIZE = 6;
-
     //! Arco de escaneo: largo total (grados), número de tramos (el de la cabeza más
     //! brillante, la cola se desvanece), duración de una vuelta (ms) y opacidad de la
     //! cabeza (milésimas).
@@ -111,8 +103,8 @@ class MainView extends WatchUi.View {
     private var _orb as OrbModel;
     private var _xs as Array<Float>;
     private var _ys as Array<Float>;
-    private var _particleXs as Array<Number>;
-    private var _particleYs as Array<Number>;
+    private var _particleXs as Array<Float>;
+    private var _particleYs as Array<Float>;
 
     //! System.getTimer() del cuadro anterior (null: aún no hubo cuadro).
     private var _lastFrameMs as Number? = null;
@@ -159,8 +151,8 @@ class MainView extends WatchUi.View {
         _orb = new OrbModel();
         _xs = new Array<Float>[OrbModel.POINTS];
         _ys = new Array<Float>[OrbModel.POINTS];
-        _particleXs = new Array<Number>[OrbModel.PARTICLES];
-        _particleYs = new Array<Number>[OrbModel.PARTICLES];
+        _particleXs = new Array<Float>[OrbModel.PARTICLES];
+        _particleYs = new Array<Float>[OrbModel.PARTICLES];
     }
 
     function onLayout(dc as Dc) as Void {
@@ -248,7 +240,7 @@ class MainView extends WatchUi.View {
         System.println("FPS " + _frameStats.fps.format("%.1f") + " (" + _frameStats.frames
             + " cuadros), dibujo medio " + _frameStats.drawAvgMs.format("%.1f") + " ms, max "
             + _frameStats.drawMaxMs + " ms, periodo " + _timerPeriod + " ms, orbe "
-            + _orb.state() + " t=" + _orb.time().format("%.2f") + " s");
+            + _orb.state() + " fase A " + _orb.phase(0).format("%.3f"));
     }
 
     //! En release la medición no se informa.
@@ -300,12 +292,11 @@ class MainView extends WatchUi.View {
 
     //! Orbe IA detrás del contenido: 3 contornos de Bézier (OrbModel) centrados en la
     //! pantalla, en los colores de orbPalette(score) y con la opacidad del estado
-    //! (OrbModel.ringAlpha), y 16 partículas que titilan en un anillo cerca del borde (no
+    //! (OrbModel.ringAlpha), y 16 partículas que titilan en un anillo de radio 150 px (no
     //! con animaciones reducidas). En pausa está quieto y al 30 %.
     private function drawOrb(dc as Dc, layout as RoundLayout, score as Number) as Void {
         var palette = OrbModel.paletteFor(score);
         var state = _orb.state();
-        var paused = state == OrbState.PAUSED;
         var pens = ORB_PEN as Array<Float>;
         var k = layout.size / OrbModel.DESIGN_SIZE.toFloat();
         var last = OrbModel.POINTS - 1;
@@ -327,20 +318,15 @@ class MainView extends WatchUi.View {
             return;
         }
 
-        // Partículas: en el hueco entre el círculo seguro del contenido y el anillo de
-        // alerta (170–177 px en el fr165), así no caen sobre textos ni el botón.
-        var radius = (layout.contentRadius + layout.ringInnerRadius) / 2;
-        _orb.particlePoints(layout.centerX, layout.centerY, radius, _particleXs, _particleYs);
-        var size = layout.scaled(PARTICLE_SIZE);
-        if (size < 1) {
-            size = 1;
-        }
+        // Partículas: titileo de 0,1 a 1 por la opacidad del estado, colores de la
+        // paleta en rotación y radios alternos de 2,2 y 1,6 px.
+        var opacity = OrbModel.opacityFor(state);
+        _orb.particlePoints(layout.centerX, layout.centerY, k, _particleXs, _particleYs);
         for (var i = 0; i < OrbModel.PARTICLES; i++) {
-            var brightness = paused ? PARTICLE_PAUSED_BRIGHTNESS : _orb.particleBrightness(i);
-            var alpha = (brightness * PARTICLE_MAX_ALPHA).toNumber();
-            dc.setColor(ColorMath.blend(palette[1], Palette.BACKGROUND, alpha),
-                Graphics.COLOR_TRANSPARENT);
-            dc.fillCircle(_particleXs[i], _particleYs[i], size);
+            var alpha = _orb.particleAlpha(i) * opacity / 1000;
+            dc.setColor(ColorMath.blend(palette[OrbModel.particleColorIndex(i)],
+                Palette.BACKGROUND, alpha), Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(_particleXs[i], _particleYs[i], OrbModel.particleRadius(i) * k);
         }
     }
 
