@@ -1,6 +1,8 @@
 # Dependencias del pipeline de entrenamiento (Python 3.12). Versiones fijas para que
-# scripts	rain.ps1 sea reproducible.
+# scripts\train.ps1 sea reproducible. Pillow (que ya instala matplotlib) lo usa
+# además scripts\make_fonts.ps1 para generar las fuentes en mapa de bits.
 numpy==2.5.4
 pandas==3.1.1
 scikit-learn==1.9.1
 matplotlib==3.11.2
+pillow==13.0.0
