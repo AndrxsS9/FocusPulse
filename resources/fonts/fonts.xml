@@ -1,0 +1,18 @@
+<!--
+    Fuentes propias en mapa de bits (BMFont), generadas por scripts/make_fonts.ps1.
+    No editar a mano: cambia scripts/make_fonts.py y vuelve a generarlas.
+    Licencias (SIL OFL 1.1): resources/fonts/LICENSES/.
+-->
+<resources>
+    <fonts>
+        <font id="TimeBold76" filename="space_grotesk_bold_76.fnt" antialias="true"/>
+        <font id="AlertBold42" filename="space_grotesk_bold_42.fnt" antialias="true"/>
+        <font id="TitleBold22" filename="space_grotesk_bold_22.fnt" antialias="true"/>
+        <font id="InterSemiBold13" filename="inter_semibold_13.fnt" antialias="true"/>
+        <font id="InterSemiBold15" filename="inter_semibold_15.fnt" antialias="true"/>
+        <font id="InterBold18" filename="inter_bold_18.fnt" antialias="true"/>
+        <font id="InterExtraBold22" filename="inter_extrabold_22.fnt" antialias="true"/>
+        <font id="MonoSemiBold14" filename="jetbrains_mono_semibold_14.fnt" antialias="true"/>
+        <font id="MonoSemiBold22" filename="jetbrains_mono_semibold_22.fnt" antialias="true"/>
+    </fonts>
+</resources>

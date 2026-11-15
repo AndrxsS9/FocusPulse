@@ -75,6 +75,7 @@ Desde la raíz del repo, en PowerShell (si la política de ejecución los bloque
 | `export.ps1` | Release para todos los productos del manifest (fr165 y fr165m), firmado. |
 | `train.ps1` | Crea `ml\.venv`, genera los datos, entrena, evalúa v1/v2, elige el umbral de la confirmación y exporta `source\core\ClassifierWeights.mc`. Reproducible con la misma semilla (`-Seed`, `-NoExport`). Ver [ml/README.md](ml/README.md). |
 | `icon.ps1` | Genera el ícono del launcher (54×54) con los colores de `Palette.mc`. |
+| `make_fonts.ps1` | Convierte las TTF de `assets/fonts/` en las fuentes de mapa de bits de `resources/fonts/` (BMFont con antialias, solo los glifos que usa la app). Reproducible. `-Check` solo comprueba que los textos caben en el juego de caracteres. |
 
 **Modo demo.** Mantener UP en la esfera abre el menú principal → *Modo demo*. Con la
 guardia activa, **DOWN** cambia de escenario (normal, tecleo, cabeceo, inactividad, mirar la
@@ -113,11 +114,13 @@ source/core/        Lógica pura y probada: telemetría, detector, clasificador,
 source/platform/    Hardware: acelerómetro real y simulado, vibración, grabación
 source/views/       Vistas, menús y delegados (UI delgada)
 source/util/        Sistema de diseño: paleta, tipografía, layout redondo, dibujo, anti quemado
-resources/          Inglés (por defecto): textos, ícono, ajustes de Garmin Connect
+resources/          Inglés (por defecto): textos, ícono, ajustes de Garmin Connect y fuentes
+                    propias en mapa de bits (resources/fonts/, con sus licencias)
+assets/fonts/       TTF de origen de las fuentes (no se empaquetan)
 resources-spa/      Español
 tests/              Pruebas Toybox.Test (205)
 ml/                 Entrenamiento en Python (no se empaqueta en el reloj)
-scripts/            PowerShell: setup, build, run, test, export, train, icon
+scripts/            PowerShell: setup, build, run, test, export, train, icon, make_fonts
 docs/               Arquitectura, detector, IA, diseño, demo, tienda, sustentación, pendientes
 ```
 
@@ -151,4 +154,10 @@ docs/               Arquitectura, detector, IA, diseño, demo, tienda, sustentac
 - Desarrollo: Cristian, con asistencia de Claude Code (Anthropic).
 - Garmin Connect IQ SDK 9.3.0 y simulador del Forerunner 165.
 - Entrenamiento: Python, NumPy, pandas, scikit-learn y Matplotlib.
-- Fuentes del sistema del reloj (Roboto en el simulador).
+- Tipografía (SIL Open Font License 1.1, licencias en
+  [resources/fonts/LICENSES/](resources/fonts/LICENSES/); origen en
+  [assets/fonts/](assets/fonts/README.md)):
+  - **Space Grotesk**, de Florian Karsten (The Space Grotesk Project Authors): hora y títulos.
+  - **Inter**, de Rasmus Andersson (The Inter Project Authors): textos y botones.
+  - **JetBrains Mono**, de JetBrains (The JetBrains Mono Project Authors): cifras.
+- Los menús nativos (`Menu2`) usan las fuentes del sistema del reloj (Roboto en el simulador).
