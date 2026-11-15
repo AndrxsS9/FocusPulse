@@ -42,14 +42,18 @@ import Toybox.WatchUi;
 //! vibración …", el ritmo del pulso y la amplitud de la sacudida, que se cuenta desde
 //! el inicio del nivel porque Haptics vuelve a empezar el patrón en ese momento.
 //!
-//! Refresco: un Timer cada REFRESH_MS mientras se ve (onShow/onHide). Cada tick avisa
+//! En depuración, FrameStats escribe en la consola cada 5 s los cuadros por segundo y el
+//! tiempo de dibujo.
+//!
+//! Refresco: un Timer cada REFRESH_MS (≈ 15 cuadros/s; 10 con animaciones reducidas)
+//! mientras se ve (onShow/onHide). Cada tick avisa
 //! también a la guardia (onTick) para que escale la alerta a tiempo aunque no lleguen
 //! lotes (alerta de prueba con la guardia en pausa).
 class AlertView extends WatchUi.View {
 
-    //! Periodo de redibujo (ms): 20 cuadros por segundo, el mismo paso que la sacudida
-    //! (AlertVisuals.SHAKE_STEP_MS), así cambia de lado en cada cuadro. La alerta dura
-    //! pocos segundos: el costo en batería es pequeño.
+    //! Periodo de redibujo (ms): unos 15 cuadros por segundo, el mismo paso que la
+    //! sacudida (AlertVisuals.SHAKE_STEP_MS), así cambia de lado en cada cuadro. La
+    //! alerta dura pocos segundos: el costo en batería es pequeño.
     const REFRESH_MS = AlertVisuals.SHAKE_STEP_MS;
 
     //! Con animaciones reducidas no hay sacudida: 10 cuadros por segundo bastan para el
@@ -96,6 +100,9 @@ class AlertView extends WatchUi.View {
     private var _shownLevel as Number = 0;
     private var _layout as RoundLayout?;
     private var _timer as Timer.Timer? = null;
+
+    //! Medición de cuadros por segundo y tiempo de dibujo (solo se informa en depuración).
+    private var _frameStats as FrameStats = new FrameStats();
 
     private var _wakeUp as String = "";
     private var _levelLine as String = "";
@@ -155,6 +162,7 @@ class AlertView extends WatchUi.View {
     }
 
     function onShow() as Void {
+        _frameStats.reset();
         var timer = new Timer.Timer();
         timer.start(method(:onTick), _reduced ? REFRESH_REDUCED_MS : REFRESH_MS, true);
         _timer = timer;
@@ -189,14 +197,36 @@ class AlertView extends WatchUi.View {
         if (layout == null) {
             return;
         }
+        var start = System.getTimer();
+        drawFrame(dc, layout, start);
+        if (_frameStats.frame(start, System.getTimer())) {
+            reportFrameStats();
+        }
+    }
+
+    //! Escribe en la consola la medición de los últimos 5 s.
+    (:debug)
+    private function reportFrameStats() as Void {
+        System.println("ALERTA FPS " + _frameStats.fps.format("%.1f") + " (" + _frameStats.frames
+            + " cuadros), dibujo medio " + _frameStats.drawAvgMs.format("%.1f") + " ms, max "
+            + _frameStats.drawMaxMs + " ms, nivel " + _alerts.level());
+    }
+
+    //! En release la medición no se informa.
+    (:release)
+    private function reportFrameStats() as Void {
+    }
+
+    //! Un cuadro de la alerta en el instante now (System.getTimer()).
+    private function drawFrame(dc as Dc, layout as RoundLayout, now as Number) as Void {
         updateLevelLine();
         var level = _alerts.level();
-        var now = System.getTimer();
         var elapsed = _alerts.elapsedMs(now);
         // Pulso, sacudida y ondas cuentan desde el inicio del nivel: Haptics vuelve a
         // empezar el patrón al subir, así que la sacudida sigue a los pulsos del motor.
         var levelElapsed = _alerts.levelElapsedMs(now);
-        // Pulso de brillo lento (< 1 ciclo/s) y, en el nivel 3, rojo intenso ↔ rojo oscuro.
+        // Pulso del fondo (< 3 Hz): hacia negro en los niveles 1 y 2 y rojo intenso ↔
+        // rojo oscuro en el nivel 3.
         var background = AlertnessColors.alertPulseColor(level,
             AlertVisuals.pulse(level, _reduced, levelElapsed));
         var foreground = AlertnessColors.alertTextColor(level);

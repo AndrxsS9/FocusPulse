@@ -212,8 +212,9 @@ function alertShakeFollowsVibration(logger as Logger) as Boolean {
     // Con vibración suave el nivel 1 es un solo pulso: a los 350 ms ya está quieto.
     Test.assertEqual(AlertVisuals.shakeOffset(1, VibrationLevel.SOFT, false, 350), 0);
     Test.assert(AlertVisuals.shakeOffset(1, VibrationLevel.STRONG, false, 350) != 0);
-    // Cambia de lado cada SHAKE_STEP_MS.
-    Test.assertEqual(AlertVisuals.shakeOffset(3, normal, false, 10), -AlertVisuals.shakeOffset(3, normal, false, 60));
+    // Cambia de lado cada SHAKE_STEP_MS (un cuadro).
+    Test.assertEqual(AlertVisuals.shakeOffset(3, normal, false, 10),
+        -AlertVisuals.shakeOffset(3, normal, false, 10 + AlertVisuals.SHAKE_STEP_MS));
     return true;
 }
 
@@ -234,5 +235,13 @@ function alertReducedAnimationsKeepTheAlertClear(logger as Logger) as Boolean {
     }
     Test.assertMessage(AlertVisuals.pulsePeriodMs(3, true) >= AlertVisuals.pulsePeriodMs(1, false),
         "reducido, ni el nivel 3 late más rápido que el nivel 1 normal");
+    return true;
+}
+
+(:test)
+function alertFrameRateStaysBetweenTenAndFifteen(logger as Logger) as Boolean {
+    // ~15 cuadros por segundo con la alerta (un cuadro por paso de la sacudida).
+    var fps = 1000.0f / AlertVisuals.SHAKE_STEP_MS;
+    Test.assertMessage(fps >= 10.0f && fps <= 15.0f, fps.format("%.1f") + " cuadros/s");
     return true;
 }

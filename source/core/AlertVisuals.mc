@@ -48,9 +48,10 @@ module AlertVisuals {
     //! Con animaciones reducidas, el pulso de brillo dura este múltiplo del normal.
     const REDUCED_PULSE_FACTOR = 2;
 
-    //! Desplazamiento de la sacudida por nivel (px) y cada cuánto cambia de lado (ms).
+    //! Desplazamiento de la sacudida por nivel (px) y cada cuánto cambia de lado (ms):
+    //! un cuadro de la alerta (15 cuadros por segundo).
     const SHAKE_PX = [2, 4, 6];
-    const SHAKE_STEP_MS = 50;
+    const SHAKE_STEP_MS = 67;
 
     //! Avance de la entrada, de 0 (recién abierta) a 1 (terminada).
     function entranceProgress(elapsedMs as Number) as Float {
