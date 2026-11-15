@@ -1,6 +1,6 @@
 # Ficha para la Connect IQ Store
 
-Material para publicar **FocusPulse AI 1.0.0** en la Connect IQ Store: textos en español e
+Material para publicar **FocusPulse AI 1.1.0** en la Connect IQ Store: textos en español e
 inglés, permisos, capturas y los pasos de publicación. Lo que no se pudo comprobar desde
 el repo (límites exactos de caracteres, categorías disponibles, tamaños de imagen que pide
 el formulario) está marcado como **verificar en el formulario**.
@@ -11,7 +11,7 @@ el formulario) está marcado como **verificar en el formulario**.
 |---|---|
 | Nombre | **FocusPulse AI** (igual en ambos idiomas; es `@Strings.AppName`) |
 | Tipo | Aplicación (`watch-app`) |
-| Versión | **1.0.0** (debe coincidir con `AppInfo.VERSION`; el manifest no lleva versión) |
+| Versión | **1.1.0** (debe coincidir con `AppInfo.VERSION`; el manifest no lleva versión) |
 | Dispositivos | Forerunner 165 (`fr165`) y Forerunner 165 Music (`fr165m`) |
 | Idiomas de la app | Español e inglés (inglés por defecto) |
 | Categoría sugerida | Salud / bienestar; si no existe, Utilidades (**verificar en el formulario**) |
@@ -136,7 +136,7 @@ Lo marcado con 👤 lo haces tú a mano; el resto ya está hecho en el repo.
    el acuerdo de desarrollador.
 4. 👤 **Subir la app**: "Upload an app" → elige `bin\FocusPulse.iq`. El portal lee el id de
    la app, los productos (fr165, fr165m) y los permisos del paquete.
-5. 👤 **Rellenar la ficha** con las secciones 1 a 4: nombre, versión **1.0.0**, descripciones
+5. 👤 **Rellenar la ficha** con las secciones 1 a 4: nombre, versión **1.1.0**, descripciones
    en inglés y en español (añade el idioma español en la ficha), categoría, palabras clave
    e ícono y capturas de `docs/img/` (**verificar** los tamaños que pide: si exige otro
    tamaño de ícono de tienda, hay que generarlo; el del reloj es de 54×54).

@@ -649,8 +649,10 @@ No necesita el reloj para empezar, o es una mejora que no bloquea la 1.0.
 - [ ] El `id` de la app (`6600d3c23b8a4e89827e17ef16db01e8`) **no debe cambiar** después de
       publicar.
 - [ ] Subir `bin\FocusPulse.iq` a la Connect IQ Store con la ficha de
-      [STORE.md](STORE.md) (cuenta de desarrollador, versión **1.0.0** = `AppInfo.VERSION`) y
+      [STORE.md](STORE.md) (cuenta de desarrollador, versión **1.1.0** = `AppInfo.VERSION`) y
       revisar en el formulario los requisitos actuales de ícono, capturas y textos.
+- [ ] **Rehacer las capturas de la tienda** (`docs/img/es-*.png`, `en-*.png`) con la 1.1.0:
+      las actuales son de la 1.0.0 (orbe, botón y alertas anteriores al diseño web).
 - [ ] Ver el ícono de 54×54 en el menú de apps del simulador y del reloj.
 - [ ] **Editor de ajustes del simulador**: depende del nombre con que el simulador registró
       la app (FOCUSPULSE-TEST en este equipo); si tras *Reset All App Data* dice "No settings
