@@ -115,6 +115,19 @@ class DetectorRig {
         return rig;
     }
 
+    //! Corte de datos: pasan seconds sin lotes (el tiempo avanza, la fuente no). Con
+    //! handled, al volver los datos se hace lo mismo que GuardController.onSensorDataBack:
+    //! ventana, detector (quietud, caída y postura), clasificador y confirmación desde cero.
+    function gap(seconds as Number, handled as Boolean) as Void {
+        timeMs += seconds * 1000;
+        if (handled) {
+            engine.reset();
+            detector.onDataGap();
+            classifier.reset();
+            confirmation.reset();
+        }
+    }
+
     //! Entrega seconds lotes.
     function run(seconds as Number) as Void {
         for (var i = 0; i < seconds; i++) {
