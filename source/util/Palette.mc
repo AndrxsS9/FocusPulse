@@ -23,6 +23,12 @@ module Palette {
     //! Un punto más oscura que BORDER para que el avance destaque en el borde.
     const RING_TRACK = 0x1A1F27;
 
+    //! Fondo de la píldora de estado en pausa o con un aviso (diseño web).
+    const PILL = 0x1A1F27;
+
+    //! Fondo cian tenue de la píldora "Guardia activa" (diseño web).
+    const PILL_ACTIVE = 0x0F2A36;
+
     //! Borde marcado: contorno de controles y muestras de color.
     const BORDER_STRONG = 0x2E3743;
 

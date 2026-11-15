@@ -468,30 +468,37 @@ class MainView extends WatchUi.View {
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
-    //! Píldora de estado: en pausa (gris), guardia activa (cian, con un punto cian claro
-    //! y su "ping", GuardVisuals; "Calibrando…" mientras el detector aprende la línea
-    //! base), sin datos del sensor (ámbar, sin punto: más de 5 s sin lotes con la
-    //! guardia activa; se quita sola al volver los datos) o sensor no disponible (ámbar).
+    //! Píldora de estado (diseño web: 26 px de alto, Inter SemiBold 13 px, sin borde):
+    //!   - en pausa: fondo PILL (#1A1F27), punto y texto TEXT_SECONDARY;
+    //!   - guardia activa ("Calibrando…" mientras el detector aprende la línea base):
+    //!     fondo cian tenue PILL_ACTIVE (#0F2A36), punto y texto ACCENT_LIGHT y el "ping"
+    //!     del punto (GuardVisuals);
+    //!   - sin datos del sensor (más de 5 s sin lotes con la guardia activa; se quita sola)
+    //!     o sensor no disponible: fondo PILL, texto ámbar y sin punto.
     private function drawStatus(dc as Dc, layout as RoundLayout, animate as Boolean) as Void {
         var text = _statusPaused;
         var color = Palette.TEXT_SECONDARY;
-        var active = _guard.isActive();
+        var fill = Palette.PILL;
+        var dot = Palette.TEXT_SECONDARY as Number?;
         if (_guard.isSensorDataMissing()) {
             text = _statusNoSensorData;
             color = Palette.AMBER;
-            active = false;
+            dot = null;
             animate = false;
-        } else if (active) {
+        } else if (_guard.isActive()) {
             text = _guard.isCalibrating() ? _statusCalibrating : _statusActive;
-            color = Palette.ACCENT;
+            color = Palette.ACCENT_LIGHT;
+            fill = Palette.PILL_ACTIVE;
+            dot = Palette.ACCENT_LIGHT;
         } else if (_guard.isSensorUnavailable()) {
             text = _statusSensorUnavailable;
             color = Palette.AMBER;
+            dot = null;
         }
         // Ping: avance 0–1 dentro de su ciclo; -1 (sin ping) si no se anima.
         var ping = animate ? GuardVisuals.pingProgress(System.getTimer()) : -1.0f;
-        Draw.statusPill(dc, layout.centerX, layout.pillY, text, Typography.label, color,
-            Palette.SURFACE, Palette.BORDER_STRONG, active ? Palette.ACCENT_LIGHT : null, ping);
+        Draw.statusPill(dc, layout.centerX, layout.pillY, layout.pillHeight, layout.pillPadding,
+            text, Typography.labelStrong, color, fill, dot, ping);
     }
 
     //! Aviso de fatiga alta en lugar del puntaje y la píldora: caja SURFACE con borde

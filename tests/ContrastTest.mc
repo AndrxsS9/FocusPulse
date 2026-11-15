@@ -12,10 +12,11 @@ function textPairsReachMinimumContrast(logger as Logger) as Boolean {
         [Palette.TEXT, Palette.BACKGROUND],              // hora, valores
         [Palette.TEXT_SECONDARY, Palette.BACKGROUND],    // fecha, "ALERTA", etiquetas
         [Palette.TEXT_SOFT, Palette.BACKGROUND],         // batería
-        [Palette.TEXT_SECONDARY, Palette.SURFACE],       // píldora "Monitoreo en pausa"
+        [Palette.TEXT_SECONDARY, Palette.PILL],          // píldora "Monitoreo en pausa"
         [Palette.ACCENT, Palette.BACKGROUND],            // "DEMO · …", títulos
-        [Palette.ACCENT, Palette.SURFACE],               // píldora "Guardia activa"
-        [Palette.AMBER, Palette.SURFACE],                // "Sin datos del sensor", aviso de fatiga
+        [Palette.ACCENT_LIGHT, Palette.PILL_ACTIVE],     // píldora "Guardia activa"
+        [Palette.AMBER, Palette.PILL],                   // píldora "Sin datos del sensor"
+        [Palette.AMBER, Palette.SURFACE],                // aviso de fatiga
         [Palette.AMBER, Palette.BACKGROUND],             // fatiga Moderado en el resumen
         [Palette.TEXT, Palette.SURFACE],                 // "Pausar guardia", avisos
         [Palette.BACKGROUND, Palette.ACCENT],            // "Iniciar guardia"

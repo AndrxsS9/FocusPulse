@@ -293,7 +293,7 @@ class StyleGuideView extends WatchUi.View {
         var dotRadius = layout.scaled(10);
 
         var button = layout.buttonRect;
-        var pillHeight = Draw.pillHeight(dc, Typography.body);
+        var pillHeight = layout.pillHeight;
         var pillY = button.y - gap - pillHeight / 2;
         var dotsY = pillY - pillHeight / 2 - gap - dotRadius;
         var ringY = dotsY - dotRadius - gap - ringRadius - penWidth / 2;
@@ -313,8 +313,9 @@ class StyleGuideView extends WatchUi.View {
             }
         }
 
-        Draw.pill(dc, layout.centerX, pillY, _statusActive, Typography.body,
-            Palette.ACCENT, Palette.SURFACE, Palette.BORDER_STRONG);
+        Draw.statusPill(dc, layout.centerX, pillY, pillHeight, layout.pillPadding, _statusActive,
+            Typography.labelStrong, Palette.ACCENT_LIGHT, Palette.PILL_ACTIVE, Palette.ACCENT_LIGHT,
+            -1.0f);
         Draw.largeButton(dc, button, _startGuard, Typography.button, Palette.ACCENT, Palette.BACKGROUND);
     }
 

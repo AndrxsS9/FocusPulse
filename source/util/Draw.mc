@@ -84,73 +84,44 @@ module Draw {
         dc.setPenWidth(1);
     }
 
-    //! Píldora de estado centrada en (cx, cy): relleno oscuro, borde y texto de
-    //! color. Devuelve el rectángulo ocupado (útil para hit-testing).
-    function pill(dc as Dc, cx as Number, cy as Number, text as String, font as FontType,
-            textColor as Number, fillColor as Number, borderColor as Number) as Rect {
-        var height = pillHeight(dc, font);
-        var width = dc.getTextWidthInPixels(text, font) + height;
-        var rect = new Rect(cx - width / 2, cy - height / 2, width, height);
-        var corner = height / 2;
-
-        dc.setColor(fillColor, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(rect.x, rect.y, rect.width, rect.height, corner);
-        dc.setPenWidth(2);
-        dc.setColor(borderColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawRoundedRectangle(rect.x, rect.y, rect.width, rect.height, corner);
-        dc.setPenWidth(1);
-
-        centeredText(dc, cx, cy, font, text, textColor);
-        return rect;
-    }
-
-    //! Píldora de estado con un punto opcional a la izquierda del texto (p. ej. la
-    //! guardia activa). Mismo alto que pill(); el punto mide un tercio del alto y va en
-    //! dotColor (sin punto si es null). Devuelve el rectángulo ocupado.
+    //! Píldora de estado del diseño web centrada en (cx, cy): fondo de color sin borde,
+    //! extremos redondos, height px de alto y padding px a cada lado del contenido, con un
+    //! punto opcional (dotColor; sin punto si es null) a la izquierda del texto. En el
+    //! fr165 (26 px de alto) el punto mide 8 px y deja 8 px hasta el texto. Devuelve el
+    //! rectángulo ocupado.
     //!
     //! ping (0–1) anima el punto con un "ping" (GuardVisuals): un círculo detrás del punto
-    //! que crece de 1× a 2,6× y se desvanece de 0,8 a 0. Con ping < 0 no hay ping.
-    function statusPill(dc as Dc, cx as Number, cy as Number, text as String, font as FontType,
-            textColor as Number, fillColor as Number, borderColor as Number,
-            dotColor as Number?, ping as Float) as Rect {
-        if (dotColor == null) {
-            return pill(dc, cx, cy, text, font, textColor, fillColor, borderColor);
-        }
-        var height = pillHeight(dc, font);
-        var dotRadius = height / 6;
-        var gap = height / 4;
+    //! que crece de 1× a 2,6× y se desvanece de 0,8 a 0 sobre el fondo de la píldora. Con
+    //! ping < 0 no hay ping.
+    function statusPill(dc as Dc, cx as Number, cy as Number, height as Number,
+            padding as Number, text as String, font as FontType, textColor as Number,
+            fillColor as Number, dotColor as Number?, ping as Float) as Rect {
+        var dotRadius = height * 0.15f;
+        var gap = (height * 0.31f).toNumber();
         var textWidth = dc.getTextWidthInPixels(text, font);
-        var contentWidth = 2 * dotRadius + gap + textWidth;
-        var width = contentWidth + height;
+        var dotWidth = dotColor != null ? (2 * dotRadius).toNumber() + gap : 0;
+        var contentWidth = dotWidth + textWidth;
+        var width = contentWidth + 2 * padding;
         var rect = new Rect(cx - width / 2, cy - height / 2, width, height);
-        var corner = height / 2;
 
         dc.setColor(fillColor, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(rect.x, rect.y, rect.width, rect.height, corner);
-        dc.setPenWidth(2);
-        dc.setColor(borderColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawRoundedRectangle(rect.x, rect.y, rect.width, rect.height, corner);
-        dc.setPenWidth(1);
+        dc.fillRoundedRectangle(rect.x, rect.y, rect.width, rect.height, height / 2);
 
-        var left = cx - contentWidth / 2;
-        var dotX = left + dotRadius;
-        if (ping >= 0.0f && ping <= 1.0f) {
-            dc.setColor(ColorMath.blend(dotColor, fillColor, GuardVisuals.pingAlpha(ping)),
-                Graphics.COLOR_TRANSPARENT);
-            dc.fillCircle(dotX, cy, dotRadius * GuardVisuals.pingScale(ping));
+        var left = rect.x + padding;
+        if (dotColor != null) {
+            var dotX = left + dotRadius;
+            if (ping >= 0.0f && ping <= 1.0f) {
+                dc.setColor(ColorMath.blend(dotColor, fillColor, GuardVisuals.pingAlpha(ping)),
+                    Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(dotX, cy, dotRadius * GuardVisuals.pingScale(ping));
+            }
+            dc.setColor(dotColor, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(dotX, cy, dotRadius);
         }
-        dc.setColor(dotColor, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(dotX, cy, dotRadius);
         dc.setColor(textColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(left + 2 * dotRadius + gap, cy, font, text,
+        dc.drawText(left + dotWidth, cy, font, text,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         return rect;
-    }
-
-    //! Alto de una píldora con texto en font (para colocarla antes de dibujarla).
-    function pillHeight(dc as Dc, font as FontType) as Number {
-        var fontHeight = dc.getFontHeight(font);
-        return fontHeight + fontHeight / 3;
     }
 
     //! Fuente más grande, desde preferred hacia abajo (Typography.smaller), con la que

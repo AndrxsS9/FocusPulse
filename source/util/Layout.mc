@@ -24,8 +24,10 @@ class RoundLayout {
     const TIME_Y = 296;          // hora grande (diseño web: cifras de y 86 a 141)
     const DATE_Y = 434;          // fecha corta bajo la hora (diseño web: y 170)
     const SCORE_Y = 527;         // "ALERTA" + porcentaje: centro de las cifras (y 205)
-    const PILL_Y = 648;          // píldora de estado
-    const BUTTON_TOP = 712;      // borde superior del botón grande
+    const PILL_Y = 617;          // píldora de estado (diseño web: y 228-253)
+    const PILL_HEIGHT = 67;      // fr165: 26 px (texto de 16 px + 5 px arriba y abajo)
+    const PILL_PADDING = 31;     // fr165: 12 px a cada lado
+    const BUTTON_TOP = 682;      // borde superior del botón grande (diseño web: y 265)
     const BUTTON_HEIGHT = 154;   // fr165: 220×60, como el diseño web
     const BUTTON_MAX_WIDTH = 565;
     const TOUCH_PADDING = 30;    // margen extra del área táctil del botón
@@ -34,7 +36,7 @@ class RoundLayout {
     const ALERT_BUTTON_HEIGHT = 165;
     const ALERT_BUTTON_MAX_WIDTH = 720;
     const FATIGUE_TOP = 520;            // aviso de fatiga: ocupa el puntaje y la píldora
-    const FATIGUE_BOTTOM = 705;
+    const FATIGUE_BOTTOM = 665;
 
     var width as Number;
     var height as Number;
@@ -65,6 +67,10 @@ class RoundLayout {
     var pillY as Number;
     var footerY as Number;
 
+    //! Alto de la píldora de estado y su margen interior a cada lado del contenido.
+    var pillHeight as Number;
+    var pillPadding as Number;
+
     //! Botón grande ("Iniciar guardia") y su área táctil, algo mayor.
     var buttonRect as Rect;
     var buttonTouchRect as Rect;
@@ -75,7 +81,7 @@ class RoundLayout {
     var alertButtonTouchRect as Rect;
 
     //! Aviso de fatiga de la esfera ("Micro-sueños repetidos…"): de debajo de la fecha
-    //! al botón, tan ancho como permite el círculo seguro. fr165: 300×72 px.
+    //! al botón, tan ancho como permite el círculo seguro. fr165: 306×57 px.
     var fatigueBannerRect as Rect;
 
     //! Desplazamiento anti quemado aplicado (shiftTo, PixelShift); 0 al construirlo.
@@ -102,6 +108,8 @@ class RoundLayout {
         scoreY = toScreenY(SCORE_Y);
         pillY = toScreenY(PILL_Y);
         footerY = toScreenY(FOOTER_Y);
+        pillHeight = scaled(PILL_HEIGHT);
+        pillPadding = scaled(PILL_PADDING);
 
         var buttonHeight = max(scaled(BUTTON_HEIGHT), MIN_TOUCH);
         var buttonTop = toScreenY(BUTTON_TOP);
