@@ -25,6 +25,16 @@ function buttonFocusLastsAfterAPress(logger as Logger) as Boolean {
 }
 
 (:test)
+function buttonFocusFromNavigationKeys(logger as Logger) as Boolean {
+    // UP o DOWN enfocan el botón el mismo tiempo que una pulsación.
+    var focus = new ButtonFocus();
+    focus.focus(2000);
+    Test.assert(focus.isHighlighted(2000 + ButtonFocus.HIGHLIGHT_MS - 1));
+    Test.assert(!focus.isHighlighted(2000 + ButtonFocus.HIGHLIGHT_MS));
+    return true;
+}
+
+(:test)
 function buttonFocusSurvivesTimerWrap(logger as Logger) as Boolean {
     // System.getTimer() da la vuelta: la resta sigue dando el tiempo transcurrido.
     var focus = new ButtonFocus();

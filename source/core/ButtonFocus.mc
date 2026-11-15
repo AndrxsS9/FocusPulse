@@ -2,10 +2,13 @@ import Toybox.Lang;
 
 //! Foco del botón grande de la esfera ("Iniciar guardia" / "Pausar guardia").
 //!
-//! La esfera no tiene foco de teclado propio: el botón grande es su único control y
-//! START o un toque sobre él lo "pulsan". Tras cada pulsación el botón se considera
-//! enfocado durante HIGHLIGHT_MS, y la vista dibuja entonces el borde cian del diseño
-//! web (guardia-activa-1.png). Así se ve qué hizo la pulsación aunque el texto cambie.
+//! El botón grande es el único control de la esfera. Se enfoca de dos maneras:
+//! - al pulsarlo (START o un toque sobre él): así se ve qué hizo la pulsación aunque el
+//!   texto cambie;
+//! - con las teclas de navegación UP y DOWN, que en un reloj de botones hacen el papel
+//!   del foco de teclado.
+//! En ambos casos queda enfocado durante HIGHLIGHT_MS, y la vista dibuja entonces el
+//! borde cian del diseño web (guardia-activa-1.png).
 //!
 //! Lógica pura: el tiempo entra como parámetro (ms de System.getTimer()).
 class ButtonFocus {
@@ -21,6 +24,11 @@ class ButtonFocus {
 
     //! Se pulsó el botón (START o un toque en su área táctil) en nowMs.
     function press(nowMs as Number) as Void {
+        _pressedAt = nowMs;
+    }
+
+    //! Se pulsó una tecla de navegación (UP o DOWN) en nowMs: el foco va al botón.
+    function focus(nowMs as Number) as Void {
         _pressedAt = nowMs;
     }
 

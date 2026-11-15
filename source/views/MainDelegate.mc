@@ -12,8 +12,9 @@ import Toybox.WatchUi;
 //! - BACK: sale de la app; si la guardia está activa, antes la detiene y guarda
 //!   la actividad (ver onBack).
 //! - Menú (pulsación larga de UP): menú principal (MainMenu), también en release.
-//! - DOWN, con el modo demo activo y la guardia en marcha: siguiente escenario, con un
-//!   aviso breve en la esfera. En otro caso DOWN no se consume.
+//! - UP y DOWN: enfocan el botón grande (borde cian durante 1,5 s, ButtonFocus).
+//! - DOWN, con el modo demo activo y la guardia en marcha: además, siguiente escenario,
+//!   con un aviso breve en la esfera. En otro caso DOWN no se consume.
 //!
 //! Verificado en el simulador del fr165: START y cualquier toque disparan primero el
 //! comportamiento onSelect; solo si devuelve false llegan onKey (KEY_ENTER) u onTap
@@ -78,9 +79,20 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
         return false;
     }
 
-    //! DOWN (nextPage): siguiente escenario del modo demo durante la guardia.
+    //! DOWN (nextPage): enfoca el botón grande y, con el modo demo durante la guardia,
+    //! pasa al siguiente escenario.
     function onNextPage() as Boolean {
+        _focus.focus(System.getTimer());
+        WatchUi.requestUpdate();
         return _guard.cycleDemoScenario();
+    }
+
+    //! UP (previousPage): enfoca el botón grande (ButtonFocus), el único control de la
+    //! esfera.
+    function onPreviousPage() as Boolean {
+        _focus.focus(System.getTimer());
+        WatchUi.requestUpdate();
+        return true;
     }
 
     //! Pulsación larga del botón de menú (UP en el fr165): abre el menú principal
