@@ -1,10 +1,37 @@
 # Changelog
 
 Cambios de FocusPulse AI por fase. La versión sigue el esquema *mayor.fase.parche*
-(`AppInfo.VERSION`): la fase N es la 0.N.0 y la fase 12 cierra la 1.0.0. `AppInfo` existe
+(`AppInfo.VERSION`): la fase N es la 0.N.0, la fase 12 cierra la 1.0.0 y la fase 13B
+(animaciones del diseño web) es la 1.1.0. `AppInfo` existe
 desde la fase 8; las versiones anteriores son la numeración retroactiva de cada fase.
 Detalle de cada módulo en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) y de lo verificado
 en [docs/PENDIENTES.md](docs/PENDIENTES.md).
+
+## 1.1.0 — Fase 13B: estados animados iguales al diseño web (2026-11-15)
+
+- **Orbe IA del diseño web**: 3 contornos de Bézier (A, B, C) muestreados una vez en 48
+  puntos y centrados en la pantalla, con rotación y escala no uniforme por fotogramas clave
+  (A 0→360°, B al revés, C 40→400°). Ciclo por estado: activo 4,5 / 6 / 7,5 s, normal
+  9 / 12 / 15 s, somnoliento 22 / 28 / 34 s y congelado en pausa; opacidad general 1 / 0,9 /
+  0,75 / 0,3. Paletas de la web por puntaje (tokens nuevos `AMBER_LIGHT` y `RED_LIGHT`).
+- **Partículas**: 16 en un anillo de radio 150, radios de 2,2 y 1,6 px, colores de la
+  paleta en rotación; titilan de 0,1 a 1 en 2,4 s (1,2 s activo, 4,8 s somnoliento).
+- **Arco de escaneo** (cian al 55 %, radio 164, 16°, 2,8 s por vuelta), **ping** del punto
+  de "Guardia activa" (1× → 2,6×, 0,8 → 0 en 1,6 s) y **dos puntos de la hora** que
+  parpadean cada segundo entre 1 y 0,25 (`GuardVisuals`).
+- **Botón de 220×60** (radio 30): "Pausar guardia" sobre #1C222B y borde cian de 2 px
+  mientras tiene el foco: 1,5 s tras START, un toque, UP o DOWN (`ButtonFocus`).
+- **Alertas como la web**: nivel 1 #FF8A1F y nivel 2 #FF5A1F con texto negro, pulso hacia
+  negro en 1,4 s y 0,7 s; nivel 3 #E01E1E ↔ #6A0000 cada 0,5 s con texto blanco; ícono
+  circular con dos ondas de 3 px (1× → 1,25× en 1,1 s); botón blanco con borde y texto
+  negros en los tres niveles; título en `FONT_MEDIUM` y bloque más centrado. El pulso del
+  nivel 2 se queda en 0,88 (no 0,72) porque al 0,72 el texto bajaría a 3,81:1.
+- **Rendimiento**: la alerta pasa de 20 a ≈ 15 cuadros/s; la esfera, 12 con la guardia
+  activa y 1 en pausa. Dibujo medio medido en el simulador: 3–7 ms (esfera) y 1–2 ms
+  (alerta). Con *Animaciones reducidas* el orbe queda congelado y sin partículas.
+- Comparaciones con el diseño web en `docs/img/comparacion-guardia.png` y
+  `docs/img/comparacion-alertas.png`; referencias en `docs/img/referencia/`. Guion
+  automático completo en release, en español e inglés. 226 pruebas.
 
 ## 1.0.0 — Fase 12: pulido final (2026-11-15)
 
