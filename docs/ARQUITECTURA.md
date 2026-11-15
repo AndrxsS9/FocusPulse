@@ -207,6 +207,10 @@ pruebas son reproducibles.
 | `source/core` | `SensorWatchdog` | Más de 5 s sin lotes con la guardia activa → "sin datos"; al volver, `DrowsinessDetector.onDataGap` olvida la quietud, la caída y la postura (un corte no cuenta como inactividad). | 12 ✅ |
 | `source/views` | `ViewUnwinder` | Cierra los menús abiertos (una vista cada 50 ms: `popView` no cambia `getCurrentView` hasta el siguiente ciclo) antes de apilar una alerta sobre la esfera. | 12 ✅ |
 | `source/util` | `PixelShift`, `RoundLayout.shiftTo` | Anti quemado: la esfera entera se desplaza cada minuto por 9 posiciones (±2 px, media cero). | 12 ✅ |
+| `source/core` | `OrbModel` (diseño web) | 3 contornos de Bézier del diseño web muestreados una vez en 48 puntos, rotación y escala no uniforme por fotogramas clave, ciclo y opacidad por estado, partículas que titilan con la paleta en rotación. | 13B ✅ |
+| `source/core` | `GuardVisuals` | Curvas de la esfera con la guardia activa: arco de escaneo (radio 164, 16°, 2,8 s), ping de la píldora (1× → 2,6×, 0,8 → 0 en 1,6 s) y parpadeo de los dos puntos de la hora. | 13B ✅ |
+| `source/core` | `ButtonFocus` | Foco del botón grande de la esfera: 1,5 s tras START, un toque, UP o DOWN (borde cian). | 13B ✅ |
+| `source/core` | `AlertVisuals`, `AlertnessColors` (diseño web) | Pulso de 1,4 / 0,7 s hacia negro (nivel 2 limitado a 0,88 por contraste), parpadeo gradual #E01E1E ↔ #6A0000 cada 0,5 s y ondas del ícono (1× → 1,25× en 1,1 s, la segunda 0,55 s después). | 13B ✅ |
 
 `source/platform/` es la carpeta de adaptadores de hardware (sensores, grabación,
 vibración), creada en la fase 3. Igual que las vistas, puede importar `Toybox.Sensor`,
@@ -247,6 +251,7 @@ los módulos de las fases siguientes:
 | 10 | IA entrenada: dataset sintético, entrenamiento en Python (regresión logística), exportación de pesos v2, métricas v1/v2, pantalla *Modelo IA* y escenario *mirar la hora*. ✅ |
 | 11 | Ajustes de usuario (sensibilidad, vibración por pulsos, sonido, animaciones reducidas, confirmación por IA, grabar actividad) en el reloj y en Garmin Connect; confirmación de los cabeceos por el modelo; transición suave entre escenarios de la demo. ✅ |
 | 12 | Pulido final y **versión 1.0.0**: aviso sin datos del sensor, alerta sobre menús, anti quemado, revisión de textos y contraste, limpieza, material de la tienda, guía de sustentación, export. ✅ |
+| 13B | **Versión 1.1.0**: estados animados iguales al diseño web: orbe de Bézier con su movimiento, estados y paletas, partículas, arco de escaneo, ping, dos puntos que parpadean, botón de 220×60 con foco, y alertas con los colores, el pulso, el parpadeo y las ondas de la web; comparaciones en `docs/img/`. ✅ |
 | 13 | Pruebas en el reloj real: ejes del acelerómetro, vibración, pantalla apagada, batería, CPU y memoria ([PENDIENTES.md](PENDIENTES.md), "Requiere reloj real"). |
 | 14 | Datos reales con `SensorLogging`, reentrenamiento y decisión del evento entrenada; publicación en la Connect IQ Store. |
 
@@ -259,7 +264,8 @@ número respecto al plan inicial. En la fase 9 se adelantaron el resumen y el hi
 En la fase 10 se adelantó el entrenamiento del modelo, con datos sintéticos; los ajustes
 pasan a la 11 y los datos reales a la 12. En la fase 12 se adelantó la preparación de la
 tienda (antes en la 14) y se cerró la versión 1.0.0; las pruebas en el reloj y los datos
-reales pasan a las fases 13 y 14 (trabajo futuro).
+reales pasan a las fases 13 y 14 (trabajo futuro). La fase 13B (versión 1.1.0) se insertó
+antes de las pruebas en el reloj para igualar las animaciones al diseño web.
 
 ## Pruebas
 
@@ -311,3 +317,10 @@ reales pasan a las fases 13 y 14 (trabajo futuro).
   `RoundLayout.shiftTo`, y el contraste ≥ 4,5:1 de los textos de la esfera y de todas las
   bandas del puntaje. Los auxiliares de `tests/` van anotados `(:debug)` y no entran en
   release.
+- Fase 13B: 226 pruebas. Las nuevas cubren los contornos de Bézier (puntos de cada curva,
+  cerrados, orgánicos, siempre dentro del anillo de alerta), los fotogramas clave y el
+  orden escala → rotación, el ciclo y la opacidad por estado sin saltos al cambiar, el
+  titileo de las partículas (0,1–1, desfase, colores, radios), `GuardVisuals` (arco, ping,
+  dos puntos), `ButtonFocus` (pulsación, teclas, vuelta del contador) y el botón de 220×60,
+  y la alerta del diseño web (colores, periodos, parpadeo del nivel 3, mezcla con negro,
+  contraste del nivel 2, ondas y ≈ 15 cuadros/s).

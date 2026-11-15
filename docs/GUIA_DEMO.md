@@ -6,7 +6,8 @@ que aparece aquí se probó en el simulador del SDK 9.3.0, en español y en ingl
 2026-11-13 (fase 8) y el 2026-11-14 (fase 9: escalamiento, fatiga, descanso, resumen e
 historial; fase 11: ajustes, confirmación por IA y transición entre escenarios) y el
 2026-11-15 (fase 12, versión 1.0.0: aviso sin datos del sensor, alerta sobre menús y
-desplazamiento anti quemado).
+desplazamiento anti quemado; fase 13B, versión 1.1.0: animaciones del diseño web, con el
+guion automático completo en release en los dos idiomas).
 
 Duración recomendada: **10–12 minutos** (unos 6 de demo en vivo y el resto de explicación).
 
@@ -38,8 +39,8 @@ No se verificó ningún atajo de teclado: no dependas de ellos.
 |---|---|---|
 | **START/STOP** | Arriba a la derecha (rótulo "START / STOP") | Inicia o pausa la guardia. En la alerta, "Estoy despierto". En los menús, elegir. |
 | **BACK** | Abajo a la derecha (rótulo "BACK") | Volver en los menús. En la esfera, salir de la app (si la guardia está activa, antes la guarda). **No cierra la alerta.** |
-| **UP** | En el centro del lado izquierdo (rótulo "UP") | Subir en los menús. **Mantenerlo pulsado ~1,5 s** (clic sostenido) abre el **menú principal**. |
-| **DOWN** | Abajo a la izquierda (rótulo "DOWN") | Bajar en los menús. Con el modo demo y la guardia activa, **siguiente escenario** (aviso de 1,5 s). |
+| **UP** | En el centro del lado izquierdo (rótulo "UP") | Subir en los menús. **Mantenerlo pulsado ~1,5 s** (clic sostenido) abre el **menú principal**. En la esfera, una pulsación corta enfoca el botón grande (borde cian 1,5 s). |
+| **DOWN** | Abajo a la izquierda (rótulo "DOWN") | Bajar en los menús. En la esfera enfoca el botón grande y, con el modo demo y la guardia activa, pasa al **siguiente escenario** (aviso de 1,5 s). |
 | LIGHT | Arriba a la izquierda | No se usa. |
 | Toque | Clic sobre la pantalla | Un toque en el botón grande hace lo mismo que START; en la alerta, un toque en "Estoy despierto" la cierra. |
 
@@ -68,8 +69,9 @@ No se verificó ningún atajo de teclado: no dependas de ellos.
 **Qué hacer:** nada; la app está en pausa.
 
 **Qué decir:** "Esta es la esfera de guardia. El anillo del borde y el porcentaje son el
-nivel de alerta, de 0 a 100. Detrás de la hora está el orbe IA: en pausa queda quieto y
-tenue. Todo es casi negro porque la pantalla es AMOLED: cada píxel negro está apagado."
+nivel de alerta, de 0 a 100. Detrás está el orbe IA, los tres contornos del diseño web: en
+pausa queda quieto y al 30 %. Todo es casi negro porque la pantalla es AMOLED: cada píxel
+negro está apagado."
 
 ### Paso 2 — Activar el modo demo (45 s)
 
@@ -90,10 +92,11 @@ real. El modo queda guardado aunque cierre la app."
 
 **Qué hacer:**
 
-1. **START**: "Calibrando…" durante 5 s, luego "Guardia activa". El orbe gira y el arco de
-   escaneo da vueltas por dentro del anillo.
+1. **START**: "Calibrando…" durante 5 s, luego "Guardia activa". El botón se enmarca en cian
+   un momento, el orbe gira y se deforma, las partículas titilan, el arco de escaneo da
+   vueltas, el punto de la píldora hace "ping" y los dos puntos de la hora parpadean.
 2. **DOWN** → aviso "Escenario / Tecleo activo" y la línea "DEMO · Tecleo activo". Esperar
-   ~10 s: el puntaje sube y el orbe gira al doble.
+   ~10 s: el puntaje sube y el orbe gira al doble (ciclos de 4,5 / 6 / 7,5 s).
 3. **DOWN** → "Simular cabeceo". A los **~8 s** aparece la alerta naranja "¡DESPIERTA!
    Nivel 1 de 3 · vibración suave — Cabeceo / pérdida de tono muscular" (el detector ve la
    caída a los ~6 s y el modelo la confirma 2 s después). Responder con **START** ("Estoy
@@ -141,7 +144,7 @@ línea de la esfera muestra el paso:
 | 3/6 | Guion 3/6 · Cabeceo | hasta responder | Alerta de cabeceo a los ~8 s (6 s del detector + 2 s de la confirmación). **El guion espera**: responde con START cuando termines de explicar. |
 | 4/6 | Guion 4/6 · Normal | 8 s | Empieza al responder. |
 | 5/6 | Guion 5/6 · Inactividad | hasta responder | Alerta de inactividad a los ~10 s. Responde con START. |
-| 6/6 | Guion 6/6 · Inactividad | ≈ 26 s | **No respondas.** Alerta a los ~10 s; sube al **nivel 2** a los 6 s (naranja intenso, "Nivel 2 de 3 · vibración media") y al **nivel 3** a los 12 s (rojo, "vibración máxima"), sin cerrarse. 4 s después el guion termina. |
+| 6/6 | Guion 6/6 · Inactividad | ≈ 26 s | **No respondas.** Alerta a los ~10 s; sube al **nivel 2** a los 6 s (naranja intenso, "Nivel 2 de 3 · vibración media") y al **nivel 3** a los 12 s (rojo que parpadea con rojo oscuro cada 0,5 s, "vibración máxima"), sin cerrarse. 4 s después el guion termina. |
 | fin | **Resumen de la guardia** | — | La guardia se pausa sola y se abre el resumen: ≈ 1 min 11 s, 3 episodios, respuesta media, nivel máximo **3 de 3**, fatiga **Alto**, DEMO. START vuelve a la esfera. |
 
 En total ≈ **75 s** más lo que tardes en responder las dos primeras alertas (medido en la

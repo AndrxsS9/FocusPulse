@@ -1,8 +1,9 @@
 # Pendientes de verificar
 
 Las fases 1 y 2 se compilaron, probaron y revisaron en el simulador con el **Connect IQ SDK
-9.3.0** (2026-11-12), las fases 3 a 8 el 2026-11-13, las fases 9, 10 y 11 el 2026-11-14 y
-la fase 12 (versión 1.0.0) el 2026-11-15.
+9.3.0** (2026-11-12), las fases 3 a 8 el 2026-11-13, las fases 9, 10 y 11 el 2026-11-14,
+la fase 12 (versión 1.0.0) el 2026-11-15 y la fase 13B (versión 1.1.0, animaciones del
+diseño web) también el 2026-11-15.
 
 El documento tiene tres partes:
 
@@ -434,6 +435,82 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
   763,6 kB** en el fr165 y **98,8 kB de 763,6 kB** en el fr165m (13 %). Código 47,5 kB,
   datos 17,8 kB. En depuración la memoria en uso ronda 104–105 kB.
 
+### Animaciones del diseño web (fase 13B, versión 1.1.0, simulador)
+
+- Las **226 pruebas** pasan (21 nuevas: contornos de Bézier, fotogramas clave, ciclo y
+  opacidad por estado, titileo de las partículas, `GuardVisuals`, `ButtonFocus`, colores,
+  pulso, parpadeo y ondas de la alerta). `build.ps1` y `build.ps1 -Release` sin
+  advertencias con `-l 3`.
+- **Tiempo de dibujo por cuadro** (compilación de depuración, `FrameStats` en ventanas de
+  5 s, fr165, contornos de 48 puntos):
+
+  | Estado | Cuadros/s | Dibujo medio (máx.) |
+  |---|---|---|
+  | Pausa | 1,2–1,4 | 2,5–8,0 ms (16) |
+  | Normal | 12,2–13,4 | 3,2–6,8 ms (16) |
+  | Activo (tecleo) | 12,2–13,2 | 3,0–6,7 ms (16) |
+  | Somnoliento (inactividad) | 13,0–13,2 | 3,8–4,3 ms (16) |
+  | Alerta, niveles 1–3 | 14,7–15,5 | 0,8–2,1 ms (16) |
+
+  El máximo de 16 ms es la resolución de `System.getTimer()` en Windows, no un cuadro lento.
+  Muy por debajo de los ≈ 40 ms que obligarían a bajar los puntos por contorno: se quedan
+  en 48. Las fases avanzan como se espera: en activo, A sube ≈ 0,14 por ventana de 5,1 s
+  (ciclo de 4,5 s) y en normal ≈ 0,57 (ciclo de 9 s).
+- **`setPenWidth` y `fillCircle` aceptan `Float`** (`Numeric` en `api.mir`) y el simulador
+  los dibuja sin errores: los contornos usan 2,5 / 2 / 2 px y las partículas radios de 2,2 y
+  1,6 px tal cual. Los puntos de los contornos también se pasan como `Float` a `drawLine`.
+- **Contraste de los colores del diseño web** (WCAG 2.x): nivel 1 #FF8A1F con negro 8,91:1
+  → 4,83:1 al 0,72; nivel 3 #E01E1E con blanco 4,80:1 y #6A0000 13,02:1. **Nivel 2:
+  #FF5A1F con negro 6,73:1, pero al 0,72 del pulso baja a 3,81:1**, así que se conservó la
+  profundidad que ya tenía la app (0,88 → 5,30:1); prueba `alertPulseDimsTowardsBlack`.
+- **Nivel 3 gradual**: las referencias `alerta-nivel3.png` y `alerta-nivel3-prueba.png`
+  muestran rojos intermedios (≈ #A00A0A), así que el parpadeo cada 0,5 s es un paso gradual
+  #E01E1E → #6A0000 → #E01E1E (1 ciclo/s), no un corte. En el simulador se capturaron
+  205,24,24 → 156,12,8 → 106,0,0 → 164,12,8 → 213,24,24 (pantalla de 16 bits).
+- **Foco del botón**: START, un toque en el botón, UP o DOWN dan el foco durante 1,5 s y se
+  ve el borde cian de 2 px (capturas antes, a los 250 ms y a los 2,8 s).
+- **Comparaciones** con el diseño web, en release y en español:
+  [img/comparacion-guardia.png](img/comparacion-guardia.png) y
+  [img/comparacion-alertas.png](img/comparacion-alertas.png). Tras la primera comparación se
+  bajó el bloque de la alerta (ícono de radio 30 en y 76, título en `FONT_MEDIUM` en y 134).
+- **Guion automático completo (release)**, sin usar el ratón ni el teclado reales (botones
+  con `PostMessage`, idioma y *Kill App* con `WM_COMMAND`, capturas con `PrintWindow` y el
+  cambio **temporal y no versionado** para que DOWN en pausa abra el menú):
+  - **Español**: cabeceo a los 28 s (paso 3, respondida), inactividad a los 47 s (paso 5,
+    respondida), paso 6 sin responder: nivel 2, nivel 3 y resumen automático a los 74 s
+    (1 min 14 s, 3 episodios, respuesta media 2,3 s, nivel máximo 3 de 3, fatiga Alto, DEMO).
+  - **Inglés**: alertas a los 30 y 49 s, la tercera a los 58 s y resumen a los 75 s
+    (1 min 15 s, 3 episodes, avg. response 2.7 s, max. level 3 of 3, fatigue High).
+  - Todas las pantallas del recorrido se ven sin cortes en los dos idiomas con el orbe, el
+    arco, el ping, los dos puntos que parpadean y las alertas nuevas.
+- Durante el primer intento en español la ventana del simulador quedó **minimizada** unos
+  30 s y `PrintWindow` devolvió capturas vacías: la alerta del paso 5 escaló sin respuesta.
+  El ayudante de capturas restaura la ventana sin activarla (`ShowWindow`
+  `SW_SHOWNOACTIVATE`) y el recorrido se repitió entero.
+
+#### Lo que no se pudo igualar al diseño web
+
+- **Tipografía**: el reloj solo tiene las fuentes del sistema (Roboto en el simulador, sin
+  negrita). La hora, "¡DESPIERTA!", "Pausar guardia" y "Estoy despierto" son negritas
+  geométricas en la web; aquí van en regular. Igualarlas exigiría fuentes de mapa de bits
+  propias (más memoria y trabajo de diseño).
+- **Tamaño de los textos de la alerta**: no hay fuente más pequeña que `FONT_XTINY`
+  (30 px de caja), así que "Nivel 1 de 3 · vibración suave" y sobre todo el motivo ocupan
+  más que en la web; "Cabeceo / pérdida de tono muscular" va en dos líneas y el bloque queda
+  algo más alto y apretado que en la referencia.
+- **Esfera**: con el modo demo la fecha se reemplaza por la línea "DEMO · …"; la batería y
+  el puntaje llevan espacio antes de "%" ("50 %", formato del idioma); la píldora usa el
+  fondo `SURFACE` con borde `BORDER_STRONG` y no el fondo cian tenue de la web.
+- **Opacidad**: no hay alfa real en el fr165; toda transparencia (orbe, partículas, arco,
+  ping, dos puntos, ondas, pulso) se simula mezclando con el fondo o con negro. Donde un
+  elemento con "transparencia" pasa por encima de otro (p. ej. una partícula detrás del
+  botón) se ve el color mezclado con el fondo, no con lo que hay debajo.
+- **Pulso del nivel 2**: 0,88 en lugar de 0,72 (contraste, arriba).
+- **Pantalla de 16 bits**: el simulador redondea los colores (p. ej. #FF8A1F se ve
+  255,137,24), así que los degradados del pulso van en escalones pequeños.
+- **Foco**: en la web es el foco de teclado o del puntero; en el reloj no hay foco en las
+  vistas propias, así que se simula 1,5 s tras START, un toque, UP o DOWN.
+
 ## Requiere reloj real
 
 Solo se puede cerrar con un Forerunner 165 (o 165 Music) en la muñeca.
@@ -485,12 +562,12 @@ Solo se puede cerrar con un Forerunner 165 (o 165 Music) en la muñeca.
       recuerda tras reiniciar el reloj.
 - [ ] **Deslizar en la esfera**: un deslizamiento vertical podría llegar como
       `onNextPage` y cambiar de escenario en modo demo; si molesta, atender solo `KEY_DOWN`.
-- [ ] Acertar el botón de la esfera (área 248×76 px) y el de la alerta (280×86 px) con el
+- [ ] Acertar el botón de la esfera (área 242×82 px) y el de la alerta (280×86 px) con el
       reloj puesto y medio dormido; que la píldora no provoque toques no deseados.
 - [ ] **Alerta sobre menús en el reloj**: que `ViewUnwinder` cierre los menús nativos igual
       que en el simulador y que el límite de timers del fr165 sea el mismo (3).
 - [ ] **Anti quemado**: que el salto de 2 px por minuto no se note al mirar la hora.
-- [ ] Fuentes: que `FONT_NUMBER_MEDIUM` (hora), "¡DESPIERTA!" en `FONT_LARGE` y las
+- [ ] Fuentes: que `FONT_NUMBER_MEDIUM` (hora), "¡DESPIERTA!" en `FONT_MEDIUM` y las
       etiquetas cortas de *Ajustes* (Menu2 corta a ≈ 13 caracteres junto al interruptor) se
       vean igual que en el simulador (que usa Roboto).
 - [ ] "Nivel 3 de 3 · vibración máxima" (≈ 357 px) no queda demasiado cerca del borde.
@@ -500,16 +577,28 @@ Solo se puede cerrar con un Forerunner 165 (o 165 Music) en la muñeca.
 - [ ] **Hora del historial** tras un cambio de zona horaria o de horario de verano.
 - [ ] Brillo bajo y sol: que el arco de escaneo (3 px, cian al 55 %), el orbe tenue y la
       pista `BORDER` se distingan sin restar legibilidad, y que `ORANGE`, `ORANGE_DEEP` y
-      `RED_INTENSE` se distingan entre sí.
+      `RED_INTENSE` se distingan entre sí (desde la 1.1.0 `ORANGE_DEEP` es #FF5A1F, más
+      cerca del rojo).
+- [ ] **Orbe del diseño web en AMOLED**: que los contornos de 2–2,5 px con opacidad 0,35–0,6
+      y las partículas de 1,6–2,2 px se vean (o no molesten) con brillo bajo, y que el
+      parpadeo de los dos puntos de la hora no distraiga.
+- [ ] **Grosores y radios con decimales** (`setPenWidth(2,5)`, `fillCircle` de 2,2 y 1,6
+      px, `drawLine` con `Float`): el simulador los acepta; confirmar que el firmware del
+      fr165 también, y cómo los redondea.
+- [ ] **UP y DOWN en la esfera** enfocan el botón (borde cian 1,5 s): que UP no tenga en el
+      reloj otro uso del sistema que el usuario eche de menos.
 
 ### Rendimiento y batería
 
-- [ ] **Batería** de una guardia larga con el orbe a ≈ 12 cuadros/s frente a
+- [ ] **Batería** de una guardia larga con el orbe a ≈ 12 cuadros/s (desde la 1.1.0, 3
+      contornos de 48 puntos, 16 partículas, arco y ping) frente a
       `ANIMATIONS_ENABLED = false` (1 cuadro/s), más la grabación (25 Hz + FIT). Según el
       resultado: bajar la tasa con la pantalla atenuada, apagar la animación tras unos
       minutos sin mirar o hacer que "Animaciones reducidas" también baje la tasa.
-- [ ] **Tiempo de dibujo** en la CPU del fr165: si un cuadro supera ≈ 60 ms, reducir
-      `OrbModel.POINTS` (36 → 24) o la tasa, o usar un `BufferedBitmap` para la capa fija.
+- [ ] **Tiempo de dibujo** en la CPU del fr165 (en el simulador, 3–7 ms por cuadro de la
+      esfera y 1–2 ms de la alerta): si un cuadro supera ≈ 40 ms, bajar
+      `OrbModel.SEGMENT_POINTS` (12 → 8, 32 puntos por contorno) o la tasa, o usar un
+      `BufferedBitmap` para la capa fija.
 - [ ] **Memoria en el reloj** frente a los 98,8 kB medidos en el simulador.
 - [ ] Si `setStroke`/`setFill` (alfa real) existen en el firmware (en el simulador no): si
       sí, valorar usarlos con un `has`.
