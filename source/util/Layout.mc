@@ -20,9 +20,8 @@ class RoundLayout {
     const RING_MARGIN = 18;      // borde de pantalla → borde exterior del anillo
     const RING_WIDTH = 30;       // grosor del anillo de nivel de alerta
     const CONTENT_PADDING = 20;  // borde interior del anillo → contenido
-    const ORB_RADIUS = 250;      // orbe IA detrás de la hora
     const TOP_Y = 130;           // batería / título de la pantalla
-    const TIME_Y = 335;          // hora grande (centro del orbe IA)
+    const TIME_Y = 335;          // hora grande
     const DATE_Y = 470;          // fecha corta bajo la hora
     const SCORE_Y = 558;         // "ALERTA" + porcentaje de alerta
     const PILL_Y = 648;          // píldora de estado
@@ -57,8 +56,6 @@ class RoundLayout {
 
     //! Radio del círculo seguro para texto y controles (dentro del anillo).
     var contentRadius as Number;
-
-    var orbRadius as Number;
 
     //! Centros verticales de cada zona de la pantalla principal.
     var topY as Number;
@@ -98,7 +95,6 @@ class RoundLayout {
         ringRadius = ringOuter - ringWidth / 2;
         ringInnerRadius = ringOuter - ringWidth;
         contentRadius = ringInnerRadius - scaled(CONTENT_PADDING);
-        orbRadius = scaled(ORB_RADIUS);
 
         topY = toScreenY(TOP_Y);
         timeY = toScreenY(TIME_Y);
