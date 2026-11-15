@@ -48,15 +48,15 @@ class MainView extends WatchUi.View {
     //! partículas (drawOrb).
     const ANIMATIONS_ENABLED = true;
 
-    //! Opacidad (milésimas) de cada anillo del orbe, del exterior al interior. En el
-    //! fr165 no hay trazos con alfa: se mezcla el color con el fondo (ColorMath).
+    //! Opacidad (milésimas) de cada contorno del orbe (A, B, C). En el fr165 no hay trazos
+    //! con alfa: se mezcla el color con el fondo (ColorMath).
     const ORB_ALPHA = [600, 450, 350];
 
     //! En pausa el orbe se ve más tenue: opacidad × ORB_PAUSED_DIM / 1000.
     const ORB_PAUSED_DIM = 450;
 
-    //! Grosor (px) de los anillos del orbe.
-    const ORB_PEN = 2;
+    //! Grosor de cada contorno (px del diseño web, escalados con la pantalla).
+    const ORB_PEN = [2.5f, 2.0f, 2.0f];
 
     //! Opacidad máxima (milésimas) de una partícula en su punto más brillante, y brillo
     //! fijo de las partículas en pausa.
@@ -65,12 +65,6 @@ class MainView extends WatchUi.View {
 
     //! Radio de cada partícula, en milésimas del lado (fr165: 2 px).
     const PARTICLE_SIZE = 6;
-
-    //! El orbe se centra un poco por debajo de la hora (en milésimas del lado: 9 px en el
-    //! fr165) y con el 88 % de layout.orbRadius, para que su borde superior no cruce la
-    //! batería: queda entre y ≈ 55 y y ≈ 225.
-    const ORB_CENTER_DROP = 25;
-    const ORB_SCALE = 880;
 
     //! Arco de escaneo: largo total (grados), número de tramos (el de la cabeza más
     //! brillante, la cola se desvanece), duración de una vuelta (ms) y opacidad de la
@@ -122,8 +116,8 @@ class MainView extends WatchUi.View {
 
     //! Orbe IA y los arreglos donde se escriben sus puntos (sin crear objetos por cuadro).
     private var _orb as OrbModel;
-    private var _xs as Array<Number>;
-    private var _ys as Array<Number>;
+    private var _xs as Array<Float>;
+    private var _ys as Array<Float>;
     private var _particleXs as Array<Number>;
     private var _particleYs as Array<Number>;
 
@@ -170,8 +164,8 @@ class MainView extends WatchUi.View {
         View.initialize();
         _guard = guard;
         _orb = new OrbModel();
-        _xs = new Array<Number>[OrbModel.POINTS];
-        _ys = new Array<Number>[OrbModel.POINTS];
+        _xs = new Array<Float>[OrbModel.POINTS];
+        _ys = new Array<Float>[OrbModel.POINTS];
         _particleXs = new Array<Number>[OrbModel.PARTICLES];
         _particleYs = new Array<Number>[OrbModel.PARTICLES];
     }
@@ -310,25 +304,26 @@ class MainView extends WatchUi.View {
         }
     }
 
-    //! Orbe IA detrás de la hora: 3 anillos orgánicos (OrbModel) en los colores de
-    //! orbPalette(score), atenuados, y 16 partículas que titilan en un anillo cerca del
-    //! borde (no con animaciones reducidas). En pausa está quieto y más tenue.
+    //! Orbe IA detrás del contenido: 3 contornos de Bézier (OrbModel) centrados en la
+    //! pantalla, en los colores de orbPalette(score), atenuados, y 16 partículas que
+    //! titilan en un anillo cerca del borde (no con animaciones reducidas). En pausa está
+    //! quieto y más tenue.
     private function drawOrb(dc as Dc, layout as RoundLayout, score as Number) as Void {
         var palette = OrbModel.paletteFor(score);
         var paused = _orb.state() == OrbState.PAUSED;
         var alphas = ORB_ALPHA as Array<Number>;
-        var orbCenterY = layout.timeY + layout.scaled(ORB_CENTER_DROP);
-        var orbRadius = layout.orbRadius * ORB_SCALE / 1000;
+        var pens = ORB_PEN as Array<Float>;
+        var k = layout.size / OrbModel.DESIGN_SIZE.toFloat();
+        var last = OrbModel.POINTS - 1;
 
-        dc.setPenWidth(ORB_PEN);
         for (var ring = 0; ring < OrbModel.RINGS; ring++) {
             var alpha = paused ? alphas[ring] * ORB_PAUSED_DIM / 1000 : alphas[ring];
             dc.setColor(ColorMath.blend(palette[ring], Palette.BACKGROUND, alpha),
                 Graphics.COLOR_TRANSPARENT);
-            _orb.ringPoints(ring, layout.centerX, orbCenterY, orbRadius, _xs, _ys);
-            var last = OrbModel.POINTS - 1;
-            for (var k = 0; k < last; k++) {
-                dc.drawLine(_xs[k], _ys[k], _xs[k + 1], _ys[k + 1]);
+            dc.setPenWidth(pens[ring] * k);
+            _orb.ringPoints(ring, layout.centerX, layout.centerY, k, _xs, _ys);
+            for (var i = 0; i < last; i++) {
+                dc.drawLine(_xs[i], _ys[i], _xs[i + 1], _ys[i + 1]);
             }
             dc.drawLine(_xs[last], _ys[last], _xs[0], _ys[0]);
         }

@@ -1,4 +1,5 @@
 import Toybox.Lang;
+import Toybox.Math;
 
 //! Estado del orbe, derivado de la guardia, la telemetría y el puntaje.
 module OrbState {
@@ -15,52 +16,89 @@ module OrbState {
     }
 }
 
-//! Modelo del orbe IA que se dibuja detrás de la hora: 3 anillos delgados de forma
-//! orgánica que giran a velocidades distintas (uno en sentido contrario) y se deforman
-//! suavemente.
+//! Modelo del orbe IA que se dibuja detrás del contenido de la esfera: 3 contornos
+//! orgánicos cerrados que giran y se deforman, copiados del diseño web.
 //!
-//! Cada anillo es una curva cerrada en coordenadas polares:
+//! **Forma.** Cada contorno es un trazado SVG de 4 curvas de Bézier cúbicas en
+//! coordenadas locales (centro del orbe en 0,0; y hacia abajo), en píxeles de una pantalla
+//! de DESIGN_SIZE (390) px:
 //!
-//!     r(θ) = R · (1 + a1·sin(2θ + φ1) + a2·sin(3θ + φ2))
+//!     A: M 0,-150 C 80,-152 140,-90 145,-10 C 150,80 85,140 5,138
+//!                 C -85,136 -150,75 -146,-5 C -142,-90 -80,-148 0,-150 Z
+//!     B: M 10,-140 C 95,-135 155,-60 140,20 C 125,100 60,150 -20,145
+//!                  C -100,140 -150,60 -140,-20 C -130,-100 -70,-145 10,-140 Z
+//!     C: M -5,-155 C 70,-160 130,-110 150,-30 C 165,50 120,125 30,140
+//!                  C -60,155 -135,100 -150,20 C -160,-60 -80,-150 -5,-155 Z
 //!
-//! muestreada en POINTS ángulos θ, girada `rotación` grados. R, a1 y a2 son propios de
-//! cada anillo (deformación a1 + a2 entre el 5 y el 8 %) y R·(1 + a1 + a2) ≤ 1, así que
-//! ningún punto sale del radio del orbe. La rotación y las fases φ1, φ2 avanzan con el
-//! tiempo de animación, que entra como parámetro (dt): el modelo no lee el reloj.
+//! Se muestrean una sola vez, al crear el modelo, en SEGMENT_POINTS puntos por curva
+//! (POINTS por contorno) y se dibujan como polilínea cerrada.
 //!
-//! El tiempo de animación avanza dt × multiplicador del estado (pausa 0, normal 1,
-//! activo 2, somnoliento 0,35), así que todo el orbe acelera o frena a la vez.
+//! **Movimiento.** Cada contorno tiene su propia fase de ciclo (0–1). Rotación y escala
+//! no uniforme siguen 3 fotogramas clave con interpolación lineal, como la animación CSS:
 //!
-//! Partículas: PARTICLES puntos en posiciones fijas sobre un anillo entre el orbe y el
-//! borde (radio que elige quien dibuja), con un pequeño desplazamiento radial propio. Su
-//! brillo (0–1) es una onda en el tiempo de animación con un desfase por partícula.
+//!     A:   0° escala (1, 1)       → 180° (1,07, 0,93) →  360° (1, 1)
+//!     B:   0° escala (0,95, 1,04) → -180° (1,05, 0,95) → -360° (0,95, 1,04)
+//!     C:  40° escala (1, 1)       → 220° (0,92, 1,06) →  400° (1, 1)
 //!
-//! Usa TrigTable: ni una llamada a Math.sin por cuadro.
+//! La rotación avanza a ritmo constante y la escala va al valor del medio y vuelve. Un
+//! punto local p se lleva a pantalla como centro + k · R(θ) · S · p (primero la escala,
+//! después la rotación, como "rotate(θ) scale(sx, sy)" en CSS; θ > 0 gira en sentido
+//! horario porque y crece hacia abajo), con k = lado de la pantalla / DESIGN_SIZE.
+//!
+//! El tiempo entra como parámetro (advance(dt)): el modelo no lee el reloj.
+//!
+//! Partículas: PARTICLES puntos en posiciones fijas sobre un anillo (radio que elige
+//! quien dibuja), con un pequeño desplazamiento radial propio. Su brillo (0–1) es una
+//! onda en el tiempo de animación con un desfase por partícula.
+//!
 //! Lógica pura: no depende de WatchUi ni Graphics.
 class OrbModel {
 
-    //! Puntos por anillo.
-    static const POINTS = 36;
+    //! Lado de la pantalla del diseño web: las coordenadas de los contornos son píxeles
+    //! de una pantalla de este tamaño (la del fr165).
+    static const DESIGN_SIZE = 390;
 
-    //! Número de anillos (exterior → interior).
+    //! Número de contornos (A, B, C).
     static const RINGS = 3;
 
-    //! Radio base R de cada anillo, en milésimas del radio del orbe.
-    static const RING_RADIUS = [920, 770, 620];
+    //! Curvas de Bézier por contorno y puntos muestreados por curva.
+    static const SEGMENTS = 4;
+    static const SEGMENT_POINTS = 12;
 
-    //! Amplitudes de las deformaciones de orden 2 y 3, en milésimas.
-    static const RING_A1 = [50, 30, 30];
-    static const RING_A2 = [30, 30, 20];
+    //! Puntos por contorno (SEGMENTS × SEGMENT_POINTS).
+    static const POINTS = 48;
 
-    //! Velocidad de giro (grados por segundo de animación). El anillo medio gira al revés.
-    static const RING_SPIN = [24, -36, 16];
+    //! Trazados de los contornos: punto inicial (M) y, por cada curva (C), sus dos
+    //! puntos de control y su punto final: 2 + 4 × 6 = 26 números. El último punto
+    //! coincide con el primero (Z).
+    static const CONTOUR_A = [0, -150,
+        80, -152, 140, -90, 145, -10,
+        150, 80, 85, 140, 5, 138,
+        -85, 136, -150, 75, -146, -5,
+        -142, -90, -80, -148, 0, -150];
+    static const CONTOUR_B = [10, -140,
+        95, -135, 155, -60, 140, 20,
+        125, 100, 60, 150, -20, 145,
+        -100, 140, -150, 60, -140, -20,
+        -130, -100, -70, -145, 10, -140];
+    static const CONTOUR_C = [-5, -155,
+        70, -160, 130, -110, 150, -30,
+        165, 50, 120, 125, 30, 140,
+        -60, 155, -135, 100, -150, 20,
+        -160, -60, -80, -150, -5, -155];
 
-    //! Velocidades de las fases φ1 y φ2 (grados por segundo): la deformación "respira".
-    static const RING_PHASE1_SPEED = [40, 55, 30];
-    static const RING_PHASE2_SPEED = [-30, 25, -45];
+    //! Rotación al empezar el ciclo y giro total por ciclo (grados; B gira al revés).
+    static const ROTATION_FROM = [0, 0, 40];
+    static const ROTATION_SWEEP = [360, -360, 360];
 
-    //! Ángulo inicial de cada anillo, para que no empiecen alineados.
-    static const RING_OFFSET = [0, 120, 240];
+    //! Escala (milésimas) al empezar/terminar el ciclo y a la mitad, por eje.
+    static const SCALE_FROM_X = [1000, 950, 1000];
+    static const SCALE_FROM_Y = [1000, 1040, 1000];
+    static const SCALE_MID_X = [1070, 1050, 920];
+    static const SCALE_MID_Y = [930, 950, 1060];
+
+    //! Duración de un ciclo de cada contorno a velocidad normal (ms).
+    static const CYCLE_MS = [9000, 12000, 15000];
 
     //! Multiplicadores de velocidad por estado.
     static const SPEED_PAUSED = 0.0f;
@@ -78,7 +116,7 @@ class OrbModel {
 
     //! Desplazamiento radial de cada partícula, en milésimas del radio del anillo de
     //! partículas (±1,4 %): rompe la simetría para que parezcan estrellas, no las marcas
-    //! de un reloj, sin salirse del hueco estrecho donde se dibujan.
+    //! de un reloj.
     static const PARTICLE_JITTER = [8, -12, 4, -4, 14, -10, 0, 10, -14, 6, -2, 12, -8, 2, -6, 10];
 
     //! Velocidad de la onda de brillo (grados por segundo de animación): un ciclo cada
@@ -93,14 +131,54 @@ class OrbModel {
 
     private var _trig as TrigTable;
 
-    //! Segundos de animación transcurridos.
+    //! Puntos de cada contorno en coordenadas locales (precalculados).
+    private var _localXs as Array<Array<Float> >;
+    private var _localYs as Array<Array<Float> >;
+
+    //! Fase del ciclo de cada contorno, en 0..1.
+    private var _phases as Array<Float>;
+
+    //! Segundos de animación transcurridos (brillo de las partículas).
     protected var _time as Float = 0.0f;
 
     function initialize() {
         _trig = new TrigTable();
+        _localXs = new Array<Array<Float> >[RINGS];
+        _localYs = new Array<Array<Float> >[RINGS];
+        var contours = [CONTOUR_A, CONTOUR_B, CONTOUR_C] as Array<Array<Number> >;
+        for (var ring = 0; ring < RINGS; ring++) {
+            var xs = new Array<Float>[POINTS];
+            var ys = new Array<Float>[POINTS];
+            sampleContour(contours[ring], xs, ys);
+            _localXs[ring] = xs;
+            _localYs[ring] = ys;
+        }
+        _phases = [0.0f, 0.0f, 0.0f] as Array<Float>;
     }
 
-    //! Tabla de senos compartida (para quien dibuja partículas o arcos).
+    //! Muestrea un trazado de SEGMENTS curvas cúbicas en xs, ys (POINTS puntos): de cada
+    //! curva, SEGMENT_POINTS puntos con t = 0, 1/n, …, (n−1)/n. El final de cada curva es
+    //! el primer punto de la siguiente, así que ninguno se repite.
+    static function sampleContour(path as Array<Number>, xs as Array<Float>, ys as Array<Float>) as Void {
+        var k = 0;
+        for (var s = 0; s < SEGMENTS; s++) {
+            var base = 6 * s;
+            for (var i = 0; i < SEGMENT_POINTS; i++) {
+                var t = i / SEGMENT_POINTS.toFloat();
+                xs[k] = bezier(path[base], path[base + 2], path[base + 4], path[base + 6], t);
+                ys[k] = bezier(path[base + 1], path[base + 3], path[base + 5], path[base + 7], t);
+                k++;
+            }
+        }
+    }
+
+    //! Coordenada de una curva de Bézier cúbica en t (0–1).
+    static function bezier(p0 as Number, p1 as Number, p2 as Number, p3 as Number, t as Float) as Float {
+        var u = 1.0f - t;
+        return u * u * u * p0 + 3.0f * u * u * t * p1 + 3.0f * u * t * t * p2 + t * t * t * p3;
+    }
+
+    //! Tabla de senos compartida (para quien dibuja partículas).
     function trig() as TrigTable {
         return _trig;
     }
@@ -144,7 +222,7 @@ class OrbModel {
         }
     }
 
-    //! Colores de los 3 anillos (exterior → interior) según el puntaje: los de
+    //! Colores de los 3 contornos (A, B, C) según el puntaje: los de
     //! AlertnessColors.orbPalette (cian / ámbar / rojo con sus acompañantes).
     static function paletteFor(score as Number) as Array<Number> {
         return AlertnessColors.orbPalette(score);
@@ -158,12 +236,27 @@ class OrbModel {
         return _state;
     }
 
-    //! Avanza la animación dt segundos reales, escalados por el estado. En pausa no
+    //! Avanza la animación dt segundos reales a la velocidad del estado. En pausa no
     //! avanza: el orbe queda quieto donde estaba.
     function advance(dt as Float) as Void {
-        if (dt > 0.0f) {
-            _time += dt * speedFor(_state);
+        if (dt <= 0.0f) {
+            return;
         }
+        var speed = speedFor(_state);
+        if (speed <= 0.0f) {
+            return;
+        }
+        _time += dt * speed;
+        var cycles = CYCLE_MS as Array<Number>;
+        for (var ring = 0; ring < RINGS; ring++) {
+            _phases[ring] = wrap(_phases[ring] + dt * speed * 1000.0f / cycles[ring]);
+        }
+    }
+
+    //! Parte decimal de x (fase en 0..1).
+    private static function wrap(x as Float) as Float {
+        var f = x - x.toNumber();
+        return f < 0.0f ? f + 1.0f : f;
     }
 
     //! Segundos de animación transcurridos.
@@ -171,31 +264,72 @@ class OrbModel {
         return _time;
     }
 
-    //! Rotación actual del anillo (grados).
-    function ringRotation(ring as Number) as Float {
-        return (RING_OFFSET as Array<Number>)[ring] + (RING_SPIN as Array<Number>)[ring] * _time;
+    //! Fase del ciclo del contorno, en 0..1.
+    function phase(ring as Number) as Float {
+        return _phases[ring];
     }
 
-    //! Escribe en xs, ys (tamaño POINTS) los puntos del anillo en coordenadas de pantalla,
-    //! para un orbe de radio orbRadius centrado en (cx, cy).
-    function ringPoints(ring as Number, cx as Number, cy as Number, orbRadius as Number,
-            xs as Array<Number>, ys as Array<Number>) as Void {
-        var base = orbRadius * (RING_RADIUS as Array<Number>)[ring] / 1000.0f;
-        var a1 = (RING_A1 as Array<Number>)[ring] / 1000.0f;
-        var a2 = (RING_A2 as Array<Number>)[ring] / 1000.0f;
-        var phase1 = (RING_PHASE1_SPEED as Array<Number>)[ring] * _time;
-        var phase2 = (RING_PHASE2_SPEED as Array<Number>)[ring] * _time;
-        var rotation = ringRotation(ring);
-        var step = 360.0f / POINTS;
+    //! Rotación del contorno en una fase (grados): lineal de ROTATION_FROM a
+    //! ROTATION_FROM + ROTATION_SWEEP.
+    static function rotationAt(ring as Number, phase as Float) as Float {
+        return (ROTATION_FROM as Array<Number>)[ring] + (ROTATION_SWEEP as Array<Number>)[ring] * phase;
+    }
 
-        for (var k = 0; k < POINTS; k++) {
-            var theta = k * step;
-            var r = base * (1.0f + a1 * _trig.sinDeg(2.0f * theta + phase1)
-                + a2 * _trig.sinDeg(3.0f * theta + phase2));
-            var angle = theta + rotation;
-            // Pantalla: y crece hacia abajo.
-            xs[k] = cx + round(r * _trig.cosDeg(angle));
-            ys[k] = cy - round(r * _trig.sinDeg(angle));
+    //! Escala horizontal y vertical del contorno en una fase: lineal hasta el valor
+    //! del medio (fase 0,5) y de vuelta.
+    static function scaleXAt(ring as Number, phase as Float) as Float {
+        return keyframe((SCALE_FROM_X as Array<Number>)[ring], (SCALE_MID_X as Array<Number>)[ring], phase);
+    }
+
+    static function scaleYAt(ring as Number, phase as Float) as Float {
+        return keyframe((SCALE_FROM_Y as Array<Number>)[ring], (SCALE_MID_Y as Array<Number>)[ring], phase);
+    }
+
+    //! Valor (en milésimas → unidades) que va de from a mid en la primera mitad del
+    //! ciclo y vuelve a from en la segunda.
+    private static function keyframe(from as Number, mid as Number, phase as Float) as Float {
+        var tri = phase < 0.5f ? 2.0f * phase : 2.0f * (1.0f - phase);
+        return (from + (mid - from) * tri) / 1000.0f;
+    }
+
+    //! Rotación actual del contorno (grados).
+    function ringRotation(ring as Number) as Float {
+        return rotationAt(ring, _phases[ring]);
+    }
+
+    //! Punto k del contorno en coordenadas locales, sin girar ni escalar.
+    function localX(ring as Number, k as Number) as Float {
+        return _localXs[ring][k];
+    }
+
+    function localY(ring as Number, k as Number) as Float {
+        return _localYs[ring][k];
+    }
+
+    //! Escribe en xs, ys (tamaño POINTS) los puntos del contorno en coordenadas de
+    //! pantalla, girado y escalado según su fase, para un orbe centrado en (cx, cy) con
+    //! k píxeles por unidad del diseño (lado de la pantalla / DESIGN_SIZE). Son Float:
+    //! con el suavizado activo las líneas se colocan con precisión de subpíxel.
+    function ringPoints(ring as Number, cx as Number, cy as Number, k as Float,
+            xs as Array<Float>, ys as Array<Float>) as Void {
+        var p = _phases[ring];
+        var radians = Math.toRadians(rotationAt(ring, p));
+        var c = Math.cos(radians).toFloat();
+        var s = Math.sin(radians).toFloat();
+        var sx = scaleXAt(ring, p) * k;
+        var sy = scaleYAt(ring, p) * k;
+        // R(θ) · S: [c·sx  −s·sy; s·sx  c·sy].
+        var m00 = c * sx;
+        var m01 = -s * sy;
+        var m10 = s * sx;
+        var m11 = c * sy;
+        var lx = _localXs[ring];
+        var ly = _localYs[ring];
+        for (var i = 0; i < POINTS; i++) {
+            var x = lx[i];
+            var y = ly[i];
+            xs[i] = cx + m00 * x + m01 * y;
+            ys[i] = cy + m10 * x + m11 * y;
         }
     }
 

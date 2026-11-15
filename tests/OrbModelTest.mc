@@ -2,20 +2,18 @@ import Toybox.Lang;
 import Toybox.Math;
 import Toybox.Test;
 
-//! Pruebas de TrigTable y OrbModel (source/core): geometría, determinismo, velocidad
-//! por estado, paleta y brillo de las partículas.
+//! Pruebas de TrigTable y OrbModel (source/core): contornos de Bézier, fotogramas clave,
+//! velocidad por estado, paleta y brillo de las partículas.
 
-//! Orbe del fr165: radio 97 px centrado en la hora (195, 130).
+///! Orbe del fr165: centrado en la pantalla (195, 195), 1 px por unidad del diseño.
 (:debug)
 const ORB_TEST_CX = 195;
 (:debug)
-const ORB_TEST_CY = 130;
-(:debug)
-const ORB_TEST_RADIUS = 97;
+const ORB_TEST_CY = 195;
 
 (:debug)
-function orbPointArray() as Array<Number> {
-    return new Array<Number>[OrbModel.POINTS];
+function orbPointArray() as Array<Float> {
+    return new Array<Float>[OrbModel.POINTS];
 }
 
 (:test)
@@ -37,52 +35,128 @@ function trigTableMatchesMath(logger as Logger) as Boolean {
 }
 
 (:test)
-function orbRingPointsStayInsideOrbRadius(logger as Logger) as Boolean {
+function orbContoursFollowTheirBezierPaths(logger as Logger) as Boolean {
+    var model = new OrbModel();
+    Test.assertEqual(OrbModel.POINTS, OrbModel.SEGMENTS * OrbModel.SEGMENT_POINTS);
+    var paths = [OrbModel.CONTOUR_A, OrbModel.CONTOUR_B, OrbModel.CONTOUR_C] as Array<Array<Number> >;
+    for (var ring = 0; ring < OrbModel.RINGS; ring++) {
+        var path = paths[ring];
+        // Trazado cerrado (Z): termina donde empieza.
+        Test.assertEqual(path[24], path[0]);
+        Test.assertEqual(path[25], path[1]);
+        // El primer punto de cada curva es el final de la anterior (t = 0 exacto).
+        for (var s = 0; s < OrbModel.SEGMENTS; s++) {
+            var k = s * OrbModel.SEGMENT_POINTS;
+            Test.assert(nearlyEqual(model.localX(ring, k), path[6 * s].toFloat(), 0.001f));
+            Test.assert(nearlyEqual(model.localY(ring, k), path[6 * s + 1].toFloat(), 0.001f));
+        }
+    }
+    // A, a mitad de su primera curva: B(0,5) = (P0 + 3·P1 + 3·P2 + P3) / 8.
+    var half = OrbModel.SEGMENT_POINTS / 2;
+    Test.assert(nearlyEqual(model.localX(0, half), (0 + 3 * 80 + 3 * 140 + 145) / 8.0f, 0.001f));
+    Test.assert(nearlyEqual(model.localY(0, half), (-150 - 3 * 152 - 3 * 90 - 10) / 8.0f, 0.001f));
+    return true;
+}
+
+(:test)
+function orbContoursAreOrganicNotCircles(logger as Logger) as Boolean {
+    var model = new OrbModel();
+    for (var ring = 0; ring < OrbModel.RINGS; ring++) {
+        var minR = 100000.0f;
+        var maxR = 0.0f;
+        for (var k = 0; k < OrbModel.POINTS; k++) {
+            var x = model.localX(ring, k);
+            var y = model.localY(ring, k);
+            var d = Math.sqrt(x * x + y * y).toFloat();
+            minR = d < minR ? d : minR;
+            maxR = d > maxR ? d : maxR;
+        }
+        logger.debug("contorno " + ring + ": radio " + minR.format("%.1f") + "–" + maxR.format("%.1f"));
+        // Radios distintos en distintos ángulos (no un círculo) y del tamaño del diseño.
+        Test.assert(maxR - minR > 5.0f);
+        Test.assert(minR > 120.0f && maxR < 165.0f);
+    }
+    return true;
+}
+
+(:test)
+function orbStaysInsideTheAlertRing(logger as Logger) as Boolean {
+    // fr165: el anillo de nivel de alerta empieza a 177 px del centro. Con la escala
+    // máxima de cada contorno ningún punto debe tocarlo.
+    var layout = new RoundLayout(390, 390);
     var model = new OrbModel();
     model.setState(OrbState.ACTIVE);
     var xs = orbPointArray();
     var ys = orbPointArray();
     var maxSeen = 0.0f;
-
-    // Varios instantes, todos los anillos.
-    for (var step = 0; step < 40; step++) {
-        model.advance(0.37f);
+    for (var step = 0; step < 120; step++) {
+        model.advance(0.29f);
         for (var ring = 0; ring < OrbModel.RINGS; ring++) {
-            model.ringPoints(ring, ORB_TEST_CX, ORB_TEST_CY, ORB_TEST_RADIUS, xs, ys);
+            model.ringPoints(ring, ORB_TEST_CX, ORB_TEST_CY, 1.0f, xs, ys);
             for (var k = 0; k < OrbModel.POINTS; k++) {
                 var dx = xs[k] - ORB_TEST_CX;
                 var dy = ys[k] - ORB_TEST_CY;
                 var d = Math.sqrt(dx * dx + dy * dy).toFloat();
-                if (d > maxSeen) {
-                    maxSeen = d;
-                }
-                // Redondeo a píxel: hasta 1 px más.
-                Test.assert(d <= ORB_TEST_RADIUS + 1.0f);
+                maxSeen = d > maxSeen ? d : maxSeen;
             }
         }
     }
-    logger.debug("radio máximo visto: " + maxSeen + " de " + ORB_TEST_RADIUS);
+    logger.debug("radio máximo visto: " + maxSeen.format("%.1f") + " de " + layout.ringInnerRadius);
+    Test.assert(maxSeen < layout.ringInnerRadius - 2);
     return true;
 }
 
 (:test)
-function orbRingsAreOrganicNotCircles(logger as Logger) as Boolean {
-    // Cada anillo debe tener radios distintos en distintos ángulos (deformación 5–8 %).
+function orbKeyframesMatchTheWebAnimation(logger as Logger) as Boolean {
+    // A: 0° (1, 1) → 180° (1,07, 0,93) → 360° (1, 1).
+    Test.assert(nearlyEqual(OrbModel.rotationAt(0, 0.0f), 0.0f, 0.001f));
+    Test.assert(nearlyEqual(OrbModel.rotationAt(0, 0.5f), 180.0f, 0.001f));
+    Test.assert(nearlyEqual(OrbModel.scaleXAt(0, 0.5f), 1.07f, 0.0001f));
+    Test.assert(nearlyEqual(OrbModel.scaleYAt(0, 0.5f), 0.93f, 0.0001f));
+    Test.assert(nearlyEqual(OrbModel.scaleXAt(0, 1.0f), 1.0f, 0.0001f));
+    // B gira al revés: 0° (0,95, 1,04) → -180° (1,05, 0,95) → -360°.
+    Test.assert(nearlyEqual(OrbModel.rotationAt(1, 0.5f), -180.0f, 0.001f));
+    Test.assert(nearlyEqual(OrbModel.rotationAt(1, 1.0f), -360.0f, 0.001f));
+    Test.assert(nearlyEqual(OrbModel.scaleXAt(1, 0.0f), 0.95f, 0.0001f));
+    Test.assert(nearlyEqual(OrbModel.scaleYAt(1, 0.0f), 1.04f, 0.0001f));
+    Test.assert(nearlyEqual(OrbModel.scaleXAt(1, 0.5f), 1.05f, 0.0001f));
+    Test.assert(nearlyEqual(OrbModel.scaleYAt(1, 0.5f), 0.95f, 0.0001f));
+    // C: 40° (1, 1) → 220° (0,92, 1,06) → 400° (1, 1).
+    Test.assert(nearlyEqual(OrbModel.rotationAt(2, 0.0f), 40.0f, 0.001f));
+    Test.assert(nearlyEqual(OrbModel.rotationAt(2, 0.5f), 220.0f, 0.001f));
+    Test.assert(nearlyEqual(OrbModel.rotationAt(2, 1.0f), 400.0f, 0.001f));
+    Test.assert(nearlyEqual(OrbModel.scaleXAt(2, 0.5f), 0.92f, 0.0001f));
+    Test.assert(nearlyEqual(OrbModel.scaleYAt(2, 0.5f), 1.06f, 0.0001f));
+    // Interpolación lineal: a un cuarto del ciclo, a medio camino.
+    Test.assert(nearlyEqual(OrbModel.scaleXAt(0, 0.25f), 1.035f, 0.0001f));
+    Test.assert(nearlyEqual(OrbModel.scaleXAt(0, 0.75f), 1.035f, 0.0001f));
+    return true;
+}
+
+(:test)
+function orbRingPointsApplyScaleThenRotation(logger as Logger) as Boolean {
     var model = new OrbModel();
     var xs = orbPointArray();
     var ys = orbPointArray();
-    for (var ring = 0; ring < OrbModel.RINGS; ring++) {
-        model.ringPoints(ring, 0, 0, 1000, xs, ys);
-        var minR = 100000.0f;
-        var maxR = 0.0f;
-        for (var k = 0; k < OrbModel.POINTS; k++) {
-            var d = Math.sqrt(xs[k] * xs[k] + ys[k] * ys[k]).toFloat();
-            minR = d < minR ? d : minR;
-            maxR = d > maxR ? d : maxR;
-        }
-        logger.debug("anillo " + ring + ": " + minR + "–" + maxR);
-        Test.assert(maxR - minR > 50.0f);
-    }
+    // Fase 0 de A: sin girar ni escalar, solo trasladado y escalado por k.
+    model.ringPoints(0, ORB_TEST_CX, ORB_TEST_CY, 2.0f, xs, ys);
+    Test.assert(nearlyEqual(xs[0], ORB_TEST_CX.toFloat(), 0.001f));
+    Test.assert(nearlyEqual(ys[0], ORB_TEST_CY - 300.0f, 0.001f));
+    // Fase 0 de C: girado 40° en sentido horario (y hacia abajo) sin escala.
+    model.ringPoints(2, 0, 0, 1.0f, xs, ys);
+    var radians = Math.toRadians(40);
+    var x0 = model.localX(2, 0);
+    var y0 = model.localY(2, 0);
+    Test.assert(nearlyEqual(xs[0], (x0 * Math.cos(radians) - y0 * Math.sin(radians)).toFloat(), 0.01f));
+    Test.assert(nearlyEqual(ys[0], (x0 * Math.sin(radians) + y0 * Math.cos(radians)).toFloat(), 0.01f));
+    // A a mitad de ciclo (180°, escala 1,07 × 0,93): el punto de arriba (0, -150) queda
+    // abajo, a 150 × 0,93.
+    model.setState(OrbState.NORMAL);
+    model.advance(((OrbModel.CYCLE_MS as Array<Number>)[0] / 2) / 1000.0f);
+    Test.assert(nearlyEqual(model.phase(0), 0.5f, 0.001f));
+    model.ringPoints(0, 0, 0, 1.0f, xs, ys);
+    Test.assert(nearlyEqual(xs[0], 0.0f, 0.05f));
+    Test.assert(nearlyEqual(ys[0], 150.0f * 0.93f, 0.05f));
     return true;
 }
 
@@ -102,12 +176,29 @@ function orbIsDeterministicForTheSameTime(logger as Logger) as Boolean {
     var bx = orbPointArray();
     var by = orbPointArray();
     for (var ring = 0; ring < OrbModel.RINGS; ring++) {
-        a.ringPoints(ring, ORB_TEST_CX, ORB_TEST_CY, ORB_TEST_RADIUS, ax, ay);
-        b.ringPoints(ring, ORB_TEST_CX, ORB_TEST_CY, ORB_TEST_RADIUS, bx, by);
+        Test.assert(nearlyEqual(a.phase(ring), b.phase(ring), 0.0001f));
+        a.ringPoints(ring, ORB_TEST_CX, ORB_TEST_CY, 1.0f, ax, ay);
+        b.ringPoints(ring, ORB_TEST_CX, ORB_TEST_CY, 1.0f, bx, by);
         for (var k = 0; k < OrbModel.POINTS; k++) {
-            Test.assertEqual(ax[k], bx[k]);
-            Test.assertEqual(ay[k], by[k]);
+            Test.assert(nearlyEqual(ax[k], bx[k], 0.01f));
+            Test.assert(nearlyEqual(ay[k], by[k], 0.01f));
         }
+    }
+    return true;
+}
+
+(:test)
+function orbPhasesWrapAfterAFullCycle(logger as Logger) as Boolean {
+    var model = new OrbModel();
+    model.setState(OrbState.NORMAL);
+    var cycle = (OrbModel.CYCLE_MS as Array<Number>)[0] / 1000.0f;
+    for (var i = 0; i < 10; i++) {
+        model.advance(cycle / 4.0f);
+    }
+    // 2,5 ciclos: la fase vuelve a 0,5 y siempre queda en 0..1.
+    Test.assert(nearlyEqual(model.phase(0), 0.5f, 0.001f));
+    for (var ring = 0; ring < OrbModel.RINGS; ring++) {
+        Test.assert(model.phase(ring) >= 0.0f && model.phase(ring) < 1.0f);
     }
     return true;
 }
@@ -137,15 +228,11 @@ function orbActiveAdvancesTwiceAsFastAsNormal(logger as Logger) as Boolean {
         active.advance(0.25f);
         drowsy.advance(0.25f);
     }
-    Test.assert(nearlyEqual(active.time(), 2.0f * normal.time(), 0.001f));
-    Test.assert(drowsy.time() < normal.time());
-    Test.assert(nearlyEqual(drowsy.time(), 0.35f * normal.time(), 0.001f));
-
-    // La rotación sigue al tiempo: el anillo medio gira al revés.
-    var spinNormal = normal.ringRotation(0) - (OrbModel.RING_OFFSET as Array<Number>)[0];
-    var spinActive = active.ringRotation(0) - (OrbModel.RING_OFFSET as Array<Number>)[0];
-    Test.assert(nearlyEqual(spinActive, 2.0f * spinNormal, 0.01f));
-    Test.assert(normal.ringRotation(1) < (OrbModel.RING_OFFSET as Array<Number>)[1]);
+    Test.assert(nearlyEqual(active.phase(0), 2.0f * normal.phase(0), 0.001f));
+    Test.assert(drowsy.phase(0) < normal.phase(0));
+    // B gira al revés.
+    Test.assert(normal.ringRotation(1) < 0.0f);
+    Test.assert(normal.ringRotation(0) > 0.0f);
     return true;
 }
 
