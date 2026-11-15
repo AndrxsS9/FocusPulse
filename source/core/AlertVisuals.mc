@@ -5,16 +5,21 @@ import Toybox.Lang;
 //!
 //! - **Entrada**: en ENTRANCE_MS (300 ms) el fondo crece desde el centro y el botón
 //!   entra con un pequeño rebote de escala (llega a ≈ 108 % y vuelve a 100 %).
-//! - **Pulso de brillo** del fondo: una onda triangular 0 → 1 → 0 por periodo, sin
-//!   saltos. El periodo es de 2,4 / 1,8 / 1,2 s según el nivel: **menos de 1 ciclo por
-//!   segundo**, muy por debajo del límite de 3 destellos por segundo para personas
-//!   fotosensibles (WCAG 2.3.1). PHOTOSENSITIVE_MIN_PERIOD_MS es ese límite.
+//! - **Pulso** del fondo (diseño web), muy por debajo del límite de 3 destellos por
+//!   segundo para personas fotosensibles (WCAG 2.3.1; PHOTOSENSITIVE_MIN_PERIOD_MS):
+//!   - niveles 1 y 2: onda triangular 0 → 1 → 0 sin saltos (opacidad 1 → 0,72 → 1) en
+//!     1,4 s (0,7 Hz) y 0,7 s (1,4 Hz);
+//!   - nivel 3: parpadeo de color rojo intenso → rojo oscuro en 0,5 s y de vuelta en
+//!     0,5 s (1 ciclo por segundo). Es la misma onda triangular: las referencias del
+//!     diseño web muestran rojos intermedios, así que el cambio es gradual, no un corte.
+//! - **Ondas del ícono**: RIPPLES anillos que crecen de 1× a 1,25× el radio del ícono y
+//!   se desvanecen de 1 a 0 en RIPPLE_PERIOD_MS (1,1 s); el segundo sale 0,55 s después.
 //! - **Sacudida**: mientras el motor está encendido (VibePatterns.isOnAt, con el patrón
 //!   del ajuste de vibración) el contenido se desplaza ±SHAKE_PX (2 / 4 / 6 px según el
 //!   nivel), cambiando de lado cada SHAKE_STEP_MS. En las pausas, o con la vibración
 //!   apagada, no se mueve.
-//! - **Animaciones reducidas** (ajuste, fase 11): sin sacudida y con el pulso de brillo
-//!   REDUCED_PULSE_FACTOR veces más lento (4,8 / 3,6 / 2,4 s). La alerta sigue siendo
+//! - **Animaciones reducidas** (ajuste, fase 11): sin sacudida y con el pulso
+//!   REDUCED_PULSE_FACTOR veces más lento (2,8 / 1,4 / 2 s). La alerta sigue siendo
 //!   inconfundible por el color de pantalla completa de cada nivel y por sus textos;
 //!   la entrada de 300 ms no cambia (es un solo movimiento, no se repite).
 module AlertVisuals {
@@ -25,8 +30,16 @@ module AlertVisuals {
     //! Exceso del rebote (easeOutBack): con 1,5 la escala llega a ≈ 1,08.
     const ENTRANCE_OVERSHOOT = 1.5f;
 
-    //! Periodo del pulso de brillo por nivel (ms).
-    const PULSE_PERIOD_MS = [2400, 1800, 1200];
+    //! Periodo del pulso por nivel (ms). En el nivel 3 es el ciclo completo del
+    //! parpadeo (0,5 s hacia cada color).
+    const PULSE_PERIOD_MS = [1400, 700, 1000];
+
+    //! Ondas del ícono: cuántas, cuánto dura cada una (ms), cada cuánto sale la
+    //! siguiente (ms) y escala final del radio (milésimas).
+    const RIPPLES = 2;
+    const RIPPLE_PERIOD_MS = 1100;
+    const RIPPLE_STAGGER_MS = 550;
+    const RIPPLE_SCALE_TO = 1250;
 
     //! Periodo mínimo admisible: 3 ciclos por segundo (≈ 333 ms) es el umbral de
     //! destellos peligrosos; cualquier periodo debe ser mayor.
@@ -70,7 +83,7 @@ module AlertVisuals {
         return reduced ? period * REDUCED_PULSE_FACTOR : period;
     }
 
-    //! Pulso de brillo en 0..1 (onda triangular): 0 al empezar cada periodo, 1 a la
+    //! Pulso en 0..1 (onda triangular, sin saltos): 0 al empezar cada periodo y 1 a la
     //! mitad.
     function pulse(level as Number, reduced as Boolean, elapsedMs as Number) as Float {
         if (elapsedMs <= 0) {
@@ -83,6 +96,28 @@ module AlertVisuals {
             return t / half.toFloat();
         }
         return (period - t) / (period - half).toFloat();
+    }
+
+    //! Avance (0–1) de la onda index del ícono a los elapsedMs de la alerta, o -1 si
+    //! esa onda todavía no ha salido (la segunda sale RIPPLE_STAGGER_MS después).
+    function rippleProgress(index as Number, elapsedMs as Number) as Float {
+        var t = elapsedMs - index * RIPPLE_STAGGER_MS;
+        if (t < 0) {
+            return -1.0f;
+        }
+        return (t % RIPPLE_PERIOD_MS) / RIPPLE_PERIOD_MS.toFloat();
+    }
+
+    //! Escala del radio de una onda (1 → 1,25) para un avance 0–1.
+    function rippleScale(progress as Float) as Float {
+        var p = progress < 0.0f ? 0.0f : (progress > 1.0f ? 1.0f : progress);
+        return (1000 + (RIPPLE_SCALE_TO - 1000) * p) / 1000.0f;
+    }
+
+    //! Opacidad de una onda (milésimas, 1000 → 0) para un avance 0–1.
+    function rippleAlpha(progress as Float) as Number {
+        var p = progress < 0.0f ? 0.0f : (progress > 1.0f ? 1.0f : progress);
+        return (1000 * (1.0f - p) + 0.5f).toNumber();
     }
 
     //! Amplitud de la sacudida del nivel (px).

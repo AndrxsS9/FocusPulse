@@ -34,6 +34,10 @@ module Palette {
     //! Texto secundario (estados, ayudas, etiquetas).
     const TEXT_SECONDARY = 0x9AA4B2;
 
+    //! Negro puro: texto, borde y botón de las alertas de nivel 1 y 2, y color con el
+    //! que se mezcla el fondo de la alerta en su pulso de brillo (diseño web).
+    const BLACK = 0x000000;
+
     //! Blanco puro: solo para texto sobre RED_INTENSE (alerta de nivel 3), donde
     //! TEXT se queda en 4,47:1 y el blanco llega a 4,8:1.
     const WHITE = 0xFFFFFF;
@@ -63,12 +67,15 @@ module Palette {
     //! Rojo claro: segundo contorno del orbe IA con el puntaje en la banda roja.
     const RED_LIGHT = 0xFF8A8A;
 
-    //! Rojo intenso: fondo de la alerta de nivel 3.
+    //! Rojo intenso: fondo de la alerta de nivel 3 (alterna con RED_DARK).
     const RED_INTENSE = 0xE01E1E;
+
+    //! Rojo oscuro: segundo color del parpadeo de la alerta de nivel 3.
+    const RED_DARK = 0x6A0000;
 
     //! Naranja: fondo de la alerta de nivel 1.
     const ORANGE = 0xFF8A1F;
 
     //! Naranja intenso: fondo de la alerta de nivel 2 (entre ORANGE y RED_INTENSE).
-    const ORANGE_DEEP = 0xF2620F;
+    const ORANGE_DEEP = 0xFF5A1F;
 }

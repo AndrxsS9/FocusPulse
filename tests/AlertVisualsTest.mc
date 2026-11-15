@@ -53,19 +53,78 @@ function alertPulseIsSlowerThanThreeHertz(logger as Logger) as Boolean {
 }
 
 (:test)
+function alertPulsePeriodsMatchTheWebDesign(logger as Logger) as Boolean {
+    // Nivel 1: 1,4 s; nivel 2: 0,7 s; nivel 3: parpadeo de 0,5 s por color.
+    Test.assertEqual(AlertVisuals.pulsePeriodMs(1, false), 1400);
+    Test.assertEqual(AlertVisuals.pulsePeriodMs(2, false), 700);
+    Test.assertEqual(AlertVisuals.pulsePeriodMs(3, false), 1000);
+    return true;
+}
+
+(:test)
 function alertPulseIsSmoothTriangle(logger as Logger) as Boolean {
-    var period = AlertVisuals.pulsePeriodMs(2, false);
-    Test.assertEqual(AlertVisuals.pulse(2, false, 0), 0.0f);
-    Test.assertEqual(AlertVisuals.pulse(2, false, period / 2), 1.0f);
-    Test.assertEqual(AlertVisuals.pulse(2, false, period), 0.0f);
-    // Sin saltos: entre muestras de 66 ms (un cuadro) cambia poco.
-    var maxStep = 0.0f;
-    for (var t = 66; t <= 2 * period; t += 66) {
-        var step = AlertVisuals.pulse(2, false, t) - AlertVisuals.pulse(2, false, t - 66);
-        step = step < 0 ? -step : step;
-        maxStep = step > maxStep ? step : maxStep;
+    for (var level = 1; level <= 2; level++) {
+        var period = AlertVisuals.pulsePeriodMs(level, false);
+        Test.assertEqual(AlertVisuals.pulse(level, false, 0), 0.0f);
+        Test.assertEqual(AlertVisuals.pulse(level, false, period / 2), 1.0f);
+        Test.assertEqual(AlertVisuals.pulse(level, false, period), 0.0f);
+        // Sin saltos: entre muestras de 66 ms (un cuadro) cambia poco.
+        var maxStep = 0.0f;
+        for (var t = 66; t <= 2 * period; t += 66) {
+            var step = AlertVisuals.pulse(level, false, t) - AlertVisuals.pulse(level, false, t - 66);
+            step = step < 0 ? -step : step;
+            maxStep = step > maxStep ? step : maxStep;
+        }
+        Test.assertMessage(maxStep < 0.2f, "nivel " + level + ": paso máximo por cuadro " + maxStep);
     }
-    Test.assertMessage(maxStep < 0.2f, "paso máximo por cuadro " + maxStep);
+    return true;
+}
+
+(:test)
+function alertLevelThreeFlashesEveryHalfSecond(logger as Logger) as Boolean {
+    // Rojo intenso → rojo oscuro en 0,5 s y de vuelta en 0,5 s.
+    Test.assertEqual(AlertnessColors.alertPulseColor(3, AlertVisuals.pulse(3, false, 0)), 0xE01E1E);
+    Test.assertEqual(AlertnessColors.alertPulseColor(3, AlertVisuals.pulse(3, false, 500)), 0x6A0000);
+    Test.assertEqual(AlertnessColors.alertPulseColor(3, AlertVisuals.pulse(3, false, 1000)), 0xE01E1E);
+    // A mitad de camino, un rojo intermedio (como en las referencias del diseño web).
+    var middle = AlertnessColors.alertPulseColor(3, AlertVisuals.pulse(3, false, 250));
+    Test.assertEqual(middle, ColorMath.blend(Palette.RED_DARK, Palette.RED_INTENSE, 500));
+    return true;
+}
+
+(:test)
+function alertPulseDimsTowardsBlack(logger as Logger) as Boolean {
+    // Nivel 1: opacidad 1 → 0,72 mezclando con negro, como el diseño web.
+    Test.assertEqual(AlertnessColors.alertPulseColor(1, 1.0f),
+        ColorMath.blend(Palette.ORANGE, Palette.BLACK, 720));
+    Test.assertEqual(AlertnessColors.alertPulseColor(1, 0.5f),
+        ColorMath.blend(Palette.ORANGE, Palette.BLACK, 860));
+    // Nivel 2: el 0,72 del diseño deja el texto negro por debajo de 4,5:1, así que se
+    // conserva la profundidad de antes (0,88).
+    Test.assert(Contrast.ratio(Palette.BLACK, ColorMath.blend(Palette.ORANGE_DEEP, Palette.BLACK, 720)) < 4.5f);
+    Test.assertEqual(AlertnessColors.alertPulseColor(2, 1.0f),
+        ColorMath.blend(Palette.ORANGE_DEEP, Palette.BLACK, 880));
+    return true;
+}
+
+(:test)
+function alertIconRipplesGrowAndFade(logger as Logger) as Boolean {
+    Test.assertEqual(AlertVisuals.RIPPLES, 2);
+    // Primera onda: de 1× y opacidad 1 a 1,25× y 0 en 1,1 s.
+    Test.assert(nearlyEqual(AlertVisuals.rippleProgress(0, 0), 0.0f, 0.0001f));
+    Test.assert(nearlyEqual(AlertVisuals.rippleProgress(0, 550), 0.5f, 0.0001f));
+    Test.assert(nearlyEqual(AlertVisuals.rippleProgress(0, 1100), 0.0f, 0.0001f));
+    Test.assert(nearlyEqual(AlertVisuals.rippleScale(0.0f), 1.0f, 0.0001f));
+    Test.assert(nearlyEqual(AlertVisuals.rippleScale(1.0f), 1.25f, 0.0001f));
+    Test.assertEqual(AlertVisuals.rippleAlpha(0.0f), 1000);
+    Test.assertEqual(AlertVisuals.rippleAlpha(0.5f), 500);
+    Test.assertEqual(AlertVisuals.rippleAlpha(1.0f), 0);
+    // La segunda sale 0,55 s después y luego va media onda por detrás.
+    Test.assert(AlertVisuals.rippleProgress(1, 549) < 0.0f);
+    Test.assert(nearlyEqual(AlertVisuals.rippleProgress(1, 550), 0.0f, 0.0001f));
+    Test.assert(nearlyEqual(AlertVisuals.rippleProgress(1, 1100), 0.5f, 0.0001f));
+    Test.assert(nearlyEqual(AlertVisuals.rippleProgress(0, 1650), 0.5f, 0.0001f));
+    Test.assert(nearlyEqual(AlertVisuals.rippleProgress(1, 1650), 0.0f, 0.0001f));
     return true;
 }
 
@@ -91,7 +150,8 @@ function alertPulseColorsKeepTextReadable(logger as Logger) as Boolean {
 (:test)
 function alertLevelThreeAlternatesWithDarkRed(logger as Logger) as Boolean {
     var dark = AlertnessColors.alertPulseColor(3, 1.0f);
-    Test.assertEqual(dark, ColorMath.blend(Palette.RED_INTENSE, Palette.BACKGROUND, 600));
+    Test.assertEqual(dark, Palette.RED_DARK);
+    Test.assertEqual(dark, 0x6A0000);
     Test.assertEqual(AlertnessColors.alertPulseColor(3, 0.0f), Palette.RED_INTENSE);
     Test.assertEqual(AlertnessColors.alertTextColor(3), Palette.WHITE);
     // Fuera de rango se recorta.
@@ -105,8 +165,14 @@ function alertColorsPerLevel(logger as Logger) as Boolean {
     Test.assertEqual(AlertnessColors.alertBackgroundColor(1), Palette.ORANGE);
     Test.assertEqual(AlertnessColors.alertBackgroundColor(2), Palette.ORANGE_DEEP);
     Test.assertEqual(AlertnessColors.alertBackgroundColor(3), Palette.RED_INTENSE);
-    Test.assertEqual(AlertnessColors.alertTextColor(1), Palette.BACKGROUND);
-    Test.assertEqual(AlertnessColors.alertTextColor(2), Palette.BACKGROUND);
+    // Valores del diseño web.
+    Test.assertEqual(AlertnessColors.alertBackgroundColor(1), 0xFF8A1F);
+    Test.assertEqual(AlertnessColors.alertBackgroundColor(2), 0xFF5A1F);
+    Test.assertEqual(AlertnessColors.alertBackgroundColor(3), 0xE01E1E);
+    // Texto negro en los niveles 1 y 2, blanco en el 3.
+    Test.assertEqual(AlertnessColors.alertTextColor(1), Palette.BLACK);
+    Test.assertEqual(AlertnessColors.alertTextColor(2), Palette.BLACK);
+    Test.assertEqual(AlertnessColors.alertTextColor(3), Palette.WHITE);
     return true;
 }
 

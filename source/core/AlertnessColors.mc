@@ -102,31 +102,37 @@ module AlertnessColors {
         return Palette.RED_INTENSE;
     }
 
-    //! Oscurecimiento máximo (milésimas) del fondo de los niveles 1 y 2 en el pulso
-    //! de brillo. Con 120 el texto oscuro sigue por encima de 4,5:1 (6,6:1 sobre
-    //! ORANGE y 4,9:1 sobre ORANGE_DEEP en el punto más oscuro).
-    const ALERT_PULSE_DIM = 120;
+    //! Opacidad mínima (milésimas) del fondo de los niveles 1 y 2 en el pulso de brillo,
+    //! que se simula mezclando con negro (diseño web: 1 → 0,72 → 1).
+    //! - Nivel 1: 0,72, como el diseño; el texto negro queda en 4,83:1.
+    //! - Nivel 2: el diseño también pide 0,72, pero ORANGE_DEEP al 0,72 deja el texto
+    //!   negro en 3,81:1 (< 4,5:1). Se conserva la profundidad que ya tenía la app, 0,88
+    //!   (5,3:1), y se anota en docs/PENDIENTES.md.
+    const ALERT_PULSE_MIN_ALPHA = [720, 880];
 
-    //! En el nivel 3 el fondo alterna entre RED_INTENSE y un rojo oscuro (RED_INTENSE
-    //! al 60 % sobre BACKGROUND). El texto blanco gana contraste al oscurecerse.
-    const ALERT_PULSE_DIM_MAX = 400;
-
-    //! Fondo de la alerta en un momento del pulso de brillo (pulse 0–1, ver
-    //! AlertVisuals.pulse): el color del nivel en 0 y el más oscuro en 1.
+    //! Fondo de la alerta en un momento del pulso (pulse 0–1, ver AlertVisuals.pulse):
+    //! - niveles 1 y 2: el color del nivel en 0 y, en 1, mezclado con negro hasta su
+    //!   opacidad mínima (ALERT_PULSE_MIN_ALPHA);
+    //! - nivel 3: de RED_INTENSE en 0 a RED_DARK en 1 (parpadeo de 0,5 s hacia cada
+    //!   color).
     function alertPulseColor(level as Number, pulse as Float) as Number {
         var p = pulse < 0.0f ? 0.0f : (pulse > 1.0f ? 1.0f : pulse);
-        var dim = clampAlertLevel(level) == MAX_ALERT_LEVEL ? ALERT_PULSE_DIM_MAX : ALERT_PULSE_DIM;
-        return ColorMath.blend(alertBackgroundColor(level), Palette.BACKGROUND,
-            1000 - (dim * p + 0.5f).toNumber());
+        var clamped = clampAlertLevel(level);
+        if (clamped == MAX_ALERT_LEVEL) {
+            return ColorMath.blend(Palette.RED_DARK, Palette.RED_INTENSE, (1000 * p + 0.5f).toNumber());
+        }
+        var minAlpha = (ALERT_PULSE_MIN_ALPHA as Array<Number>)[clamped - 1];
+        return ColorMath.blend(alertBackgroundColor(level), Palette.BLACK,
+            1000 - ((1000 - minAlpha) * p + 0.5f).toNumber());
     }
 
     //! Color del texto sobre alertBackgroundColor(level), elegido por contraste
-    //! (mínimo 4,5:1): texto oscuro sobre los naranjas y blanco puro sobre el rojo
-    //! intenso.
+    //! (mínimo 4,5:1): negro sobre los naranjas y blanco puro sobre los rojos del
+    //! nivel 3.
     function alertTextColor(level as Number) as Number {
         if (clampAlertLevel(level) == MAX_ALERT_LEVEL) {
             return Palette.WHITE;
         }
-        return Palette.BACKGROUND;
+        return Palette.BLACK;
     }
 }

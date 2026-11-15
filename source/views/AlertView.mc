@@ -9,24 +9,27 @@ import Toybox.WatchUi;
 //! solo se cierra con "Estoy despierto" o START (AlertDelegate).
 //!
 //! De arriba abajo (fr165, 390×390):
-//!   - ícono de vibración: un reloj con dos ondas a cada lado que se expanden y se
-//!     desvanecen (y ≈ 70);
+//!   - ícono de vibración: un círculo con un teléfono vibrando dentro y dos ondas
+//!     circulares que crecen de 1× a 1,25× y se desvanecen (y ≈ 70);
 //!   - "¡DESPIERTA!" grande (Typography.ALERT; baja con Draw.fittingFont si no cabe);
 //!   - "Nivel N de 3 · vibración suave/media/máxima" (LABEL);
 //!   - el motivo: "Cabeceo / pérdida de tono muscular" o "Inactividad prolongada"
 //!     (LABEL, partido en dos líneas si no cabe);
-//!   - botón grande blanco "Estoy despierto" con texto oscuro
-//!     (RoundLayout.alertButtonRect, 258×64 px; su área táctil, 280×86).
+//!   - botón grande blanco "Estoy despierto" con borde negro de 3 px y texto negro en
+//!     los tres niveles (RoundLayout.alertButtonRect, 258×64 px; su área táctil, 280×86).
 //!
-//! Colores por nivel: AlertnessColors.alertBackgroundColor / alertTextColor (naranja,
-//! naranja intenso y rojo intenso con texto blanco puro). Es la única pantalla con un
+//! Colores por nivel (diseño web): AlertnessColors.alertBackgroundColor /
+//! alertTextColor: naranja #FF8A1F y naranja intenso #FF5A1F con texto negro, y rojo
+//! #E01E1E ↔ #6A0000 con texto blanco puro. Es la única pantalla con un
 //! relleno claro de pantalla completa (docs/DISENO.md §1): debe ser imposible de
 //! ignorar y dura pocos segundos.
 //!
 //! Animaciones (curvas en source/core/AlertVisuals.mc):
 //!   - entrada de 300 ms: el color crece desde el centro y el botón rebota en escala;
-//!   - pulso de brillo del fondo, más lento que 1 ciclo por segundo (seguro para
-//!     personas fotosensibles); en el nivel 3 alterna rojo intenso y rojo oscuro;
+//!   - pulso del fondo (AlertVisuals.pulse, siempre por debajo de 3 Hz): opacidad
+//!     1 → 0,72 → 1 mezclando con negro en 1,4 s (nivel 1) y 0,7 s (nivel 2, hasta
+//!     0,88 por contraste); en el nivel 3, parpadeo rojo intenso ↔ rojo oscuro cada 0,5 s;
+//!   - ondas del ícono: 2 anillos de 3 px del color del texto (AlertVisuals.ripple*);
 //!   - sacudida de 2/4/6 px mientras el motor vibra (VibePatterns.isOnAt con el patrón
 //!     del ajuste de vibración); con la vibración apagada no se sacude y la línea de
 //!     nivel dice "sin vibración".
@@ -53,20 +56,20 @@ class AlertView extends WatchUi.View {
     //! pulso lento y las ondas del ícono.
     const REFRESH_REDUCED_MS = 100;
 
-    //! Una onda del ícono tarda WAVE_PERIOD_MS en expandirse y desvanecerse; hay
-    //! WAVES desfasadas entre sí.
-    const WAVE_PERIOD_MS = 1200;
-    const WAVES = 2;
+    //! Ícono (milésimas del lado; fr165 en px): centro vertical (71), radio del círculo
+    //! (28) y grosor de su trazo y de las ondas (3); teléfono de 12×20 con trazo de 2 y,
+    //! a cada lado, una barra de vibración de 10 px de alto a 13 px del centro.
+    const ICON_Y = 182;
+    const ICON_RADIUS = 72;
+    const ICON_PEN = 8;
+    const PHONE_W = 31;
+    const PHONE_H = 51;
+    const PHONE_PEN = 6;
+    const BAR_OFFSET = 33;
+    const BAR_HEIGHT = 26;
 
-    //! Ícono (milésimas del lado): centro vertical, cuerpo del reloj, radio de las ondas
-    //! (de WAVE_FROM a WAVE_FROM + WAVE_SPAN) y medio ángulo de cada onda (grados).
-    const ICON_Y = 180;
-    const ICON_BODY_W = 60;
-    const ICON_BODY_H = 85;
-    const ICON_PEN = 10;
-    const WAVE_FROM = 55;
-    const WAVE_SPAN = 45;
-    const WAVE_HALF_ANGLE = 35;
+    //! Borde negro del botón "Estoy despierto" (milésimas del lado; fr165: 3 px).
+    const BUTTON_BORDER = 8;
 
     //! Centro vertical de "¡DESPIERTA!" y separación con la línea de nivel (milésimas).
     const TITLE_Y = 320;
@@ -262,41 +265,54 @@ class AlertView extends WatchUi.View {
         if (h < 2) {
             return;
         }
-        Draw.largeButton(dc, new Rect(b.centerX() - w / 2 + dx, b.centerY() - h / 2, w, h),
-            _imAwake, Typography.BODY, Palette.TEXT, Palette.BACKGROUND);
+        // Botón blanco con borde y texto negros en los tres niveles (diseño web).
+        var rect = new Rect(b.centerX() - w / 2 + dx, b.centerY() - h / 2, w, h);
+        Draw.largeButton(dc, rect, _imAwake, Typography.BODY, Palette.WHITE, Palette.BLACK);
+        var pen = layout.scaled(BUTTON_BORDER);
+        var inset = pen / 2;
+        dc.setPenWidth(pen);
+        dc.setColor(Palette.BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.drawRoundedRectangle(rect.x + inset, rect.y + inset, rect.width - pen,
+            rect.height - pen, rect.height / 2 - inset);
+        dc.setPenWidth(1);
     }
 
-    //! Ícono de vibración: el contorno de un reloj y, a cada lado, WAVES ondas (arcos)
-    //! que salen del reloj, crecen y se desvanecen hacia el color de fondo.
+    //! Ícono de vibración del diseño web: un círculo con un teléfono dentro y una barra
+    //! a cada lado, y AlertVisuals.RIPPLES ondas: anillos de 3 px del color del texto
+    //! que crecen de 1× a 1,25× el radio del círculo y se desvanecen hacia el fondo en
+    //! 1,1 s, la segunda 0,55 s después. Sin vibración no hay ondas.
     private function drawIcon(dc as Dc, layout as RoundLayout, cx as Number,
             elapsed as Number, background as Number, foreground as Number) as Void {
         var cy = layout.scaled(ICON_Y);
-        var w = layout.scaled(ICON_BODY_W);
-        var h = layout.scaled(ICON_BODY_H);
+        var radius = layout.scaled(ICON_RADIUS);
         var pen = layout.scaled(ICON_PEN);
         if (pen < 2) {
             pen = 2;
         }
-        dc.setColor(foreground, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(pen);
-        dc.drawRoundedRectangle(cx - w / 2, cy - h / 2, w, h, w / 3);
 
-        var from = layout.scaled(WAVE_FROM);
-        var span = layout.scaled(WAVE_SPAN);
-        // Sin vibración no hay ondas: solo el reloj.
-        var waves = _vibration == VibrationLevel.OFF ? 0 : WAVES;
+        dc.setPenWidth(pen);
+        var waves = _vibration == VibrationLevel.OFF ? 0 : AlertVisuals.RIPPLES;
         for (var i = 0; i < waves; i++) {
-            var phase = ((elapsed + i * WAVE_PERIOD_MS / WAVES) % WAVE_PERIOD_MS)
-                / WAVE_PERIOD_MS.toFloat();
-            var radius = from + (span * phase).toNumber();
-            var alpha = (1000 * (1.0f - phase)).toNumber();
-            dc.setColor(ColorMath.blend(foreground, background, alpha), Graphics.COLOR_TRANSPARENT);
-            // drawArc: 0° = 3 en punto, sentido antihorario. Derecha e izquierda.
-            dc.drawArc(cx, cy, radius, Graphics.ARC_COUNTER_CLOCKWISE,
-                360 - WAVE_HALF_ANGLE, WAVE_HALF_ANGLE);
-            dc.drawArc(cx, cy, radius, Graphics.ARC_COUNTER_CLOCKWISE,
-                180 - WAVE_HALF_ANGLE, 180 + WAVE_HALF_ANGLE);
+            var progress = AlertVisuals.rippleProgress(i, elapsed);
+            if (progress < 0.0f) {
+                continue;
+            }
+            dc.setColor(ColorMath.blend(foreground, background, AlertVisuals.rippleAlpha(progress)),
+                Graphics.COLOR_TRANSPARENT);
+            dc.drawCircle(cx, cy, radius * AlertVisuals.rippleScale(progress));
         }
+        dc.setColor(foreground, Graphics.COLOR_TRANSPARENT);
+        dc.drawCircle(cx, cy, radius);
+
+        // Teléfono y barras de vibración.
+        var w = layout.scaled(PHONE_W);
+        var h = layout.scaled(PHONE_H);
+        dc.setPenWidth(layout.scaled(PHONE_PEN));
+        dc.drawRoundedRectangle(cx - w / 2, cy - h / 2, w, h, w / 4);
+        var bar = layout.scaled(BAR_OFFSET);
+        var barHalf = layout.scaled(BAR_HEIGHT) / 2;
+        dc.drawLine(cx - bar, cy - barHalf, cx - bar, cy + barHalf);
+        dc.drawLine(cx + bar, cy - barHalf, cx + bar, cy + barHalf);
         dc.setPenWidth(1);
     }
 
