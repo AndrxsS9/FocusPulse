@@ -17,8 +17,9 @@ import Toybox.Lang;
 //!
 //! El escenario se recuerda aunque el modo demo esté apagado, para volver a él al
 //! encenderlo. Los cinco escenarios de la demo se recorren en orden con
-//! nextScenario(); MANUAL solo existe en el menú de depuración y no forma parte del
-//! ciclo.
+//! nextScenario() (DOWN, deslizar a la izquierda) y hacia atrás con previousScenario()
+//! (deslizar a la derecha); MANUAL solo existe en el menú de depuración y no forma parte
+//! del ciclo.
 //!
 //! Persistencia: toStorage() da un diccionario de tipos simples para
 //! Application.Storage y fromStorage() lo valida al leerlo (datos ausentes, de otra
@@ -106,15 +107,40 @@ class DemoConfig {
         return list[(index + 1) % list.size()];
     }
 
+    //! Escenario anterior a scenario en el ciclo de la demo (el primero vuelve al
+    //! último). Desde uno que no está en el ciclo (MANUAL) se va al último.
+    static function scenarioBefore(scenario as AccelScenario.Id) as AccelScenario.Id {
+        var list = SCENARIOS as Array<AccelScenario.Id>;
+        var index = list.indexOf(scenario);
+        if (index <= 0) {
+            return list[list.size() - 1];
+        }
+        return list[index - 1];
+    }
+
     //! true si DOWN en la esfera debe pasar al siguiente escenario: solo con el modo
     //! demo activo y la guardia en marcha. En otro caso DOWN conserva su función normal.
     function handlesDownButton(guardActive as Boolean) as Boolean {
         return _enabled && guardActive;
     }
 
+    //! true si deslizar a la izquierda o a la derecha en la esfera debe cambiar de
+    //! escenario: siempre que el modo demo esté activo, con la guardia en marcha o en
+    //! pausa (en pausa elige con qué escenario empezará). Es el control táctil para el
+    //! simulador, donde los botones dibujados pueden no responder.
+    function handlesSwipe() as Boolean {
+        return _enabled;
+    }
+
     //! Pasa al siguiente escenario del ciclo y lo devuelve.
     function nextScenario() as AccelScenario.Id {
         _scenario = scenarioAfter(_scenario);
+        return _scenario;
+    }
+
+    //! Vuelve al escenario anterior del ciclo y lo devuelve.
+    function previousScenario() as AccelScenario.Id {
+        _scenario = scenarioBefore(_scenario);
         return _scenario;
     }
 

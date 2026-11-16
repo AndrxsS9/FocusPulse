@@ -69,6 +69,42 @@ function demoConfigCyclesFiveScenariosInOrder(logger as Logger) as Boolean {
 }
 
 (:test)
+function demoConfigCyclesBackwards(logger as Logger) as Boolean {
+    var config = new DemoConfig();
+    Test.assertEqualMessage(config.previousScenario(), AccelScenario.GLANCE,
+        "desde el primero se va al último");
+    Test.assertEqual(config.previousScenario(), AccelScenario.INACTIVITY);
+    Test.assertEqual(config.previousScenario(), AccelScenario.NOD);
+    Test.assertEqual(config.previousScenario(), AccelScenario.TYPING);
+    Test.assertEqual(config.previousScenario(), AccelScenario.NORMAL);
+    Test.assertEqual(config.scenario(), AccelScenario.NORMAL);
+
+    // Adelante y atrás se deshacen.
+    var scenarios = DemoConfig.SCENARIOS as Array<AccelScenario.Id>;
+    for (var i = 0; i < scenarios.size(); i++) {
+        Test.assertEqual(DemoConfig.scenarioBefore(DemoConfig.scenarioAfter(scenarios[i])),
+            scenarios[i]);
+    }
+
+    // MANUAL (solo depuración) no está en el ciclo: el anterior es el último.
+    Test.assertEqual(DemoConfig.scenarioBefore(AccelScenario.MANUAL), AccelScenario.GLANCE);
+    return true;
+}
+
+//! Deslizar cambia de escenario siempre que el modo demo esté activo (también en
+//! pausa); DOWN solo con la guardia en marcha.
+(:test)
+function demoConfigSwipeOnlyInDemoMode(logger as Logger) as Boolean {
+    var config = new DemoConfig();
+    Test.assertMessage(!config.handlesSwipe(), "sin modo demo, deslizar no cambia nada");
+    config.setEnabled(true);
+    Test.assertMessage(config.handlesSwipe(), "modo demo: deslizar cambia de escenario");
+    Test.assertMessage(!config.handlesDownButton(false), "DOWN en pausa sigue sin hacerlo");
+    Test.assertMessage(config.handlesDownButton(true), "DOWN con la guardia en marcha");
+    return true;
+}
+
+(:test)
 function demoConfigIgnoresInvalidScenario(logger as Logger) as Boolean {
     var config = new DemoConfig();
     config.setScenario(AccelScenario.NOD);
