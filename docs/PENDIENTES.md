@@ -3,7 +3,8 @@
 Las fases 1 y 2 se compilaron, probaron y revisaron en el simulador con el **Connect IQ SDK
 9.3.0** (2026-11-12), las fases 3 a 8 el 2026-11-13, las fases 9, 10 y 11 el 2026-11-14,
 la fase 12 (versión 1.0.0) el 2026-11-15, y la fase 13B (versión 1.1.0, animaciones del
-diseño web) y la fase 14 (versión 1.2.0, fuentes propias) también el 2026-11-15.
+diseño web), la fase 14 (versión 1.2.0, fuentes propias) y la fase 15 (versión 1.2.1, demo
+solo con toques) también el 2026-11-15.
 
 El documento tiene tres partes:
 
@@ -600,6 +601,77 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 - **Hora en 12 h**: el simulador está en 12 h ("7:00"); la referencia muestra "10:50". Con
   la fuente de la app, "10:50" mide 189 px de tinta, igual que la referencia.
 
+### Demo solo con toques y arranque directo (fase 15, versión 1.2.1, simulador)
+
+- Las **245 pruebas** pasan (14 nuevas). `build.ps1` y `build.ps1 -Release` sin
+  advertencias con `-l 3`.
+- **Diagnóstico de los botones**, con la traza de entrada (`InputTrace`, depuración) y
+  clics enviados con `PostMessage` a la ventana del simulador (sin el ratón ni el teclado
+  reales):
+  - La esfera es la vista inicial con `MainDelegate` y nunca se sustituye; cada vista
+    apilada trae su delegado. Ningún camino deja la esfera sin delegado.
+  - Las **pestañas del borde de la caja** responden: UP → tecla pulsada UP, `previousPage`
+    al soltar, tecla soltada; DOWN → tecla pulsada, `nextPage` al pulsar, `onKey DOWN` si
+    `onNextPage` no lo consume; START → `onSelect` y `onKey ENTER`; BACK → tecla pulsada ESC,
+    `onBack`, `onKey ESC` (y la app sale, también con el modo demo).
+  - Los **rótulos impresos del bisel no son botones** (`simulator.json` del fr165: UP 40 × 79
+    px en x 0–40, y 385–464 de la imagen; START x 476–555, y 242–362; DOWN x 21–83,
+    y 520–596; BACK x 478–541, y 513–592). Clic medido sobre el rótulo "UP": nada; sobre
+    "DOWN", "START", "BACK" y "LIGHT": un **toque en la pantalla** fuera del círculo, p. ej.
+    (15, 303), (375, 68), (381, 303) y (14, 70). LIGHT no tiene zona en el fr165.
+  - **Mantener UP** (pulsación de 2,5 s por mensajes) solo dio `previousPage` al soltar:
+    el simulador decide la pulsación larga con el estado físico del ratón (ya visto en la
+    fase 8). Con el ratón real debería abrir el menú, pero no se pudo comprobar aquí.
+  - **Teclado** (mensajes `WM_KEYDOWN`/`WM_KEYUP` a la ventana del reloj, el mismo camino
+    que las teclas reales con la ventana enfocada): **M** → `onMenu` (abre el menú);
+    **Esc** → BACK; teclado numérico **5** → START, **8** → UP, **2** → DOWN, **4** →
+    deslizar a la izquierda, **6** → deslizar a la derecha (`onBack` + `onSwipe`); la barra
+    espaciadora a veces dio un toque en (195, 195) y a veces nada. Flechas, Enter,
+    Retroceso, Tab, letras (salvo M), números de la fila superior, F1–F6 y el resto del
+    teclado numérico: nada. No se pulsó ninguna tecla física: queda por confirmar que con
+    Bloq Num desactivado el 8 y el 2 no funcionen (llegan como flechas).
+  - Gestos (arrastres por mensajes): a la izquierda → `onSwipe` izquierda; a la derecha,
+    desde el borde **o desde el centro** → `onBack` (el `simulator.json` lo define desde el
+    borde, pero el simulador lo dio en los dos casos); hacia arriba → `nextPage`; hacia
+    abajo → `previousPage`. Pulsación larga en la pantalla por mensajes → solo un toque (no
+    llega `onHold`; mismo motivo que mantener UP).
+  - Agrandar la ventana con `SetWindowPos` no escaló la imagen del reloj (quedó un margen
+    negro); no se comprobó arrastrando el borde de la ventana.
+- **Controles táctiles** (release, español): desde la app recién abierta, solo con toques
+  y deslizamientos: tocar la hora → menú; tocar *Modo demo* → apagado y encendido; deslizar
+  a la derecha → esfera; tocar *Iniciar guardia*; deslizar a la izquierda dos veces →
+  "Tecleo activo" y "Simular cabeceo"; alerta de cabeceo a los 7,9 s, cerrada tocando
+  "Estoy despierto"; deslizar a la derecha → escenario anterior **sin salir de la app**;
+  menú → *Ajustes* (un toque en una opción no enfocada la abre directamente) →
+  *Sensibilidad* → *Media*; *Historial* → detalle (se cierra con un toque); *Modelo IA* y
+  *Acerca de* (versión 1.2.1), cerrados con un toque; tocar *Pausar guardia* → resumen → un
+  toque → esfera. Los menús se recorren deslizando hacia arriba o abajo.
+- **Rótulos del bisel**: un clic en "LIGHT" llegó como toque en (14, 70) y abría el menú
+  con la primera versión de la zona (todo el ancho); la zona quedó limitada al círculo de
+  la pantalla (`RoundLayout.isOnScreen`).
+- **`run.ps1 -Release -DemoAuto`**, de principio a fin, respondiendo con toques las dos
+  primeras alertas y sin responder la tercera:
+  - **Español**: guion a los 3 s; resumen de **1 min 14 s**, 3 episodios, respuesta media
+    2,8 s, nivel máximo 3 de 3, fatiga Alto, DEMO; seguía en pantalla 3 s después y un
+    toque volvió a la esfera.
+  - **Inglés**: esfera en pausa a los 1,5 s ("Start guard"), alertas de cabeceo
+    (*Head nod / loss of muscle tone*) e inactividad respondidas, la tercera hasta "Level 3
+    of 3", resumen de **1 min 16 s**, 3 episodes, avg. response 2.9 s, max. level 3 of 3,
+    fatigue High; un toque volvió a la esfera.
+  - Partiendo de un `.SET` antiguo (sin los dos ajustes nuevos) y con una compilación
+    nueva, también funcionó.
+- **Archivo de ajustes del simulador** (`GARMIN\APPS\SETTINGS\FOCUSPULSE-TEST.SET`):
+  formato descifrado y comprobado (leer y volver a escribir da los mismos bytes); escribirlo
+  antes de `monkeydo` cambia los ajustes que lee la app, con el simulador abierto y también
+  con la app abierta (sensibilidad 2 y luego 0, vistas en la consola). Cuidado: si se
+  escribe **mientras** `monkeydo` instala una compilación con ajustes nuevos, el simulador
+  lo reescribe con los valores por defecto (pasó una vez al lanzar las dos cosas a la vez);
+  `run.ps1` lo escribe siempre antes de llamar a `monkeydo`.
+- *Ajustes* en el reloj: "Abrir en demo" y "Guion al abrir" caben junto al interruptor sin
+  cortarse (español).
+- Al terminar, el simulador quedó en español, con el modo demo apagado, los dos ajustes de
+  arranque apagados, el resto de ajustes por defecto y el historial vacío.
+
 ## Requiere reloj real
 
 Solo se puede cerrar con un Forerunner 165 (o 165 Music) en la muñeca.
@@ -649,8 +721,15 @@ Solo se puede cerrar con un Forerunner 165 (o 165 Music) en la muñeca.
 - [ ] **Mantener UP** abre el menú principal sin *Depuración* con la app instalada desde el
       `.iq`; DOWN durante la guardia cambia de escenario en modo demo; el modo demo se
       recuerda tras reiniciar el reloj.
-- [ ] **Deslizar en la esfera**: un deslizamiento vertical podría llegar como
-      `onNextPage` y cambiar de escenario en modo demo; si molesta, atender solo `KEY_DOWN`.
+- [ ] **Deslizar en la esfera**: en el simulador, deslizar hacia arriba llega como
+      `nextPage` (cambia de escenario en modo demo con la guardia en marcha) y hacia abajo
+      como `previousPage`; si en el reloj molesta, atender solo `KEY_DOWN`.
+- [ ] **Controles táctiles de la fase 15 en el reloj**: tocar la hora abre el menú;
+      **mantener pulsada la pantalla** (`onHold`) también (no se pudo probar en el
+      simulador sin el ratón real) y no choca con ningún gesto del sistema; deslizar a la
+      izquierda / derecha cambia de escenario con el modo demo, y a la derecha sale de la
+      app sin él. Que `BackSource` siga distinguiendo el botón BACK del gesto (en el
+      simulador la tecla ESC llega justo antes de `onBack`).
 - [ ] Acertar el botón de la esfera (área 242×82 px) y el de la alerta (280×86 px) con el
       reloj puesto y medio dormido; que la píldora no provoque toques no deseados.
 - [ ] **Alerta sobre menús en el reloj**: que `ViewUnwinder` cierre los menús nativos igual
