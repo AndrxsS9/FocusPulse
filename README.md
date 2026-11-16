@@ -1,4 +1,4 @@
-# FocusPulse AI
+﻿# FocusPulse AI
 
 Aplicación nativa de **Garmin Connect IQ** (Monkey C, `watch-app`) para el **Forerunner 165**
 y el **Forerunner 165 Music** (pantalla redonda AMOLED de 390×390, táctil y botones).
@@ -60,7 +60,7 @@ Desde la raíz del repo, en PowerShell (si la política de ejecución los bloque
 .\scripts\build.ps1 -Release     # compila como la tienda → bin\FocusPulse-release.prg
 .\scripts\run.ps1 -Release       # abre el simulador del fr165 con la app (la de la demo)
 .\scripts\run.ps1 -TargetDevice fr165m
-.\scripts\test.ps1               # 231 pruebas unitarias en el simulador
+.\scripts\test.ps1               # 245 pruebas unitarias en el simulador
 .\scripts\export.ps1             # paquete firmado para la tienda → bin\FocusPulse.iq
 .\scripts\train.ps1              # dataset sintético, entrenamiento, informe y pesos
 ```
