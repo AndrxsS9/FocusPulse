@@ -15,7 +15,10 @@ mir/
 internal-mir/
 *.prg
 *.prg.debug.xml
+*.debug
+*.debug.xml
 *.iq
+*-settings.json
 
 # ------------------------------------------------------------------
 # Windows
@@ -35,11 +38,24 @@ $RECYCLE.BIN/
 __pycache__/
 *.py[cod]
 *.egg-info/
+ml/.venv/
 .venv/
 venv/
 env/
 .ipynb_checkpoints/
 .pytest_cache/
+
+# ------------------------------------------------------------------
+# Simulador, registros y temporales
+# ------------------------------------------------------------------
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+*.fit
+.vscode/
 
 # Datos pesados del pipeline de ML: se regeneran con scripts\train.ps1.
 # Las métricas, el informe, los PNG (ml/reports/) y el modelo exportado
