@@ -90,6 +90,18 @@ function menuZoneMissesDateButtonAndBanner(logger as Logger) as Boolean {
     return true;
 }
 
+//! Clics medidos en el simulador sobre los rótulos del bisel: llegan como toques en las
+//! esquinas del cuadrado, fuera del círculo, y no abren el menú.
+(:test)
+function menuZoneIgnoresBezelLabels(logger as Logger) as Boolean {
+    var layout = new RoundLayout(390, 390);
+    Test.assertMessage(!layout.hitsMenuZone(14, 70), "rótulo LIGHT");
+    Test.assertMessage(!layout.hitsMenuZone(375, 68), "rótulo START");
+    Test.assert(!layout.isOnScreen(0, 0));
+    Test.assert(layout.isOnScreen(layout.centerX, layout.topY));
+    return true;
+}
+
 (:test)
 function menuZoneScalesWithScreen(logger as Logger) as Boolean {
     var small = new RoundLayout(218, 218);

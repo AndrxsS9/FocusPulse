@@ -231,11 +231,22 @@ class RoundLayout {
         return fatigueBannerRect.contains(x, y) && !hitsButton(x, y);
     }
 
-    //! true si el toque (x, y) cae en la zona del menú (batería y hora) y no en el
-    //! botón grande ni en el aviso de fatiga, que tienen prioridad. La zona no se mueve
-    //! con el desplazamiento anti quemado: le sobra margen.
+    //! true si el toque (x, y) cae en la zona del menú (batería y hora), dentro del
+    //! círculo de la pantalla, y no en el botón grande ni en el aviso de fatiga, que
+    //! tienen prioridad. Las esquinas del cuadrado quedan fuera: en el simulador, un clic
+    //! en los rótulos impresos del bisel ("LIGHT", "START") llega como un toque en esas
+    //! esquinas y no debe abrir el menú. La zona no se mueve con el desplazamiento anti
+    //! quemado: le sobra margen.
     function hitsMenuZone(x as Number, y as Number) as Boolean {
-        return menuZoneRect.contains(x, y) && !hitsButton(x, y) && !fatigueBannerRect.contains(x, y);
+        return menuZoneRect.contains(x, y) && isOnScreen(x, y) && !hitsButton(x, y)
+            && !fatigueBannerRect.contains(x, y);
+    }
+
+    //! true si el punto (x, y) cae dentro del círculo de la pantalla.
+    function isOnScreen(x as Number, y as Number) as Boolean {
+        var dx = x - centerX;
+        var dy = y - centerY;
+        return dx * dx + dy * dy < radius * radius;
     }
 
     //! true si el toque (x, y) cae en el área táctil de "Estoy despierto".
