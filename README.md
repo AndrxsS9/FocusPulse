@@ -8,7 +8,7 @@ acelerómetro del reloj y despierta al usuario con **vibraciones progresivas**. 
 IA entrenado (regresión logística) confirma cada cabeceo antes de alertar. Incluye un
 **modo demo** con datos simulados y un guion automático para presentarla sin dormirse.
 
-**Versión 1.2.0** (fuentes propias del diseño web). Lista para subir a la Connect IQ Store ([docs/STORE.md](docs/STORE.md)).
+**Versión 1.2.1** (demo controlable solo con toques y arranque directo en la demo; fuentes propias del diseño web desde la 1.2.0). Lista para subir a la Connect IQ Store ([docs/STORE.md](docs/STORE.md)).
 
 > **No es un dispositivo médico.** No diagnostica ni trata trastornos del sueño, no
 > garantiza detectar todos los episodios y **no sustituye el descanso**. No la uses para
