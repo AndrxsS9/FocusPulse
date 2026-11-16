@@ -30,6 +30,8 @@ class FocusPulseApp extends Application.AppBase {
         _guard.loadDemoConfig(DemoStore.load());
         // Las últimas 10 guardias (HistoryStore).
         _guard.loadHistory(HistoryStore.load());
+        // "Iniciar en modo demo" y "Guion automático al abrir" (DemoLaunch).
+        _guard.applyLaunchSettings();
     }
 
     //! Llega al guardar los ajustes en la app Garmin Connect (o en el editor de ajustes

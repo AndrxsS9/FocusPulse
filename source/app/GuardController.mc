@@ -1,6 +1,7 @@
 import Toybox.Lang;
 import Toybox.System;
 import Toybox.Time;
+import Toybox.Timer;
 import Toybox.WatchUi;
 
 //! Coordina la guardia: estado (MonitorState), fuente del acelerómetro, motor de
@@ -103,6 +104,10 @@ class GuardController {
 
     //! Guion automático del modo demo.
     private var _script as DemoScript;
+
+    //! Espera de 3 s entre abrir la app y el guion automático ("Guion automático al
+    //! abrir", DemoLaunch); null si no hay ninguno programado.
+    private var _launchTimer as Timer.Timer? = null;
 
     //! true si el último intento de iniciar la guardia falló por el sensor.
     private var _sensorUnavailable as Boolean = false;
@@ -302,6 +307,11 @@ class GuardController {
     //! sesión aún grabando, aunque onStop la guarde), y desde onStop como respaldo para
     //! los cierres del sistema. La segunda llamada no hace nada.
     function shutdown() as Void {
+        var launchTimer = _launchTimer;
+        if (launchTimer != null) {
+            launchTimer.stop();
+            _launchTimer = null;
+        }
         if (_state.isActive() || _break.isRunning()) {
             cancelAlert();
             finishGuard();
@@ -878,6 +888,43 @@ class GuardController {
         _demoSource.setScenario(_demo.scenario());
         DemoStore.save(_demo);
         WatchUi.requestUpdate();
+    }
+
+    // --- Arranque directo en la demo ----------------------------------------------
+
+    //! Al abrir la app (FocusPulseApp.onStart, ya con los ajustes y el modo demo
+    //! guardado cargados): con "Iniciar en modo demo" o "Guion automático al abrir"
+    //! activa el modo demo y, con el segundo, programa el guion automático para dentro
+    //! de DemoLaunch.SCRIPT_DELAY_MS.
+    function applyLaunchSettings() as Void {
+        if (DemoLaunch.enablesDemo(_settings)) {
+            setDemoMode(true);
+        }
+        if (DemoLaunch.schedulesScript(_settings)) {
+            var timer = new Timer.Timer();
+            timer.start(method(:onLaunchScriptTimer), DemoLaunch.SCRIPT_DELAY_MS, false);
+            _launchTimer = timer;
+        }
+        logLaunch();
+    }
+
+    //! Pasaron los 3 s del arranque: empieza el guion si nadie tomó el control antes
+    //! (guardia iniciada a mano, guion ya en marcha o modo demo apagado).
+    function onLaunchScriptTimer() as Void {
+        _launchTimer = null;
+        if (DemoLaunch.startsScriptNow(_demo.isEnabled(), _state.isActive(), _script.isRunning())) {
+            startDemoScript();
+        }
+    }
+
+    (:debug)
+    private function logLaunch() as Void {
+        System.println("ARRANQUE modo demo " + _demo.isEnabled() + ", guion automático "
+            + (_launchTimer != null ? "en " + DemoLaunch.SCRIPT_DELAY_MS + " ms" : "no"));
+    }
+
+    (:release)
+    private function logLaunch() as Void {
     }
 
     // --- Guion automático ---------------------------------------------------------
