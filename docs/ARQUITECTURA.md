@@ -211,6 +211,11 @@ pruebas son reproducibles.
 | `source/core` | `GuardVisuals` | Curvas de la esfera con la guardia activa: arco de escaneo (radio 164, 16°, 2,8 s), ping de la píldora (1× → 2,6×, 0,8 → 0 en 1,6 s) y parpadeo de los dos puntos de la hora. | 13B ✅ |
 | `source/core` | `ButtonFocus` | Foco del botón grande de la esfera: 1,5 s tras START, un toque, UP o DOWN (borde cian). | 13B ✅ |
 | `source/core` | `AlertVisuals`, `AlertnessColors` (diseño web) | Pulso de 1,4 / 0,7 s hacia negro (nivel 2 limitado a 0,88 por contraste), parpadeo gradual #E01E1E ↔ #6A0000 cada 0,5 s y ondas del ícono (1× → 1,25× en 1,1 s, la segunda 0,55 s después). | 13B ✅ |
+| `source/views` | `InputTrace` | Traza de cada evento de entrada (tecla pulsada / soltada, comportamiento, toque, pulsación larga, deslizamiento) en la consola, solo en depuración; en release, funciones vacías. | 15 ✅ |
+| `source/views` | `MainDelegate` (controles táctiles), `InfoDelegate` | Esfera: tocar la batería o la hora (`RoundLayout.menuZoneRect`, dentro del círculo) o mantener la pantalla abre el menú; deslizar a la izquierda / derecha cambia de escenario con el modo demo. Resumen, Modelo IA y Acerca de se cierran con un toque. | 15 ✅ |
+| `source/core` | `BackSource` | Distingue el botón BACK (llega con evento de tecla `KEY_ESC`) del gesto de deslizar a la derecha (mismo `onBack`, sin tecla), con una ventana de 1 s. | 15 ✅ |
+| `source/core` | `DemoLaunch`, `DemoConfig.scenarioBefore` | Ajustes *Iniciar en modo demo* y *Guion automático al abrir*: modo demo al abrir y guion a los 3 s si nadie tomó el control; ciclo de escenarios hacia atrás y regla de deslizar (con el modo demo, también en pausa). | 15 ✅ |
+| `scripts/` | `run.ps1 -Demo`, `-DemoAuto`; `Set-SimulatorProperties` (`_common.ps1`) | Escriben esos dos ajustes en el `.SET` del simulador (formato medido: tabla de textos + diccionario) antes de instalar la app, conservando el resto. | 15 ✅ |
 
 `source/platform/` es la carpeta de adaptadores de hardware (sensores, grabación,
 vibración), creada en la fase 3. Igual que las vistas, puede importar `Toybox.Sensor`,
@@ -253,8 +258,9 @@ los módulos de las fases siguientes:
 | 12 | Pulido final y **versión 1.0.0**: aviso sin datos del sensor, alerta sobre menús, anti quemado, revisión de textos y contraste, limpieza, material de la tienda, guía de sustentación, export. ✅ |
 | 13B | **Versión 1.1.0**: estados animados iguales al diseño web: orbe de Bézier con su movimiento, estados y paletas, partículas, arco de escaneo, ping, dos puntos que parpadean, botón de 220×60 con foco, y alertas con los colores, el pulso, el parpadeo y las ondas de la web; comparaciones en `docs/img/`. ✅ |
 | 14 | **Versión 1.2.0**: fuentes propias del diseño web (Space Grotesk, Inter y JetBrains Mono en mapa de bits, `scripts\make_fonts.ps1`), batería, fecha siempre visible, etiqueta transitoria del modo demo, píldora y alerta con las medidas de la web; comparaciones y capturas de la tienda rehechas. ✅ |
+| 15 | **Versión 1.2.1**: demo controlable sin botones físicos: diagnóstico y traza de entrada, controles táctiles (menú desde la hora, deslizar para cambiar de escenario, cerrar con un toque), ajustes de arranque directo en la demo y `run.ps1 -Demo` / `-DemoAuto`. ✅ |
 | 13 | Pruebas en el reloj real: ejes del acelerómetro, vibración, pantalla apagada, batería, CPU y memoria ([PENDIENTES.md](PENDIENTES.md), "Requiere reloj real"). |
-| 15 | Datos reales con `SensorLogging`, reentrenamiento y decisión del evento entrenada; publicación en la Connect IQ Store. |
+| 16 | Datos reales con `SensorLogging`, reentrenamiento y decisión del evento entrenada; publicación en la Connect IQ Store. |
 
 En la fase 4 se adelantó la esfera principal (antes en la 7) para la sustentación en el
 simulador; las características de inclinación pasan a la fase 6 junto al detector.
@@ -267,8 +273,9 @@ pasan a la 11 y los datos reales a la 12. En la fase 12 se adelantó la preparac
 tienda (antes en la 14) y se cerró la versión 1.0.0; las pruebas en el reloj y los datos
 reales pasan a las fases 13 y 14 (trabajo futuro). La fase 13B (versión 1.1.0) se insertó
 antes de las pruebas en el reloj para igualar las animaciones al diseño web, y la fase 14
-(versión 1.2.0) se usó para las fuentes propias; los datos reales y la publicación pasan a
-la 15.
+(versión 1.2.0) se usó para las fuentes propias; la fase 15 (versión 1.2.1), para poder
+hacer la demo sin los botones del simulador. Los datos reales y la publicación pasan a la
+16.
 
 ## Pruebas
 
