@@ -1,5 +1,3 @@
-import Toybox.Lang;
-
 //! Datos de la app que se muestran en "Acerca de".
 module AppInfo {
 

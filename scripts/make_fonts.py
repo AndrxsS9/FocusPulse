@@ -117,7 +117,7 @@ def render_glyph(pil_font, char, size):
     box = canvas.getbbox()
     if box is None:
         return None, 0, 0
-    left, top, right, bottom = box
+    left, top = box[0], box[1]
     return canvas.crop(box), left - pad, top - 2 * pad
 
 

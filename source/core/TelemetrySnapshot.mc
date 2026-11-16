@@ -2,8 +2,8 @@ import Toybox.Lang;
 
 //! Foto de las características de telemetría en un instante.
 //!
-//! La crea TelemetryEngine.snapshot(); es un objeto de solo datos que las vistas y,
-//! más adelante, el detector leen sin tocar la ventana. Unidades: mg, mg², s, Hz.
+//! La crea TelemetryEngine.snapshot(); es un objeto de solo datos que las vistas,
+//! el detector y el clasificador leen sin tocar la ventana. Unidades: mg, mg², s, Hz.
 class TelemetrySnapshot {
 
     //! Última muestra recibida (mg).
