@@ -2,8 +2,8 @@
 
 Las fases 1 y 2 se compilaron, probaron y revisaron en el simulador con el **Connect IQ SDK
 9.3.0** (2026-11-12), las fases 3 a 8 el 2026-11-13, las fases 9, 10 y 11 el 2026-11-14,
-la fase 12 (versión 1.0.0) el 2026-11-15 y la fase 13B (versión 1.1.0, animaciones del
-diseño web) también el 2026-11-15.
+la fase 12 (versión 1.0.0) el 2026-11-15, y la fase 13B (versión 1.1.0, animaciones del
+diseño web) y la fase 14 (versión 1.2.0, fuentes propias) también el 2026-11-15.
 
 El documento tiene tres partes:
 
@@ -490,17 +490,12 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
 
 #### Lo que no se pudo igualar al diseño web
 
-- **Tipografía**: el reloj solo tiene las fuentes del sistema (Roboto en el simulador, sin
-  negrita). La hora, "¡DESPIERTA!", "Pausar guardia" y "Estoy despierto" son negritas
-  geométricas en la web; aquí van en regular. Igualarlas exigiría fuentes de mapa de bits
-  propias (más memoria y trabajo de diseño).
-- **Tamaño de los textos de la alerta**: no hay fuente más pequeña que `FONT_XTINY`
-  (30 px de caja), así que "Nivel 1 de 3 · vibración suave" y sobre todo el motivo ocupan
-  más que en la web; "Cabeceo / pérdida de tono muscular" va en dos líneas y el bloque queda
-  algo más alto y apretado que en la referencia.
-- **Esfera**: con el modo demo la fecha se reemplaza por la línea "DEMO · …"; la batería y
-  el puntaje llevan espacio antes de "%" ("50 %", formato del idioma); la píldora usa el
-  fondo `SURFACE` con borde `BORDER_STRONG` y no el fondo cian tenue de la web.
+- ~~**Tipografía**: solo fuentes del sistema (Roboto, sin negrita).~~ Resuelto en la fase 14
+  con fuentes propias en mapa de bits (abajo).
+- ~~**Tamaño de los textos de la alerta**: no había fuente menor que `FONT_XTINY`.~~ Resuelto
+  en la fase 14: nivel en Inter 15 px y motivo en una línea en Inter 13 px.
+- ~~**Esfera**: fecha reemplazada por "DEMO · …" en modo demo, espacio antes de "%" y
+  píldora sin el fondo cian tenue.~~ Resuelto en la fase 14.
 - **Opacidad**: no hay alfa real en el fr165; toda transparencia (orbe, partículas, arco,
   ping, dos puntos, ondas, pulso) se simula mezclando con el fondo o con negro. Donde un
   elemento con "transparencia" pasa por encima de otro (p. ej. una partícula detrás del
@@ -510,6 +505,100 @@ para leer el acelerómetro (la app lo consultó en el simulador sin errores).
   255,137,24), así que los degradados del pulso van en escalones pequeños.
 - **Foco**: en la web es el foco de teclado o del puntero; en el reloj no hay foco en las
   vistas propias, así que se simula 1,5 s tras START, un toque, UP o DOWN.
+
+### Fuentes propias y detalles de la esfera (fase 14, versión 1.2.0, simulador)
+
+- Las **231 pruebas** pasan (5 nuevas: escala de `Typography.smaller` y `isNumeric`,
+  `ClockFormat.listItem`; ajustadas: contraste de `TEXT_SOFT` y de las píldoras nuevas,
+  aviso de escenario de 2 s, porcentaje de Modelo IA sin espacio). `build.ps1`,
+  `build.ps1 -Release` y `export.ps1` (fr165 y fr165m) sin advertencias con `-l 3`. Release:
+  `FocusPulse-release.prg` **128,5 kB** (87 kB sin fuentes), `bin\FocusPulse.iq` **257,7 kB**.
+- **Fuentes de mapa de bits en Connect IQ (SDK 9.3.0)**: el compilador acepta el `.fnt` de
+  texto de BMFont con una página PNG en escala de grises (glifo blanco sobre negro, como el
+  ejemplo *Analog* del SDK), `antialias="true"`, `xoffset` negativos y glifos de ancho 0
+  (espacio). `WatchUi.loadResource(Rez.Fonts.X)` da un `FontResource` que sirve en
+  `drawText`, `getTextWidthInPixels`, `getFontHeight`, `Graphics.getFontAscent` y
+  `Graphics.fitTextToArea`. El simulador las dibuja con antialias en cualquier color
+  (`setColor`), también sobre los fondos de la alerta.
+- **Generador** (`scripts\make_fonts.ps1`): 11 fuentes, ≈ 103 000 px de glifos, ≈ 50 s.
+  Dos ejecuciones seguidas dan archivos idénticos (mismo SHA-256). La primera versión usaba
+  los avances de Pillow, redondeados por el *hinting* ("r" de Inter Bold 18: 8 px en vez de
+  7,2): las palabras salían hasta un 6 % más anchas y con huecos ("guar dia"); se pasó a los
+  avances exactos de fontTools y cada glifo se recorta a su tinta (10 % menos de píxeles).
+- **Memoria pico** (*File > View Memory*, release, fr165, el mismo recorrido antes y después:
+  esfera en pausa, guardia 12 s con un cambio de escenario, alertas de prueba 1 a 3, Modelo
+  IA, Acerca de, Historial y Ajustes): **104,2 kB** con la 1.1.0 y **110,7 kB** con la 1.2.0,
+  de 763,6 kB (14,5 %). Objetos pico 312 → 355. No hizo falta recortar glifos.
+- **Medidas frente a las referencias** (`docs/img/referencia/` llevadas a 390 px con la
+  escala del contenido, el botón de 220 px; banda de tinta de cada línea, en px):
+
+  | Elemento | Referencia | App (1.2.0) |
+  |---|---|---|
+  | Batería "78%" | y 53–64, 53 de ancho | y 51–63, 55 |
+  | Hora | y 86–141 (56 de alto) | y 88–142 (55) |
+  | Fecha | y 164–177 | y 165–177 |
+  | "ALERTA 88%" | y 198–213, 101 de ancho | y 197–212, 102 |
+  | Texto de la píldora | y 237–248, 141 | y 236–247, 139 |
+  | Botón | y 266–325, 221 × 60 | y 264–324, 220 × 61 |
+  | Alerta: ícono / título / nivel / motivo | c 102,5 / y 142–179 / c 196 / c 222 | c 101,5 / y 142–180 / c 196,5 / c 222,5 |
+  | Alerta: ancho del título / nivel / motivo | 230 / 206 / 220 | 231 / 211 / 222 |
+
+  La esfera además se desplaza ±2 px cada minuto (anti quemado). Comparaciones en
+  [img/comparacion-esfera.png](img/comparacion-esfera.png),
+  [img/comparacion-guardia.png](img/comparacion-guardia.png) y
+  [img/comparacion-alertas.png](img/comparacion-alertas.png).
+- **Pesos**: con los avances exactos coinciden "Iniciar guardia" en Inter Bold 18 (122 / 123
+  px), el nivel en SemiBold 15 (207 / 208), la píldora en SemiBold 13 (123 / 123) y "Estoy
+  despierto" en ExtraBold 22 (166 / 168). La fecha, "ALERTA" y el motivo tienen el trazo de
+  **Inter Medium**, más fino que el SemiBold: se generaron Medium 13 y 15, del mismo archivo
+  variable.
+- **Recorrido en el simulador** (release, sin usar el ratón ni el teclado reales: botones
+  con `PostMessage`, idioma, *Kill App* y *View Memory* con `WM_COMMAND`, capturas con
+  `PrintWindow`, y un cambio **temporal y no versionado** para que DOWN en pausa, y en un
+  tramo también UP, abriera el menú), en **español e inglés**: esfera en pausa con y sin modo
+  demo, "Sin datos del sensor", guardia con el foco del botón, etiqueta del escenario de 2 s,
+  orbe en tecleo, alerta del detector, resumen, alertas de prueba 1–3, Ajustes, Historial,
+  Modelo IA, Acerca de y aviso "Alerta solo visual" / "Visual-only alert"; el descanso (en
+  marcha y terminado) se revisó en español con la compilación de depuración. **Todo el
+  texto cabe sin cortes** en los dos idiomas.
+- **Guion automático completo (release)**:
+  - **Español**: alertas a los 29 s (paso 3, cabeceo) y 49 s (paso 5, inactividad),
+    respondidas; la tercera a los 59 s sube al nivel 2 y al 3 y el resumen se abre a los
+    77 s (1 min 15 s, 3 episodios, respuesta media 2,6 s, nivel máximo 3 de 3, fatiga Alto,
+    DEMO). "Guion 1/6 · Normal" sale 2 s en el sitio de la fecha al empezar.
+  - **Inglés**: alertas a los 28 y 48 s, la tercera a los 58 s y resumen a los 77 s
+    (1 min 15 s, 3 episodes, avg. response 2.4 s, max. level 3 of 3, fatigue High).
+- **Contraste**: mínimo de los textos de la app 6,51:1 (`ContrastTest`; píldora en pausa
+  6,6:1, activa 9,8:1, batería 12,9:1) y ≥ 4,5:1 en todo el pulso de la alerta
+  (`AlertVisualsTest`).
+- **Capturas de la tienda** (`docs/img/es-*`, `en-*`, 20) rehechas con la 1.2.0.
+- Al terminar, el simulador quedó en español, con el modo demo apagado, los ajustes por
+  defecto (revisados uno a uno) y el historial vacío (*Historial > Borrar historial >
+  Confirmar*). *File > Reset All App Data* enviado con `WM_COMMAND` (6136) **no borró** el
+  `Application.Storage` de la app (seguían el modo demo y 10 guardias): para vaciarlo hay
+  que usar el menú de la app.
+
+#### Lo que no se pudo igualar al diseño web (fase 14)
+
+- **Menús nativos**: el menú principal, Ajustes, Historial, Escenario y Probar alerta son
+  `Menu2` del sistema y no admiten fuentes propias; siguen en Roboto (simulador). Igualarlos
+  exigiría reescribirlos como `CustomMenu` con dibujo propio.
+- **Sin kerning**: el `.fnt` no lleva pares de kerning (no está documentado que Connect IQ
+  los lea), así que pares como "Te", "AV" o "r," quedan algo más abiertos que en la web.
+  Los anchos totales coinciden con la referencia a ±2 px.
+- **Avances enteros**: cada glifo avanza un número entero de píxeles (la web, fracciones),
+  así que el espacio entre letras varía ±0,5 px. "ALERTA" lleva 1 px entre letras (no hay
+  medio píxel); en la captura mide 52 px, como la referencia.
+- **Hinting**: los glifos se dibujan con el *hinting* de FreeType a ese tamaño; el navegador
+  de la referencia los suaviza distinto, así que algunos trazos se ven un poco más finos o
+  más nítidos.
+- **Nivel 2 de la alerta**: se queda como estaba (pulso hasta 0,88 en lugar de 0,72) por
+  contraste, como pide el diseño de la fase 13B.
+- **Anillo**: el de la web queda algo más adentro que el del reloj (en las comparaciones, a
+  la misma escala del contenido, se nota en el borde); el del reloj sigue en el sitio que
+  fijó la fase 4 para no tocar el borde redondo.
+- **Hora en 12 h**: el simulador está en 12 h ("7:00"); la referencia muestra "10:50". Con
+  la fuente de la app, "10:50" mide 189 px de tinta, igual que la referencia.
 
 ## Requiere reloj real
 
@@ -567,10 +656,12 @@ Solo se puede cerrar con un Forerunner 165 (o 165 Music) en la muñeca.
 - [ ] **Alerta sobre menús en el reloj**: que `ViewUnwinder` cierre los menús nativos igual
       que en el simulador y que el límite de timers del fr165 sea el mismo (3).
 - [ ] **Anti quemado**: que el salto de 2 px por minuto no se note al mirar la hora.
-- [ ] Fuentes: que `FONT_NUMBER_MEDIUM` (hora), "¡DESPIERTA!" en `FONT_MEDIUM` y las
-      etiquetas cortas de *Ajustes* (Menu2 corta a ≈ 13 caracteres junto al interruptor) se
-      vean igual que en el simulador (que usa Roboto).
-- [ ] "Nivel 3 de 3 · vibración máxima" (≈ 357 px) no queda demasiado cerca del borde.
+- [ ] **Fuentes propias** (fase 14): que las fuentes de mapa de bits con antialias se vean
+      igual que en el simulador (grosor, nitidez y colores sobre AMOLED), que el reloj las
+      cargue sin problemas de memoria (110,7 kB en el simulador) y que el dibujo de la
+      esfera siga por debajo de ≈ 40 ms por cuadro con ellas.
+- [ ] Etiquetas cortas de *Ajustes* (Menu2, fuente del sistema, corta a ≈ 13 caracteres
+      junto al interruptor) iguales que en el simulador.
 - [ ] Aviso de fatiga ("descansa 15 min") legible con brillo bajo y en el sitio previsto.
 - [ ] **Descanso de 15 min**: que la vista no se cierre sola y que la vibración del final
       se sienta con la pantalla apagada (en el simulador solo se probó el de 30 s).
@@ -599,7 +690,7 @@ Solo se puede cerrar con un Forerunner 165 (o 165 Music) en la muñeca.
       esfera y 1–2 ms de la alerta): si un cuadro supera ≈ 40 ms, bajar
       `OrbModel.SEGMENT_POINTS` (12 → 8, 32 puntos por contorno) o la tasa, o usar un
       `BufferedBitmap` para la capa fija.
-- [ ] **Memoria en el reloj** frente a los 98,8 kB medidos en el simulador.
+- [ ] **Memoria en el reloj** frente a los 110,7 kB medidos en el simulador (1.2.0).
 - [ ] Si `setStroke`/`setFill` (alfa real) existen en el firmware (en el simulador no): si
       sí, valorar usarlos con un `has`.
 
@@ -629,8 +720,11 @@ No necesita el reloj para empezar, o es una mejora que no bloquea la 1.0.
 
 ### Interfaz
 
-- [ ] Decidir si la hora necesita una fuente personalizada y si su costo en memoria cabe.
-- [ ] Con el modo demo la esfera no muestra la fecha; valorar dónde ponerla.
+- [ ] Menús con las fuentes propias: rehacer los `Menu2` (menú principal, Ajustes,
+      Historial) como `CustomMenu` si se quiere que todo use Inter.
+- [ ] Pares de kerning en las fuentes de mapa de bits, si Connect IQ los admite en el `.fnt`.
+- [ ] Medir la memoria de la 1.2.0 también en el fr165m (en la 1.0.0 era igual que en el
+      fr165).
 - [ ] *Detector en vivo* (depuración) solo se revisó en español en el fr165.
 - [ ] Forzar en el simulador la píldora "Sensor no disponible" y la batería baja en rojo
       (*Settings > Set Battery Status*), y ver la hora en 12 h con una hora que la distinga.

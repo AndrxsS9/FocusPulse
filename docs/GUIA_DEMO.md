@@ -6,8 +6,9 @@ que aparece aquí se probó en el simulador del SDK 9.3.0, en español y en ingl
 2026-11-13 (fase 8) y el 2026-11-14 (fase 9: escalamiento, fatiga, descanso, resumen e
 historial; fase 11: ajustes, confirmación por IA y transición entre escenarios) y el
 2026-11-15 (fase 12, versión 1.0.0: aviso sin datos del sensor, alerta sobre menús y
-desplazamiento anti quemado; fase 13B, versión 1.1.0: animaciones del diseño web, con el
-guion automático completo en release en los dos idiomas).
+desplazamiento anti quemado; fase 13B, versión 1.1.0: animaciones del diseño web; fase 14,
+versión 1.2.0: fuentes propias, fecha siempre visible y etiqueta del escenario de 2 s; las
+dos con el guion automático completo en release en los dos idiomas).
 
 Duración recomendada: **10–12 minutos** (unos 6 de demo en vivo y el resto de explicación).
 
@@ -40,7 +41,7 @@ No se verificó ningún atajo de teclado: no dependas de ellos.
 | **START/STOP** | Arriba a la derecha (rótulo "START / STOP") | Inicia o pausa la guardia. En la alerta, "Estoy despierto". En los menús, elegir. |
 | **BACK** | Abajo a la derecha (rótulo "BACK") | Volver en los menús. En la esfera, salir de la app (si la guardia está activa, antes la guarda). **No cierra la alerta.** |
 | **UP** | En el centro del lado izquierdo (rótulo "UP") | Subir en los menús. **Mantenerlo pulsado ~1,5 s** (clic sostenido) abre el **menú principal**. En la esfera, una pulsación corta enfoca el botón grande (borde cian 1,5 s). |
-| **DOWN** | Abajo a la izquierda (rótulo "DOWN") | Bajar en los menús. En la esfera enfoca el botón grande y, con el modo demo y la guardia activa, pasa al **siguiente escenario** (aviso de 1,5 s). |
+| **DOWN** | Abajo a la izquierda (rótulo "DOWN") | Bajar en los menús. En la esfera enfoca el botón grande y, con el modo demo y la guardia activa, pasa al **siguiente escenario** (su nombre sale 2 s en el sitio de la fecha). |
 | LIGHT | Arriba a la izquierda | No se usa. |
 | Toque | Clic sobre la pantalla | Un toque en el botón grande hace lo mismo que START; en la alerta, un toque en "Estoy despierto" la cierra. |
 
@@ -52,8 +53,8 @@ No se verificó ningún atajo de teclado: no dependas de ellos.
 - [ ] La esfera en pausa: "Monitoreo en pausa" y botón "Iniciar guardia".
 - [ ] Ventana del simulador grande y visible para el público (arrástrala por la barra de
       título; el reloj escala con la ventana).
-- [ ] El modo demo se recuerda entre arranques. Si en la esfera ya se ve "DEMO · …" en el
-      sitio de la fecha, está activo; si se ve la fecha, está apagado. Para la demo
+- [ ] El modo demo se recuerda entre arranques. Si en la esfera hay un **punto cian junto a
+      la batería**, está activo; si no, está apagado. Para la demo
       conviene empezar **apagado** y encenderlo delante del profesor (paso 2).
 - [ ] *Ajustes* (mantener UP → *Ajustes*): **Sensibilidad Media, Vibración Normal,
       Confirmar IA activado**, Animaciones *Completas*. Son los valores con que se midió
@@ -80,7 +81,8 @@ demo*, pulsar **START**: el interruptor pasa a verde, el subtítulo cambia de "S
 a "Datos simulados" y aparecen *Escenario*, *Guion automático* y *Probar alerta* (después
 vienen *Historial*, *Modelo IA* y *Acerca de*; con la guardia activa, también *Tomar
 descanso*). Pulsar
-**BACK** para volver a la esfera: donde estaba la fecha ahora se lee **"DEMO · Normal"**.
+**BACK** para volver a la esfera: junto a la batería aparece un **punto cian** (modo demo);
+la fecha sigue a la vista.
 
 **Qué decir:** "El simulador no tiene muñeca, así que el modo demo reemplaza el
 acelerómetro por una fuente simulada con cinco escenarios. También acorta los tiempos:
@@ -95,7 +97,7 @@ real. El modo queda guardado aunque cierre la app."
 1. **START**: "Calibrando…" durante 5 s, luego "Guardia activa". El botón se enmarca en cian
    un momento, el orbe gira y se deforma, las partículas titilan, el arco de escaneo da
    vueltas, el punto de la píldora hace "ping" y los dos puntos de la hora parpadean.
-2. **DOWN** → aviso "Escenario / Tecleo activo" y la línea "DEMO · Tecleo activo". Esperar
+2. **DOWN** → durante 2 s, en el sitio de la fecha, "DEMO · Tecleo activo". Esperar
    ~10 s: el puntaje sube y el orbe gira al doble (ciclos de 4,5 / 6 / 7,5 s).
 3. **DOWN** → "Simular cabeceo". A los **~8 s** aparece la alerta naranja "¡DESPIERTA!
    Nivel 1 de 3 · vibración suave — Cabeceo / pérdida de tono muscular" (el detector ve la
@@ -263,12 +265,12 @@ prueba para no hacer trampa. Estos porcentajes comparan versiones con datos simu
 son la precisión en una muñeca real, que se medirá con datos del reloj." (Detalle en
 [IA.md](IA.md).)
 
-**Qué decir (Acerca de):** nombre, versión 1.0.0 y la frase de la app.
+**Qué decir (Acerca de):** nombre, versión 1.2.0 y la frase de la app.
 
 ### Paso 9 — Volver al sensor real (30 s)
 
 **Qué hacer:** mantener **UP** → **START** sobre *Modo demo* (subtítulo "Sensor real"). Los
-ítems de la demo desaparecen. **BACK**: vuelve la fecha. Si la guardia estaba activa, se
+ítems de la demo desaparecen. **BACK**: desaparece el punto cian. Si la guardia estaba activa, se
 reinicia sola con el acelerómetro real (puntaje a 88 y "Calibrando…"); a los 5 s sin lotes
 la píldora pasa a **"Sin datos del sensor"** (ámbar).
 

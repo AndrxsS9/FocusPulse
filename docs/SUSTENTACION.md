@@ -48,6 +48,10 @@ probables del jurado y las cifras que conviene tener a mano. La demo en vivo sig
   esa altura; si no caben, baja la fuente.
 - **Legibilidad**: contraste **≥ 4,5:1** en todos los textos importantes (el peor, rojo sobre
   fondo, 6,5:1), comprobado por pruebas, también en todo el ciclo de pulso de la alerta.
+- **Tipografía** (versión 1.2.0): las fuentes del diseño web en mapa de bits, con licencia
+  OFL: Space Grotesk para la hora y los títulos, Inter para los textos y JetBrains Mono para
+  las cifras. Un script reproducible (`scripts\make_fonts.ps1`) las genera con solo los
+  glifos necesarios: la memoria pico solo sube de 104 a 111 kB.
 - **Fotosensibilidad**: el pulso de la alerta va a **menos de 1 ciclo por segundo**, muy por
   debajo del umbral de 3 destellos por segundo.
 - **Accesibilidad**: los niveles de alerta se distinguen por **número y duración de pulsos**
@@ -107,12 +111,13 @@ contar lo mismo sobre ellas.
 
 ### 7. Pruebas y métricas (1:00)
 
-- **205 pruebas** unitarias con `Toybox.Test` (`scripts\test.ps1`), todas en verde, en el
+- **231 pruebas** unitarias con `Toybox.Test` (`scripts\test.ps1`), todas en verde, en el
   simulador del SDK 9.3.0 con verificación de tipos estricta (`-l 3`) y sin advertencias.
 - Python y el reloj calculan **las mismas características y probabilidades** (diferencias <
   10⁻⁶) con vectores generados en `ml/`.
 - Matriz de confusión de los escenarios en el reloj: 93,1 % (v1) → **98,3 %** (v2).
-- Memoria pico en el simulador: **98,8 kB de 763,6 kB** (13 %) en fr165 y fr165m.
+- Memoria pico en el simulador: **110,7 kB de 763,6 kB** (14 %) en el fr165, con las
+  fuentes propias.
 
 ### 8. Limitaciones honestas (1:00)
 
@@ -204,14 +209,14 @@ medir batería y vibración en el FR165, y publicar en la Connect IQ Store.
 
 | Cifra | Valor |
 |---|---|
-| Versión | **1.0.0** (tag local `v1.0.0`) |
-| Commits | **199** hasta el tag `v1.0.0`, en 12 fases (`git rev-list --count v1.0.0`) |
-| Pruebas unitarias | **205**, todas en verde |
+| Versión | **1.2.0** (tag local `v1.2.0`; antes `v1.0.0`) |
+| Commits | **228** hasta el tag `v1.2.0` (199 hasta `v1.0.0`), en 14 fases (`git rev-list --count v1.2.0`) |
+| Pruebas unitarias | **231**, todas en verde |
 | Exactitud del clasificador (Python, 12 usuarios no vistos) | v1 **89,7 %** → v2 **93,3 %** |
 | Falsos cabeceos del modelo, episodios difíciles | v1 **16 de 48** → v2 **12 de 48** |
 | Falsos cabeceos al mirar la hora tras teclear | sin confirmación **15 de 24** → con confirmación **3 de 24** |
 | Cabeceos reales con alerta | **22 de 36**, con y sin confirmación |
 | Matriz de los escenarios en el reloj | 93,1 % (v1) → **98,3 %** (v2) |
-| Memoria pico (simulador, release, recorrido completo) | **98,8 kB de 763,6 kB** (13 %) en fr165 y fr165m |
+| Memoria pico (simulador, release, recorrido completo) | **110,7 kB de 763,6 kB** (14 %) en el fr165 (1.2.0; 98,8 kB en la 1.0.0) |
 | Paquete de la tienda | `bin\FocusPulse.iq` (fr165 y fr165m) |
 | Batería | **no medida** (requiere reloj real) |

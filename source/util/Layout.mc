@@ -82,7 +82,7 @@ class RoundLayout {
     var alertButtonTouchRect as Rect;
 
     //! Aviso de fatiga de la esfera ("Micro-sueños repetidos…"): de debajo de la fecha
-    //! al botón, tan ancho como permite el círculo seguro. fr165: 306×57 px.
+    //! al botón, tan ancho como permite el círculo seguro. fr165: 314×57 px.
     var fatigueBannerRect as Rect;
 
     //! Desplazamiento anti quemado aplicado (shiftTo, PixelShift); 0 al construirlo.

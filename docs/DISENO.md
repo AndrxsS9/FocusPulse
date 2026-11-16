@@ -3,8 +3,9 @@
 Documento vivo del sistema de diseño de la app para el **Forerunner 165** y **165 Music**
 (AMOLED redonda de 390×390, 325 ppi, táctil). Medidas y capturas verificadas en el simulador
 del SDK 9.3.0. Todo lo descrito aquí está implementado en `source/util/`
-(`Palette`, `Typography`, `Layout`, `Rect`, `Draw`) y en `source/core/AlertnessColors.mc`,
-y se puede revisar en el simulador con la **guía de estilo** oculta (ver al final).
+(`Palette`, `Typography`, `Layout`, `Rect`, `Draw`), en `source/core/AlertnessColors.mc` y
+en las fuentes de `resources/fonts/`, y se puede revisar en el simulador con la **guía de
+estilo** oculta (ver al final).
 
 Referencia visual aprobada (demo web): reloj negro con un anillo de nivel de alerta en el
 borde, hora grande al centro, batería arriba, porcentaje de alerta, píldora de estado y
@@ -41,16 +42,19 @@ Contraste calculado con la fórmula WCAG 2.x contra `BACKGROUND`.
 | Token | Hex | Uso | Contraste sobre fondo |
 |---|---|---|---|
 | `BACKGROUND` | `0x07090C` | Fondo de todas las pantallas. | — |
-| `SURFACE` | `0x11151B` | Relleno de píldoras y tarjetas pequeñas. | — |
+| `SURFACE` | `0x11151B` | Relleno de los avisos de la esfera (fatiga, "Alerta solo visual"). | — |
+| `PILL` | `0x1A1F27` | Fondo de la píldora de estado en pausa o con un aviso (diseño web, fase 14). | decorativo (`TEXT_SECONDARY` encima: 6,6:1) |
+| `PILL_ACTIVE` | `0x0F2A36` | Fondo cian tenue de la píldora "Guardia activa" (diseño web, fase 14). | decorativo (`ACCENT_LIGHT` encima: 9,8:1) |
 | `BORDER` | `0x1C222B` | Fondo del botón "Pausar guardia" (diseño web), pista del anillo de progreso (guía de estilo), separadores. | decorativo (`TEXT` encima: 14,9:1) |
 | `RING_TRACK` | `0x1A1F27` | Pista del anillo de nivel de la esfera principal (parte sin avance). | decorativo |
 | `BORDER_STRONG` | `0x2E3743` | Contorno de controles, puntos de página inactivos. | 1,7:1 (decorativo) |
 | `TEXT` | `0xF5F7FA` | Texto principal, texto del botón "Pausar guardia". | 18,6:1 |
-| `TEXT_SECONDARY` | `0x9AA4B2` | Estados, ayudas, etiquetas. | 7,9:1 |
+| `TEXT_SECONDARY` | `0x9AA4B2` | Estados, ayudas, etiquetas, fecha, "ALERTA". | 7,9:1 |
+| `TEXT_SOFT` | `0xC9D1DB` | Porcentaje de la batería (diseño web, fase 14). | 12,9:1 |
 | `WHITE` | `0xFFFFFF` | Texto de la alerta de nivel 3 y relleno del botón "Estoy despierto". | 19,9:1 |
 | `BLACK` | `0x000000` | Texto de las alertas de nivel 1 y 2, borde y texto del botón "Estoy despierto"; color con el que se mezcla el pulso de los niveles 1 y 2 (diseño web). | — (sobre `ORANGE`: 8,9:1) |
 | `ACCENT` | `0x4CC9F0` | Marca, guardia activa, alerta alta (≥ 60). | 10,4:1 |
-| `ACCENT_LIGHT` | `0x8BDDF5` | Contorno B del orbe IA, punto de "Guardia activa" y su ping. | 13,1:1 |
+| `ACCENT_LIGHT` | `0x8BDDF5` | Contorno B del orbe IA; punto, ping y texto de la píldora "Guardia activa". | 13,1:1 |
 | `VIOLET` | `0xC3A6FF` | Contorno C del orbe IA (banda cian). | 9,7:1 |
 | `AMBER` | `0xFFB020` | Alerta media (35–59). | 10,9:1 |
 | `AMBER_LIGHT` | `0xFFD27A` | Contorno B del orbe IA en la banda ámbar (fase 13B). | 14,0:1 |
@@ -113,35 +117,81 @@ El fondo además late (§5.3, `alertPulseColor`):
 
 ## 3. Tipografía
 
-Roles en `source/util/Typography.mc`, mapeados a fuentes del sistema. Las vistas usan el
-rol, nunca la fuente directamente.
+Desde la fase 14 (versión 1.2.0) los textos del diseño se dibujan con **fuentes propias en
+mapa de bits** (BMFont con antialias), las mismas del diseño web. Roles en
+`source/util/Typography.mc`; las vistas usan el rol, nunca la fuente directamente.
+`Typography.load()` las carga **una sola vez** al arrancar (`FocusPulseApp.onStart`); antes
+de cargarlas (por ejemplo, en las pruebas) cada rol apunta a la fuente del sistema más
+parecida.
 
-| Rol | Constante | Fuente del sistema | Alto en fr165 | Uso |
+| Rol | Fuente | Tamaño | Glifos | Uso |
 |---|---|---|---|---|
-| Hora | `TIME` | `FONT_NUMBER_MEDIUM` | 109 px | Hora grande al centro. |
-| Número | `NUMBER` | `FONT_NUMBER_MILD` | 88 px | Porcentaje de alerta, contadores. |
-| Alerta | `ALERT` | `FONT_MEDIUM` | 53 px | "¡DESPIERTA!" (hasta la 1.0.0, `FONT_LARGE`; `FONT_MEDIUM` da el ancho más cercano al título del diseño web). |
-| Título | `TITLE` | `FONT_MEDIUM` | 53 px | Títulos de pantalla y sección. |
-| Cuerpo | `BODY` | `FONT_SMALL` | 45 px | Texto corrido, botones, píldoras. |
-| Etiqueta | `LABEL` | `FONT_XTINY` | 30 px | Batería, unidades, ayudas. |
+| `clock` | Space Grotesk Bold, espaciado −2 px | 76 px | dígitos y `:` | Hora de la esfera, cuenta atrás del descanso. |
+| `alertTitle` | Space Grotesk Bold, −0,4 px | 42 px | letras de "¡DESPIERTA!" y "WAKE UP!" | Título de la alerta. |
+| `title` | Space Grotesk Bold | 22 px | texto | Títulos: Modelo IA, Resumen, Descanso, Acerca de, aviso solo visual. |
+| `body` | Inter Medium | 15 px | texto | Fecha, línea del modo demo, textos y etiquetas de filas. |
+| `bodyStrong` | Inter SemiBold | 15 px | texto | Nivel de la alerta, valores con letras, aviso de fatiga. |
+| `label` | Inter Medium | 13 px | texto | "ALERTA", motivo de la alerta, ayudas. |
+| `labelStrong` | Inter SemiBold | 13 px | texto | Píldora de estado, "DEMO" del resumen. |
+| `button` | Inter Bold | 18 px | texto | Botón grande de la esfera y del descanso. |
+| `alertButton` | Inter ExtraBold | 22 px | texto | "Estoy despierto". |
+| `number` | JetBrains Mono SemiBold | 22 px | dígitos, `%`, `,` y `.` | Porcentaje de alerta ("85%"). |
+| `numberSmall` | JetBrains Mono SemiBold | 14 px | dígitos, `%`, `,` y `.` | Batería ("78%"), cifras de las filas ("3", "93,3%"). |
 
-`FONT_TINY` (35 px) no tiene rol propio, pero `Draw.fittingFont` la usa como paso intermedio.
+"Texto" son las letras de español e inglés con tildes, ü y ñ, los dígitos y los signos que
+usan los textos de la app: `` !"%'()+,-./:;?¡¿·–—…‘’“” `` (101 glifos).
 
-- Alturas medidas con `dc.getFontHeight()` en el simulador del fr165, que usa **Roboto
-  TTF** para todas las fuentes, también las `FONT_NUMBER_*`. Por eso en el simulador estas
-  dibujan letras y `%`. En el reloj real pueden traer solo dígitos y `:`, así que no se usan
-  para letras y el `%` se sigue dibujando aparte (pendiente de confirmar en el dispositivo).
-- Los layouts usan siempre `dc.getFontHeight()` y `dc.getTextWidthInPixels()`, nunca
-  alturas supuestas.
-- **Textos que no caben** (verificado con los textos en español):
-  - Una sola palabra o un rótulo de una línea (títulos, botones, "¡DESPIERTA!") **no se
-    parte**: `Draw.fittingFont` baja de la fuente preferida a la siguiente más pequeña
-    hasta que cabe. Ejemplo: "Iniciar guardia" mide 239 px en `FONT_SMALL` y el botón 220 px,
-    así que se dibuja en `FONT_TINY` (188 px).
-  - Una frase larga se parte con `Graphics.fitTextToArea`. Ojo: para obtener *n* líneas
-    hay que pedir algo más de *n* alturas de fuente (interlineado); con *n* exactas
-    devuelve *n − 1* líneas y "…".
-- Pendiente: decidir si la hora necesita una fuente personalizada (ver `PENDIENTES.md`).
+**Origen y licencias.** TTF variables oficiales de [google/fonts](https://github.com/google/fonts)
+(`assets/fonts/`, sin modificar; origen y SHA-256 en `assets/fonts/README.md`), todas con la
+**SIL Open Font License 1.1**: Space Grotesk (The Space Grotesk Project Authors, Florian
+Karsten), Inter (The Inter Project Authors, Rasmus Andersson) y JetBrains Mono (The
+JetBrains Mono Project Authors). Textos de las licencias en `resources/fonts/LICENSES/` y
+créditos en el README.
+
+**Generación** (`scripts\make_fonts.ps1` → `scripts/make_fonts.py`, Python de `ml\.venv`):
+
+1. fontTools crea una instancia estática de cada peso (Inter, además, con el tamaño óptico
+   igual al tamaño en px);
+2. Pillow dibuja cada glifo con el antialias de FreeType y lo recorta a su tinta;
+3. el avance de cada glifo es el **exacto** de la fuente (tabla `hmtx`) más el espaciado,
+   redondeado al píxel. Los avances de Pillow vienen redondeados por el *hinting* ("r" de
+   Inter Bold 18 avanzaba 8 px en vez de 7,2) y separaban letras ("guar dia");
+4. escribe un `.fnt` de texto y un `.png` en escala de grises (glifo blanco sobre negro, el
+   formato del ejemplo *Analog* del SDK) por fuente y `resources/fonts/fonts.xml` con
+   `antialias="true"`.
+
+Es reproducible (dos ejecuciones dan archivos idénticos) con las versiones de Pillow y
+fontTools fijadas en `ml/requirements.txt`. `make_fonts.ps1 -Check` comprueba que todos los
+caracteres de los dos `strings.xml` están en el juego de texto. 11 fuentes, ≈ 103 000 px de
+glifos: el `.prg` de release pasa de 87 a 128,5 kB y la memoria pico del recorrido completo,
+de 104,2 a **110,7 kB de 763,6 kB** (ver `PENDIENTES.md`).
+
+**Pesos y espaciado medidos en las referencias** (`docs/img/referencia/`, llevadas a 390 px
+con la escala del contenido, el botón de 220 px): con los avances exactos coinciden sin
+espaciado "Iniciar guardia" (Bold 18: 122 px, referencia 123), "Nivel 1 de 3 · vibración
+suave" (SemiBold 15: 207 / 208), "Monitoreo en pausa" (SemiBold 13: 123 / 123) y "Estoy
+despierto" (ExtraBold 22: 166 / 168). La hora "10:50" mide 189 px con 56 px de alto: Space
+Grotesk 76 sin espaciado mide 196 → −2 px por carácter (≈ −0,025 em); "¡DESPIERTA!", 231
+frente a 235 → −0,4 px. La fecha y el motivo tienen el trazo de Inter **Medium**, más fino
+que el SemiBold.
+
+**Cifras.** `Typography.valueFont` elige JetBrains Mono para un valor que solo tiene dígitos,
+`%`, `,` o `.` ("3", "93,3%") e Inter SemiBold si lleva letras ("1 min 11 s", "v2"). Por eso
+los porcentajes que van en JetBrains Mono no llevan espacio en ningún idioma
+(`PercentCompactFormat`, `ModelPercentFormat`).
+
+**Textos que no caben.** `Draw.fittingFont` baja por la escala de `Typography.smaller`:
+botón de la alerta → botón → cuerpo destacado → etiqueta destacada; cuerpo → etiqueta; título
+→ cuerpo destacado. La hora, el título de la alerta y las cifras no bajan (ninguna otra fuente
+tiene sus glifos). Una frase larga se parte con `Graphics.fitTextToArea`, que acepta las
+fuentes propias; para obtener *n* líneas hay que pedir algo más de *n* alturas de fuente.
+
+**Espaciado entre letras** fuera de la fuente: `Draw.trackedText` dibuja letra a letra
+("ALERTA" con 1 px).
+
+**Menús nativos.** Los `Menu2` (menú principal, Ajustes, Historial, escenarios, probar alerta)
+no admiten fuentes propias: siguen con la fuente del sistema (Roboto en el simulador). Las
+vistas de depuración (telemetría, detector en vivo) también usan las del sistema.
 
 ## 4. Layout redondo
 
@@ -157,18 +207,21 @@ hay números fijos de 390. Valores resultantes en el fr165:
 | Radio del anillo (línea central, para `drawArc`) | — | 183 |
 | Radio interior del anillo | — | 177 |
 | Radio seguro para contenido | interior − 20 ‰ | 170 |
-| Batería / título (`topY`) | 130 ‰ | 50 |
-| Hora (`timeY`) | 335 ‰ | 130 |
-| Fecha (`dateY`) | 470 ‰ | 183 |
-| "ALERTA" + porcentaje (`scoreY`) | 558 ‰ | 217 |
-| Píldora de estado (`pillY`) | 648 ‰ | 252 |
-| Botón grande (`buttonRect`) | arriba 712 ‰, alto 154 ‰, ancho máx. 565 ‰ | x 85, y 277, 220×60 (diseño web) |
-| Área táctil del botón (`buttonTouchRect`) | botón + 30 ‰ por lado | x 74, y 266, 242×82 |
+| Batería / título (`topY`) | 152 ‰ | 59 |
+| Hora (`timeY`, centro de la caja de la fuente) | 296 ‰ | 115 (cifras de y 88 a 142) |
+| Fecha (`dateY`) | 434 ‰ | 169 |
+| "ALERTA" + porcentaje (`scoreY`, centro de las cifras) | 527 ‰ | 205 |
+| Píldora de estado (`pillY`, alto `pillHeight`, margen `pillPadding`) | 617 ‰, 67 ‰, 31 ‰ | 240, 26 px, 12 px |
+| Botón grande (`buttonRect`) | arriba 682 ‰, alto 154 ‰, ancho máx. 565 ‰ | x 85, y 265, 220×60 (diseño web) |
+| Área táctil del botón (`buttonTouchRect`) | botón + 30 ‰ por lado | x 74, y 254, 242×82 |
+| Botón de la alerta (`alertButtonRect`) | arriba 631 ‰, alto 180 ‰, ancho máx. 642 ‰ | x 70, y 246, 250×70 (diseño web) |
 | Indicador de página (`footerY`) | 905 ‰ | 352 |
 
 En la fase 4 la hora subió (de 420 ‰ a 335 ‰) para dejar sitio a la fecha, y el porcentaje
-y la píldora se acercaron para que quede aire entre la píldora y el botón. La anatomía
-completa de la esfera está en la sección 5.1.
+y la píldora se acercaron para que quede aire entre la píldora y el botón. En la fase 14 todas
+las zonas se colocaron donde las pone el diseño web, medido en las referencias a 390 px: en
+la captura del simulador cada banda queda a 1–2 px de la referencia (más el desplazamiento
+anti quemado de ±2 px). La anatomía completa de la esfera está en la sección 5.1.
 
 ### Zonas seguras para texto
 
@@ -186,20 +239,21 @@ Regla: ningún texto ni control cruza `contentRadius`; el anillo vive entre
 
 ## 5. Componentes
 
-### 5.1 Anatomía de la esfera principal (fase 4)
+### 5.1 Anatomía de la esfera principal (fase 4; medidas del diseño web desde la fase 14)
 
 `MainView` (`source/views/MainView.mc`), revisada en el simulador del fr165 y del fr165m
-en español e inglés. Medidas reales en el fr165 (390×390):
+en español e inglés. Medidas reales en el fr165 (390×390). Comparación con el diseño web en
+[img/comparacion-esfera.png](img/comparacion-esfera.png):
 
 ```
                  ╭────── anillo de alerta (r 183, 11 px) ──────╮
-              ╭──┤          ▭ 50 %                 y 50       ├──╮   batería
+              ╭──┤          ▭ 78% •                y 59       ├──╮   batería (+ punto demo)
             ╱   │                                              │   ╲
-           │    │          11:06                   y 130       │    │  hora (orbe IA detrás)
-           │    │       vie 13 nov                 y 183       │    │  fecha / "DEMO · Normal"
-           │    │     ALERTA 88 %                  y 217       │    │  puntaje
-           │    │  ( • Guardia activa )            y 232–272   │    │  píldora
-            ╲   │  [  Pausar guardia  ]            y 277–337   │   ╱   botón
+           │    │          10:50                   y 88–142    │    │  hora (orbe IA detrás)
+           │    │       Dom, 15 Nov                y 169       │    │  fecha (2 s: "DEMO · …")
+           │    │     ALERTA 88%                   y 205       │    │  puntaje
+           │    │  ( • Guardia activa )            y 228–253   │    │  píldora
+            ╲   │  [  Pausar guardia  ]            y 265–325   │   ╱   botón
               ╰─┤                                              ├─╯
                  ╰──────────────────────────────────────────────╯
 ```
@@ -207,14 +261,14 @@ en español e inglés. Medidas reales en el fr165 (390×390):
 | Zona | Contenido | Fuente / tamaño | Color |
 |---|---|---|---|
 | Anillo | Pista completa + avance desde las 12 en sentido horario, `percent` = puntaje. Extremos redondos. | trazo de 11 px, r 183 | pista `RING_TRACK`; avance `colorForAlertness(puntaje)` |
-| Batería (`topY` 50) | Ícono dibujado (27×14 px, borne a la derecha, relleno proporcional) + porcentaje real de `System.getSystemStats().battery`. | `LABEL` (30 px) | `TEXT_SECONDARY`; `RED` con ≤ 15 % |
-| Hora (`timeY` 130) | `HH:MM` en 24 h si el sistema la usa (`is24Hour`), si no `H:MM` en 12 h sin a. m./p. m. Los dos puntos se dibujan aparte y parpadean cada segundo del reloj entre opacidad 1 y 0,25 (fase 13B, `GuardVisuals.colonAlpha`), también en pausa. | `TIME` (109 px de caja) | `TEXT`; dos puntos `TEXT` mezclado con el fondo |
-| Fecha (`dateY` 183) | Día de la semana, día y mes abreviados por el sistema: "vie 13 nov" (español, en minúsculas) / "Fri Nov 13" (inglés). | `LABEL` | `TEXT_SECONDARY` |
-| Puntaje (`scoreY` 217) | "ALERTA" + porcentaje, centrados juntos con 7 px de separación. | `LABEL` + `FONT_SMALL` (45 px) | etiqueta `TEXT_SECONDARY`; número del color del anillo |
-| Píldora (`pillY` 252) | "Monitoreo en pausa" / "Guardia activa" (con punto delante; "Calibrando…" mientras el detector aprende la línea base, 30 s o 5 s en demo) / "Sensor no disponible" / "Sin datos del sensor" (fase 12: más de 5 s sin lotes con la guardia activa, sin punto; se quita sola y tiene prioridad sobre el aviso de fatiga). 40 px de alto. | `LABEL` | `TEXT_SECONDARY` / `ACCENT` / `AMBER`; relleno `SURFACE`, borde `BORDER_STRONG`; punto de "Guardia activa" `ACCENT_LIGHT` con ping |
-| Botón (`buttonRect`, 220×60, radio 30) | "Iniciar guardia" o "Pausar guardia"; `fittingFont` baja de `BODY` si no cabe ("Iniciar guardia" va en `FONT_TINY`). Con la guardia activa, borde `ACCENT` de 2 px por dentro mientras tiene el foco (`ButtonFocus`, 1,5 s tras START, un toque, UP o DOWN). | `BODY` → `TINY` | inicio: `ACCENT` con texto `BACKGROUND`; guardia activa: `BORDER` #1C222B con texto `TEXT` (diseño web) |
-| Línea del modo demo (`dateY` 183, fase 8) | Con el modo demo activo reemplaza a la fecha: "DEMO · Tecleo activo" o, con el guion, "Guion 2/5 · Tecleo activo". Nombres cortos (`DemoShort*`) para que quepa en los ≈ 335 px de esa altura en ambos idiomas; en `footerY` solo había ≈ 130 px. | `LABEL` | `ACCENT` |
-| Aviso breve (centro, fase 8) | 1,5 s al cambiar de escenario con DOWN ("Escenario / Tecleo activo"). (Hasta la fase 8 también salía "Guion automático / Completado" al terminar el guion; desde la fase 9 el guion termina en el resumen de la guardia.) Caja de esquinas redondas centrada en la pantalla; el valor baja de `BODY` hasta que cabe ("Inactividad prolongada"). Tapa la fecha y el puntaje mientras dura. | `LABEL` + `BODY` → `XTINY` | relleno `SURFACE`, borde `ACCENT`, título `TEXT_SECONDARY`, valor `TEXT` |
+| Batería (`topY` 59) | Ícono dibujado de 22×12 px (borne a la derecha, relleno proporcional) y, 8 px después, el porcentaje real de `System.getSystemStats().battery` sin espacio ("78%", `PercentCompactFormat`), centrados juntos. Con el modo demo, un **punto cian de 5 px** 6 px a la derecha del porcentaje (la batería sigue centrada). | `numberSmall` (JetBrains Mono SemiBold 14 px) | `TEXT_SOFT` #C9D1DB; `RED` con ≤ 15 %; punto `ACCENT` |
+| Hora (`timeY` 115) | `HH:MM` en 24 h si el sistema la usa (`is24Hour`), si no `H:MM` en 12 h sin a. m./p. m. Los dos puntos se dibujan aparte y parpadean cada segundo del reloj entre opacidad 1 y 0,25 (fase 13B, `GuardVisuals.colonAlpha`), también en pausa. Cifras de 55 px de alto (y 88–142). | `clock` (Space Grotesk Bold 76 px, −2 px) | `TEXT`; dos puntos `TEXT` mezclado con el fondo |
+| Fecha (`dateY` 169) | "Dom, 15 Nov" / "Sun, 15 Nov" (`DateFormat` "$1$, $2$ $3$"). Día de la semana y mes con abreviaturas **propias** (`DateWeekdays`, `DateMonths`), no las del sistema: así solo usa letras que tienen las fuentes, sea cual sea el idioma del reloj. **Siempre visible**, también en modo demo. | `body` (Inter Medium 15 px) | `TEXT_SECONDARY` |
+| Puntaje (`scoreY` 205) | "ALERTA" en mayúsculas con 1 px entre letras (`Draw.trackedText`) y el porcentaje sin espacio ("85%"), 10 px después, centrados juntos y **alineados por la línea base**: las cifras van centradas en `scoreY` y la etiqueta apoya en su línea base (`Graphics.getFontAscent`). | `label` (Inter Medium 13 px) + `number` (JetBrains Mono SemiBold 22 px) | etiqueta `TEXT_SECONDARY`; número del color del anillo |
+| Píldora (`pillY` 240) | "Monitoreo en pausa" / "Guardia activa" ("Calibrando…" mientras el detector aprende la línea base, 30 s o 5 s en demo) / "Sensor no disponible" / "Sin datos del sensor" (fase 12: más de 5 s sin lotes con la guardia activa; se quita sola y tiene prioridad sobre el aviso de fatiga). 26 px de alto, 12 px de margen a cada lado, sin borde; punto de 8 px a 8 px del texto. | `labelStrong` (Inter SemiBold 13 px) | pausa: fondo `PILL` #1A1F27, punto y texto `TEXT_SECONDARY`; activa: fondo cian tenue `PILL_ACTIVE` #0F2A36, punto (con ping) y texto `ACCENT_LIGHT`; avisos: fondo `PILL`, texto `AMBER`, sin punto |
+| Botón (`buttonRect`, 220×60, radio 30, y 265) | "Iniciar guardia" o "Pausar guardia"; `fittingFont` bajaría la fuente si no cupiera (en el fr165 caben los dos idiomas). Con la guardia activa, borde `ACCENT` de 2 px por dentro mientras tiene el foco (`ButtonFocus`, 1,5 s tras START, un toque, UP o DOWN). | `button` (Inter Bold 18 px) | inicio: `ACCENT` con texto `BACKGROUND`; guardia activa: `BORDER` #1C222B con texto `TEXT` (diseño web) |
+| Línea del modo demo (`dateY` 169, fase 8; transitoria desde la fase 14) | **2 s** en el sitio de la fecha cuando DOWN cambia de escenario o el guion cambia de paso (`Toast` de tipo escenario): "DEMO · Tecleo activo" o "Guion 2/6 · Tecleo activo". Fuera de esos 2 s se ve la fecha y el modo demo se reconoce por el punto cian junto a la batería. Nombres cortos (`DemoShort*`) para que quepa en los dos idiomas. | `body` | `ACCENT` |
+| Aviso de seguridad (centro) | "Alerta solo visual / Sin vibración ni sonido", 3 s al iniciar la guardia sin vibración ni sonido. Caja de esquinas redondas centrada; el valor baja de `button` hasta que cabe. Tapa la fecha y el puntaje mientras dura. (Hasta la fase 13B el cambio de escenario también usaba esta caja.) | `label` + `button` → `bodyStrong` | relleno `SURFACE`, borde y título `AMBER`, valor `TEXT` |
 
 **Orden de dibujo:** fondo → orbe IA y partículas → anillo de alerta y arco de escaneo →
 contenido. Ver la sección 5.2.
@@ -332,13 +386,15 @@ vibración en `source/platform/Haptics.mc`.
 **Anatomía** (fr165, revisada en español e inglés en el simulador):
 
 ```
-                       (|▯|)                      y 76     ícono de vibración (círculo r 30)
-                   ¡DESPIERTA!                    y 134    ALERT (FONT_MEDIUM, fittingFont)
-          Nivel 1 de 3 · vibración suave          y ≈ 176  LABEL
-         Cabeceo / pérdida de tono                         LABEL, partido en dos líneas
-                    muscular                               si no cabe
-             [   Estoy despierto   ]              y 261–325 botón 258×64 px
+                       (|▯|)                      y 102    ícono de vibración (círculo r 30)
+                   ¡DESPIERTA!                    base 172 Space Grotesk Bold 42 px
+          Nivel 1 de 3 · vibración suave          y 196    Inter SemiBold 15 px
+        Cabeceo / pérdida de tono muscular        y 221    Inter Medium 13 px, una línea
+             [   Estoy despierto   ]              y 246–316 botón 250×70, Inter ExtraBold 22 px
 ```
+
+Desde la fase 14 (fuentes propias) las posiciones son las del diseño web medidas en las
+referencias a 390 px; en la captura del simulador cada línea queda a 1–2 px de la referencia.
 
 Comparación con el diseño web en [img/comparacion-alertas.png](img/comparacion-alertas.png).
 
@@ -346,10 +402,10 @@ Comparación con el diseño web en [img/comparacion-alertas.png](img/comparacion
 |---|---|---|
 | Fondo | `alertPulseColor(nivel, pulso)` | Naranja / naranja intenso que laten hacia negro, rojo intenso ↔ rojo oscuro (§2.2). La única pantalla con fondo claro: dura segundos. |
 | Ícono | Círculo de 30 px de radio y 3 px de trazo con un teléfono (13×21 px) y una barra de vibración a cada lado. Dos ondas: anillos de 3 px que crecen de 1× a 1,25× el radio y se desvanecen hacia el fondo en 1,1 s; la segunda sale 0,55 s después (`AlertVisuals.ripple*`). Sin vibración no hay ondas. | Del color del texto. |
-| Título | "¡DESPIERTA!" / "WAKE UP!" | `FONT_MEDIUM` (≈ 250 px, el ancho más cercano al título del diseño web); `Draw.fittingFont` lo bajaría si no. |
-| Nivel | "Nivel N de 3 · vibración suave/media/máxima" (`AlertLevelLineFormat`). | La vibración va en minúsculas porque sigue al punto medio. "Nivel 3 de 3 · vibración máxima" mide ≈ 357 px: más que la cuerda segura (340 px) pero dentro de la pantalla, que aquí no tiene anillo. En inglés "maximum vibration" rozaba el borde y desde la fase 12 es "max vibration". |
-| Motivo | "Cabeceo / pérdida de tono muscular" o "Inactividad prolongada". | `fitTextToArea` en dos líneas cuando no cabe en una. |
-| Botón | "Estoy despierto" / "I'm awake": `WHITE` con borde `BLACK` de 3 px y texto `BLACK` en los tres niveles (diseño web). | `RoundLayout.alertButtonRect`, 258×64 px (el de la esfera es 220×60); el texto cabe en `BODY`. Área táctil 280×86 px (`alertButtonTouchRect`). |
+| Título | "¡DESPIERTA!" / "WAKE UP!" | `alertTitle`: Space Grotesk Bold 42 px con −0,4 px entre letras (231 px de ancho, como la web). Su fuente solo trae esas letras, así que no baja a otra. |
+| Nivel | "Nivel N de 3 · vibración suave/media/máxima" (`AlertLevelLineFormat`). | `bodyStrong` (Inter SemiBold 15 px). La vibración va en minúsculas porque sigue al punto medio. "Nivel 3 de 3 · vibración máxima" mide ≈ 215 px (357 px con la fuente del sistema hasta la 1.1.0). En inglés es "max vibration" desde la fase 12. |
+| Motivo | "Cabeceo / pérdida de tono muscular" o "Inactividad prolongada". | `label` (Inter Medium 13 px), centrado; en una línea si cabe en 260 px (en los dos idiomas caben: 225 px el más largo), si no en dos con `fitTextToArea`. |
+| Botón | "Estoy despierto" / "I'm awake": `WHITE` con borde `BLACK` de 3 px y texto `BLACK` en los tres niveles (diseño web). | `alertButton` (Inter ExtraBold 22 px). `RoundLayout.alertButtonRect`, 250×70 px en y 246 (el de la esfera es 220×60). Área táctil 272×92 px (`alertButtonTouchRect`). |
 
 **Niveles y vibración** (`VibePatterns`). Los Forerunner ignoran el `dutyCycle`: los
 niveles se distinguen por pulsos, duración y repetición. Cada ráfaga es una sola llamada a
@@ -453,15 +509,15 @@ reemplaza el puntaje y la píldora de estado por un aviso ámbar:
              12:06               hora
         DEMO · Inactividad       fecha / línea demo
   ╭──────────────────────────╮
-  │  Micro-sueños repetidos  │   y ≈ 220  LABEL, AMBER
-  │     descansa 15 min      │   y ≈ 250  LABEL, TEXT
-  ╰──────────────────────────╯   caja 300×72 px (RoundLayout.fatigueBannerRect)
+  │  Micro-sueños repetidos  │   y ≈ 221  Inter SemiBold 15 px, AMBER
+  │     descansa 15 min      │   y ≈ 240  Inter Medium 15 px, TEXT
+  ╰──────────────────────────╯   caja 314×57 px (RoundLayout.fatigueBannerRect)
       [  Pausar guardia  ]       botón
 ```
 
 - Caja `SURFACE` con borde `AMBER` de 2 px y esquinas de un tercio del alto. Va de 520 ‰ a
-  705 ‰ del lado (y 203–275 en el fr165), tan ancha como permite el círculo seguro en su
-  borde inferior.
+  665 ‰ del lado (y 202–259 en el fr165; hasta la 1.1.0, 275: el botón subió a y 265 en la
+  fase 14), tan ancha como permite el círculo seguro en su borde inferior.
 - Texto en dos ids (`FatigueBannerTitle`, `FatigueBannerAction`). La frase completa
   "toma un descanso de 15 min" **no cabía**: en `FONT_XTINY` mide más que los ≈ 290 px útiles
   a esa altura y se cortaba contra el borde (captura en el simulador). Quedó "descansa
@@ -481,7 +537,7 @@ reemplaza el puntaje y la píldora de estado por un aviso ámbar:
 | | En marcha | Terminado |
 |---|---|---|
 | Anillo | `ACCENT` desde las 12 en sentido horario, tan largo como lo que queda; pista `RING_TRACK`. Mismas medidas que el de la esfera. | vacío (solo la pista) |
-| Centro | "Descanso" (`LABEL`, secundario) · "14:59" (`NUMBER`, 88 px) · "BACK · cancelar" | "Descanso terminado" (`BODY`) |
+| Centro | "Descanso" (`title`, secundario) · "14:59" (`clock`, Space Grotesk 76 px) · "BACK · cancelar" (`label`) | "Descanso terminado" (`title`) |
 | Botón | — | "Reanudar guardia" (`ACCENT`, como "Iniciar guardia") |
 
 - Dura **15 min** (30 s en modo demo). El reloj redondea hacia arriba: marca 15:00 al
@@ -501,7 +557,7 @@ tuvo algún episodio** (`GuardSummary.shouldShow`; una guardia de segundos sin e
 casi siempre un toque de prueba). START o BACK vuelven a la esfera.
 
 ```
-         Resumen de la guardia        y 99   LABEL, ACCENT  (o la fecha, en el detalle)
+         Resumen de la guardia        y 99   title, ACCENT  (o la fecha, en el detalle)
                 ───                   raya de acento
    Duración             1 min 11 s    y 148
    Episodios                     3    y 181
@@ -512,7 +568,9 @@ casi siempre un toque de prueba). START o BACK vuelven a la esfera.
 ```
 
 - Las cinco filas comparten el ancho seguro de la más estrecha (la de "Fatiga"), así las
-  dos columnas quedan alineadas; etiqueta en `TEXT_SECONDARY`, valor en `TEXT`.
+  dos columnas quedan alineadas; etiqueta en `body` y `TEXT_SECONDARY`, valor en `TEXT` con
+  `Typography.valueFont` (cifras solas en JetBrains Mono 14 px, el resto en Inter SemiBold
+  15 px).
 - Formatos (`SummaryText`): duración "45 s", "1 min 32 s" (< 10 min), "47 min",
   "2 h 05 min"; respuesta con una décima y el separador del idioma ("1,9 s" / "1.9 s");
   "—" sin dato (sin respuestas o sin episodios).
@@ -535,11 +593,11 @@ Funciones en `source/util/Draw.mc`:
 | Componente | Función | Notas |
 |---|---|---|
 | Texto centrado | `Draw.centeredText` | Centrado en ambos ejes. |
+| Texto con espaciado | `Draw.trackedText`, `Draw.trackedWidth` | Letra a letra con *n* px entre letras ("ALERTA"). |
 | Anillo de progreso | `Draw.progressRing` | Pista completa en `BORDER` + avance con `drawArc` desde las 12 en punto en sentido horario, extremos redondos. Color del avance: `colorForAlertness`. |
-| Píldora de estado | `Draw.pill` | Relleno `SURFACE`, borde `BORDER_STRONG`, texto de color. Devuelve su `Rect`; `Draw.pillHeight` da su alto antes de dibujarla, para colocar el resto alrededor. |
-| Píldora con punto | `Draw.statusPill` | Igual que `pill`, con un punto de color delante (`dotColor`; guardia activa, `ACCENT_LIGHT`) y, con `ping` entre 0 y 1, el ping del diseño web (`GuardVisuals`). |
+| Píldora de estado | `Draw.statusPill` | Diseño web (fase 14): fondo de color sin borde, extremos redondos, alto y margen de `RoundLayout` (26 y 12 px), punto opcional delante (`dotColor`, 8 px) y, con `ping` entre 0 y 1, el ping del diseño web (`GuardVisuals`) mezclado con el fondo de la píldora. Devuelve su `Rect`. |
 | Batería | `Draw.battery` | Cuerpo redondeado + borne, relleno proporcional al porcentaje. |
-| Botón grande | `Draw.largeButton` | `fillRoundedRectangle` con extremos redondos. Cian con texto oscuro en la pantalla principal; blanco con texto oscuro en la alerta. El botón de la alerta es más grande (`RoundLayout.alertButtonRect`). Si el texto no cabe, reduce la fuente con `Draw.fittingFont`. |
+| Botón grande | `Draw.largeButton` | `fillRoundedRectangle` con extremos redondos. Cian con texto oscuro en la pantalla principal; blanco con texto oscuro en la alerta. El botón de la alerta es más grande (`RoundLayout.alertButtonRect`). Si el texto no cabe, reduce la fuente con `Draw.fittingFont` (escala de `Typography.smaller`). |
 | Indicador de página | `Draw.pageDots` | Punto actual en `ACCENT`, el resto en `BORDER_STRONG`. |
 
 `Draw.enableAntiAlias(dc)` activa el suavizado cuando el dispositivo lo soporta.
@@ -597,12 +655,17 @@ Funciones en `source/util/Draw.mc`:
 - Mayúsculas solo en "¡DESPIERTA!" / "WAKE UP!" y en las etiquetas cortas de la esfera
   ("ALERTA" / "ALERT" y "DEMO"), que son rótulos pequeños, no frases.
 - Formatos con valores (`PercentFormat`, `DateFormat`) viven también en los recursos: el
-  español separa el `%` con un espacio ("88 %") y el inglés no ("88%").
+  español separa el `%` con un espacio ("88 %") y el inglés no ("88%"). Desde la fase 14 los
+  porcentajes que se dibujan en JetBrains Mono (batería, puntaje y Modelo IA) van **sin
+  espacio en los dos idiomas** (`PercentCompactFormat`, `ModelPercentFormat`), como el diseño
+  web; `PercentFormat` queda para la depuración.
 - Revisión final (fase 12) de todas las pantallas a 390×390 en ambos idiomas: en inglés se
   acortaron "Glance at watch" y "Long inactivity" (nombres de escenario, que en el submenú
   rozaban el borde redondo) y "max vibration".
-- `DateCase` no es un texto visible: `lower` (español) pasa a minúsculas el día y el mes que
-  da el sistema ("Vie", "Nov" → "vie", "nov"); `keep` (inglés) los deja igual.
+- Abreviaturas de días y meses propias (`DateWeekdays`, `DateMonths`, listas separadas por
+  comas): la esfera dice "Dom, 15 Nov" / "Sun, 15 Nov" y el historial "15 nov · 10:32" /
+  "Nov 15 · 10:32" con letras que siempre tienen las fuentes, sea cual sea el idioma del
+  sistema. `DateCase` (no visible) solo pasa a minúsculas el mes del historial en español.
 
 ## 8. Ícono del launcher
 

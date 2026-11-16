@@ -62,7 +62,7 @@ Desde la raíz del repo, en PowerShell (si la política de ejecución los bloque
 .\scripts\build.ps1 -Release     # compila como la tienda → bin\FocusPulse-release.prg
 .\scripts\run.ps1 -Release       # abre el simulador del fr165 con la app (la de la demo)
 .\scripts\run.ps1 -TargetDevice fr165m
-.\scripts\test.ps1               # 205 pruebas unitarias en el simulador
+.\scripts\test.ps1               # 231 pruebas unitarias en el simulador
 .\scripts\export.ps1             # paquete firmado para la tienda → bin\FocusPulse.iq
 .\scripts\train.ps1              # dataset sintético, entrenamiento, informe y pesos
 ```
@@ -118,7 +118,7 @@ resources/          Inglés (por defecto): textos, ícono, ajustes de Garmin Con
                     propias en mapa de bits (resources/fonts/, con sus licencias)
 assets/fonts/       TTF de origen de las fuentes (no se empaquetan)
 resources-spa/      Español
-tests/              Pruebas Toybox.Test (205)
+tests/              Pruebas Toybox.Test (231)
 ml/                 Entrenamiento en Python (no se empaqueta en el reloj)
 scripts/            PowerShell: setup, build, run, test, export, train, icon, make_fonts
 docs/               Arquitectura, detector, IA, diseño, demo, tienda, sustentación, pendientes
@@ -147,7 +147,10 @@ docs/               Arquitectura, detector, IA, diseño, demo, tienda, sustentac
 - El detector ve el 61 % de los cabeceos sintéticos (los más lentos no superan 400 mg) y
   mirar la hora con el brazo casi inmóvil todavía engaña a veces (3 de 24).
 - Solo acelerómetro: el FR165 no tiene giroscopio.
-- Memoria pico en el simulador: 98,8 kB de 763,6 kB (fr165 y fr165m).
+- Memoria pico en el simulador: 110,7 kB de 763,6 kB en el fr165 con las fuentes propias
+  (98,8 kB en la 1.0.0).
+- Los menús nativos (`Menu2`: menú principal, Ajustes, Historial) usan la fuente del
+  sistema: no admiten las fuentes propias.
 
 ## Créditos
 

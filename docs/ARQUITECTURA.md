@@ -151,7 +151,7 @@ pruebas son reproducibles.
 | `source/core` | `AlertnessScore` | Puntaje de alerta (0–100). Desde la fase 6 se acerca a la media de los niveles de cada clase pesada por las probabilidades del clasificador, a +3 / −2 puntos por segundo como mucho. | 4 ✅, 6 ✅ |
 | `source/util` | `ClockFormat` | Hora en 24 h / 12 h y porcentaje de batería. | 4 ✅ |
 | `source/core` | `AlertnessColors` | Banda y color según el puntaje de alerta, colores del orbe IA y de la alerta por nivel. | 2 ✅ |
-| `source/util` | `Typography`, `RoundLayout`, `Rect` | Roles tipográficos, geometría de la pantalla redonda y áreas táctiles. | 2 ✅ |
+| `source/util` | `Typography`, `RoundLayout`, `Rect` | Roles tipográficos (desde la fase 14, fuentes propias en mapa de bits cargadas una vez), geometría de la pantalla redonda y áreas táctiles. | 2, 14 ✅ |
 | `source/util` | `Draw` | Texto centrado, anillo de progreso, píldora, botón grande, indicador de página. | 2 ✅ |
 | `source/views` | `StyleGuideView`, `StyleGuideDelegate` | Guía de estilo oculta, solo en depuración (`(:debug)`). | 2 ✅ |
 | `source/core` | `RingBuffer` | Búfer circular de tamaño fijo: x, y, z (mg) y magnitud. | 3 ✅ |
@@ -252,8 +252,9 @@ los módulos de las fases siguientes:
 | 11 | Ajustes de usuario (sensibilidad, vibración por pulsos, sonido, animaciones reducidas, confirmación por IA, grabar actividad) en el reloj y en Garmin Connect; confirmación de los cabeceos por el modelo; transición suave entre escenarios de la demo. ✅ |
 | 12 | Pulido final y **versión 1.0.0**: aviso sin datos del sensor, alerta sobre menús, anti quemado, revisión de textos y contraste, limpieza, material de la tienda, guía de sustentación, export. ✅ |
 | 13B | **Versión 1.1.0**: estados animados iguales al diseño web: orbe de Bézier con su movimiento, estados y paletas, partículas, arco de escaneo, ping, dos puntos que parpadean, botón de 220×60 con foco, y alertas con los colores, el pulso, el parpadeo y las ondas de la web; comparaciones en `docs/img/`. ✅ |
+| 14 | **Versión 1.2.0**: fuentes propias del diseño web (Space Grotesk, Inter y JetBrains Mono en mapa de bits, `scripts\make_fonts.ps1`), batería, fecha siempre visible, etiqueta transitoria del modo demo, píldora y alerta con las medidas de la web; comparaciones y capturas de la tienda rehechas. ✅ |
 | 13 | Pruebas en el reloj real: ejes del acelerómetro, vibración, pantalla apagada, batería, CPU y memoria ([PENDIENTES.md](PENDIENTES.md), "Requiere reloj real"). |
-| 14 | Datos reales con `SensorLogging`, reentrenamiento y decisión del evento entrenada; publicación en la Connect IQ Store. |
+| 15 | Datos reales con `SensorLogging`, reentrenamiento y decisión del evento entrenada; publicación en la Connect IQ Store. |
 
 En la fase 4 se adelantó la esfera principal (antes en la 7) para la sustentación en el
 simulador; las características de inclinación pasan a la fase 6 junto al detector.
@@ -265,7 +266,9 @@ En la fase 10 se adelantó el entrenamiento del modelo, con datos sintéticos; l
 pasan a la 11 y los datos reales a la 12. En la fase 12 se adelantó la preparación de la
 tienda (antes en la 14) y se cerró la versión 1.0.0; las pruebas en el reloj y los datos
 reales pasan a las fases 13 y 14 (trabajo futuro). La fase 13B (versión 1.1.0) se insertó
-antes de las pruebas en el reloj para igualar las animaciones al diseño web.
+antes de las pruebas en el reloj para igualar las animaciones al diseño web, y la fase 14
+(versión 1.2.0) se usó para las fuentes propias; los datos reales y la publicación pasan a
+la 15.
 
 ## Pruebas
 
@@ -324,3 +327,8 @@ antes de las pruebas en el reloj para igualar las animaciones al diseño web.
   dos puntos), `ButtonFocus` (pulsación, teclas, vuelta del contador) y el botón de 220×60,
   y la alerta del diseño web (colores, periodos, parpadeo del nivel 3, mezcla con negro,
   contraste del nivel 2, ondas y ≈ 15 cuadros/s).
+- Fase 14: 231 pruebas. Las nuevas cubren la escala de fuentes de `Typography.smaller` (las
+  del sistema bajan hasta `FONT_XTINY`, las numéricas no bajan, toda escala termina), la
+  elección de JetBrains Mono para las cifras solas (`Typography.isNumeric`), las
+  abreviaturas de días y meses (`ClockFormat.listItem`) y el contraste de `TEXT_SOFT` y de
+  las píldoras nuevas; el aviso de escenario dura 2 s.

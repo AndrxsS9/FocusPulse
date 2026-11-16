@@ -1,11 +1,56 @@
 # Changelog
 
 Cambios de FocusPulse AI por fase. La versión sigue el esquema *mayor.fase.parche*
-(`AppInfo.VERSION`): la fase N es la 0.N.0, la fase 12 cierra la 1.0.0 y la fase 13B
-(animaciones del diseño web) es la 1.1.0. `AppInfo` existe
+(`AppInfo.VERSION`): la fase N es la 0.N.0, la fase 12 cierra la 1.0.0, la fase 13B
+(animaciones del diseño web) es la 1.1.0 y la fase 14 (fuentes propias) es la 1.2.0.
+`AppInfo` existe
 desde la fase 8; las versiones anteriores son la numeración retroactiva de cada fase.
 Detalle de cada módulo en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) y de lo verificado
 en [docs/PENDIENTES.md](docs/PENDIENTES.md).
+
+## 1.2.0 — Fase 14: fuentes propias y detalles de la esfera (2026-11-15)
+
+- **Fuentes propias en mapa de bits** (BMFont con antialias, `resources/fonts/`), las del
+  diseño web, con licencia SIL OFL 1.1 (textos en `resources/fonts/LICENSES/`, créditos en
+  el README): Space Grotesk Bold para la hora (76 px, dígitos y ":"), "¡DESPIERTA!" (42 px,
+  solo sus letras y las de "WAKE UP!") y los títulos (22 px); Inter Medium y SemiBold 13 y
+  15 px, Bold 18 px y ExtraBold 22 px para textos y botones; JetBrains Mono SemiBold 14 y
+  22 px para las cifras. 11 fuentes con solo los glifos necesarios.
+- **`scripts\make_fonts.ps1`** (+ `make_fonts.py`, Python de `ml\.venv`): instancia cada peso
+  de las TTF variables oficiales de google/fonts (`assets/fonts/`) con fontTools, dibuja los
+  glifos con Pillow, usa los avances exactos de la fuente más el espaciado medido en las
+  referencias (hora −2 px, título de la alerta −0,4 px) y escribe `.fnt`, `.png` y
+  `fonts.xml`. Reproducible; `-Check` comprueba los caracteres de `strings.xml`.
+- **`Typography`** carga las fuentes una vez al arrancar y define los roles `clock`,
+  `alertTitle`, `title`, `body`, `bodyStrong`, `label`, `labelStrong`, `button`,
+  `alertButton`, `number` y `numberSmall`; `Draw.fittingFont` baja por su escala
+  (`Typography.smaller`) y `Typography.valueFont` pone las cifras solas en JetBrains Mono.
+- **Esfera** con las medidas del diseño web (a 1–2 px de la referencia): batería con ícono
+  de 22×12 y "78%" en JetBrains Mono 14 px #C9D1DB (`TEXT_SOFT`); hora en Space Grotesk 76;
+  fecha "Dom, 15 Nov" / "Sun, 15 Nov" en Inter Medium 15 px con abreviaturas propias
+  (`DateWeekdays`, `DateMonths`) y **siempre visible**; "ALERTA" con espaciado y "85%" en
+  JetBrains Mono 22 px alineados por la línea base; píldora de 26 px sin borde, fondo
+  `PILL` #1A1F27 en pausa y `PILL_ACTIVE` #0F2A36 (cian tenue) con la guardia activa, punto
+  gris o cian claro con su ping y texto Inter SemiBold 13 px; botón en Inter Bold 18 px en
+  y 265.
+- **Modo demo**: el nombre del escenario ("DEMO · Tecleo activo" o el paso del guion) sale
+  2 s en el sitio de la fecha al pulsar DOWN o al cambiar de paso el guion (antes, una caja
+  de 1,5 s y la línea fija en lugar de la fecha); el modo se marca con un punto cian de 5 px
+  junto a la batería.
+- **Alerta**: "¡DESPIERTA!" en Space Grotesk 42, nivel en Inter SemiBold 15, motivo en una
+  línea en Inter Medium 13, botón de 250×70 en Inter ExtraBold 22; ícono, título, nivel,
+  motivo y botón en las posiciones de la web. Colores, pulsos, ondas y contraste sin cambios
+  (el nivel 2 sigue en 0,88).
+- **Pantallas propias** (Modelo IA, Resumen, Descanso, Acerca de, aviso solo visual, aviso
+  de fatiga): títulos en Space Grotesk, textos en Inter y cifras en JetBrains Mono. Los
+  `Menu2` nativos siguen con la fuente del sistema.
+- Porcentajes sin espacio en los dos idiomas donde van en JetBrains Mono
+  (`PercentCompactFormat`, `ModelPercentFormat` en español).
+- Memoria pico del recorrido completo en el simulador: 104,2 → **110,7 kB** de 763,6 kB.
+  `FocusPulse-release.prg` 128,5 kB; `FocusPulse.iq` 257,7 kB.
+- Comparaciones nuevas en `docs/img/comparacion-esfera.png`, `comparacion-guardia.png` y
+  `comparacion-alertas.png`, y las 20 capturas de la tienda rehechas. Guion automático
+  completo en release en español e inglés. 231 pruebas.
 
 ## 1.1.0 — Fase 13B: estados animados iguales al diseño web (2026-11-15)
 
