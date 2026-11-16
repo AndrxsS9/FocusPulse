@@ -8,7 +8,13 @@ historial; fase 11: ajustes, confirmación por IA y transición entre escenarios
 2026-11-15 (fase 12, versión 1.0.0: aviso sin datos del sensor, alerta sobre menús y
 desplazamiento anti quemado; fase 13B, versión 1.1.0: animaciones del diseño web; fase 14,
 versión 1.2.0: fuentes propias, fecha siempre visible y etiqueta del escenario de 2 s; las
-dos con el guion automático completo en release en los dos idiomas).
+dos con el guion automático completo en release en los dos idiomas; fase 15, versión 1.2.1:
+controles táctiles, arranque directo con `run.ps1 -DemoAuto` y recorrido completo **solo con
+toques**, en los dos idiomas).
+
+> **¿Los botones dibujados no responden?** Toda la demo se puede hacer solo con clics en la
+> pantalla, o sin tocar nada con `run.ps1 -Release -DemoAuto`. Ver
+> [Si los botones no responden](#si-los-botones-no-responden).
 
 Duración recomendada: **10–12 minutos** (unos 6 de demo en vivo y el resto de explicación).
 
@@ -24,6 +30,21 @@ powershell -ExecutionPolicy Bypass -File scripts\run.ps1 -Release
 
 - Compila `bin\FocusPulse-release.prg` (modo release, `-r`), abre el simulador si no está
   abierto y carga la app en el `fr165`. Si el simulador ya está abierto, lo reutiliza.
+- **Arranque directo en la demo** (versión 1.2.1):
+
+  | Comando | Al abrir la app |
+  |---|---|
+  | `scripts\run.ps1 -Release` | Normal: guardia en pausa; el modo demo, como se dejó la última vez. |
+  | `scripts\run.ps1 -Release -Demo` | **Modo demo ya activo** (punto cian junto a la batería), guardia en pausa. |
+  | `scripts\run.ps1 -Release -DemoAuto` | Modo demo y, **a los 3 s, el guion automático solo** (paso 4). Al terminar se queda en el resumen; **un toque** vuelve a la esfera. |
+
+  Funciona como si se cambiaran los ajustes desde Garmin Connect: antes de abrir la app,
+  `run.ps1` escribe *Iniciar en modo demo* y *Guion automático al abrir* en el archivo de
+  ajustes del simulador (`%TEMP%\com.garmin.connectiq\GARMIN\APPS\SETTINGS\*.SET`), sin
+  tocar el resto de ajustes. Sin `-Demo` ni `-DemoAuto` los deja apagados, así que cada
+  ejecución de `run.ps1` hace lo que dice su comando. Los dos ajustes también están en el
+  reloj: *Ajustes > Abrir en demo* y *Guion al abrir* (se aplican la próxima vez que se
+  abra la app).
 - La consola queda ocupada mientras la app corre; es normal. En release la app no escribe
   nada en ella.
 - Para volver a cargar la app sin recompilar: `scripts\run.ps1 -Release -NoBuild`.
@@ -31,19 +52,39 @@ powershell -ExecutionPolicy Bypass -File scripts\run.ps1 -Release
   app en el simulador y lo dejan sin reloj ("CIQ Simulator" sin dispositivo). Si pasa,
   vuelve a ejecutar `run.ps1 -Release`.
 
-### Botones del reloj en el simulador
+### Controles: botón, teclado o toque
 
-Los botones se pulsan **con el ratón sobre el dibujo del reloj**, en el borde de la caja.
-No se verificó ningún atajo de teclado: no dependas de ellos.
+Cada acción se puede hacer de tres maneras. En el simulador, **"toque" es un clic sobre la
+pantalla redonda** y **"deslizar" es arrastrar con el botón del ratón pulsado** (rápido, unos
+100 px o más). Los botones del reloj se pulsan en las **pestañas grises del borde de la
+caja**, no en los rótulos impresos del bisel (ver
+[Si los botones no responden](#si-los-botones-no-responden)).
 
-| Botón del fr165 | Dónde está en el simulador | Qué hace en FocusPulse |
-|---|---|---|
-| **START/STOP** | Arriba a la derecha (rótulo "START / STOP") | Inicia o pausa la guardia. En la alerta, "Estoy despierto". En los menús, elegir. |
-| **BACK** | Abajo a la derecha (rótulo "BACK") | Volver en los menús. En la esfera, salir de la app (si la guardia está activa, antes la guarda). **No cierra la alerta.** |
-| **UP** | En el centro del lado izquierdo (rótulo "UP") | Subir en los menús. **Mantenerlo pulsado ~1,5 s** (clic sostenido) abre el **menú principal**. En la esfera, una pulsación corta enfoca el botón grande (borde cian 1,5 s). |
-| **DOWN** | Abajo a la izquierda (rótulo "DOWN") | Bajar en los menús. En la esfera enfoca el botón grande y, con el modo demo y la guardia activa, pasa al **siguiente escenario** (su nombre sale 2 s en el sitio de la fecha). |
-| LIGHT | Arriba a la izquierda | No se usa. |
-| Toque | Clic sobre la pantalla | Un toque en el botón grande hace lo mismo que START; en la alerta, un toque en "Estoy despierto" la cierra. |
+| Acción | Botón del fr165 | Teclado del PC (simulador) | Toque |
+|---|---|---|---|
+| Iniciar o pausar la guardia | START | **5** del teclado numérico | Tocar el botón grande ("Iniciar guardia") |
+| **Abrir el menú principal** | Mantener UP ~1,5 s | **M** | **Tocar la batería o la hora** (franja de arriba), o mantener pulsada la pantalla |
+| Moverse por un menú | UP / DOWN | **8** / **2** numérico | Deslizar hacia arriba o hacia abajo |
+| Elegir una opción del menú | START | **5** numérico | Tocar la opción (no hace falta enfocarla antes) |
+| Volver (menús, submenús) | BACK | **Esc** | Deslizar a la derecha |
+| Escenario **siguiente** (modo demo) | DOWN, con la guardia en marcha | **2** numérico (guardia en marcha) o **4** numérico | **Deslizar a la izquierda** (también en pausa) |
+| Escenario **anterior** (modo demo) | — | **6** numérico | **Deslizar a la derecha** en la esfera |
+| Responder la alerta ("Estoy despierto") | START | **5** numérico | Tocar "Estoy despierto" |
+| Cerrar el resumen, Modelo IA o Acerca de | START o BACK | **5** numérico o **Esc** | Tocar en cualquier parte |
+| Abrir el descanso (fatiga en Alto) | Menú → *Tomar descanso* | — | Tocar el aviso ámbar |
+| Salir de la app | BACK | **Esc** | Deslizar a la derecha **sin** el modo demo |
+
+- En la esfera, **tocar la hora nunca inicia la guardia**: solo el botón grande lo hace.
+- Con el **modo demo**, deslizar a la derecha en la esfera cambia de escenario y **no sale
+  de la app**; el botón BACK (o Esc) sí sale. Sin el modo demo, deslizar a la derecha sale,
+  como en el reloj.
+- La alerta **no se cierra** con BACK, Esc ni deslizando: solo con "Estoy despierto"
+  (toque, START o 5 numérico).
+- LIGHT no está definido en el fr165 del simulador: no hace nada.
+- Teclado: el teclado numérico necesita **Bloq Num activado** (con Bloq Num apagado, el 8 y
+  el 2 son flechas y no hacen nada). Haz clic una vez en la ventana del simulador para que
+  reciba las teclas. Las flechas, Enter y Retroceso **no** hacen nada en el fr165. La barra
+  espaciadora a veces genera un toque en el centro de la pantalla: no dependas de ella.
 
 ### Comprobaciones (2 minutos antes)
 
@@ -56,14 +97,19 @@ No se verificó ningún atajo de teclado: no dependas de ellos.
 - [ ] El modo demo se recuerda entre arranques. Si en la esfera hay un **punto cian junto a
       la batería**, está activo; si no, está apagado. Para la demo
       conviene empezar **apagado** y encenderlo delante del profesor (paso 2).
-- [ ] *Ajustes* (mantener UP → *Ajustes*): **Sensibilidad Media, Vibración Normal,
+- [ ] *Ajustes* (tocar la hora o mantener UP → *Ajustes*): **Sensibilidad Media, Vibración Normal,
       Confirmar IA activado**, Animaciones *Completas*. Son los valores con que se midió
       esta guía; con otra sensibilidad cambian los tiempos de la inactividad.
-- [ ] *Historial* (mantener UP): si tiene guardias de ensayos que no quieres enseñar,
+- [ ] *Historial* (tocar la hora o mantener UP): si tiene guardias de ensayos que no quieres enseñar,
       bórralo ahora (*Borrar historial* → *Confirmar*). Las guardias de la demo se irán
       guardando solas.
 
 ## 2. Orden recomendado
+
+> En todos los pasos, cada botón tiene su equivalente táctil (tabla de §1): **mantener UP** =
+> tocar la batería o la hora (o la tecla M); **START** = tocar el botón grande, la opción del
+> menú o "Estoy despierto"; **BACK** = deslizar a la derecha en los menús; **DOWN** en la
+> esfera = deslizar a la izquierda. El recorrido completo se probó así, solo con toques.
 
 ### Paso 1 — La esfera (30 s)
 
@@ -83,6 +129,9 @@ vienen *Historial*, *Modelo IA* y *Acerca de*; con la guardia activa, también *
 descanso*). Pulsar
 **BACK** para volver a la esfera: junto a la batería aparece un **punto cian** (modo demo);
 la fecha sigue a la vista.
+
+*Solo con toques:* **tocar la hora** abre el menú; **tocar *Modo demo*** cambia el
+interruptor; **deslizar a la derecha** vuelve a la esfera.
 
 **Qué decir:** "El simulador no tiene muñeca, así que el modo demo reemplaza el
 acelerómetro por una fuente simulada con cinco escenarios. También acorta los tiempos:
@@ -112,6 +161,11 @@ real. El modo queda guardado aunque cierre la app."
    en "Guardia activa".
 6. **DOWN** → vuelve a "Movimiento normal".
 
+*Solo con toques:* tocar **Iniciar guardia**; **deslizar a la izquierda** en lugar de DOWN
+(siguiente escenario; deslizar a la derecha vuelve al anterior); tocar **Estoy despierto**
+para responder. A diferencia de DOWN, deslizar también cambia el escenario con la guardia en
+pausa.
+
 **Qué decir:**
 
 - *Tecleo:* "Mucho movimiento, sacudidas fuertes, pero nunca seguidas de quietud: el
@@ -135,9 +189,11 @@ Al terminar, **START** para pausar la guardia.
 
 ### Paso 4 — Guion automático (≈ 1 min 15 s, sin tocar casi nada)
 
-**Qué hacer:** con la guardia en pausa, mantener **UP** → **DOWN** dos veces hasta *Guion
-automático* (subtítulo "Iniciar") → **START**. El menú se cierra, la guardia arranca y la
-línea de la esfera muestra el paso:
+**Qué hacer:** con la guardia en pausa, mantener **UP** (o tocar la hora) → **DOWN** dos
+veces hasta *Guion automático* (subtítulo "Iniciar") → **START** (o tocar *Guion
+automático*). El menú se cierra, la guardia arranca y la línea de la esfera muestra el paso.
+**Sin tocar nada:** abrir la app con `scripts\run.ps1 -Release -DemoAuto` (§1): a los 3 s el
+guion arranca solo.
 
 | Paso | Línea de la esfera | Dura | Qué pasa |
 |---|---|---|---|
@@ -147,7 +203,7 @@ línea de la esfera muestra el paso:
 | 4/6 | Guion 4/6 · Normal | 8 s | Empieza al responder. |
 | 5/6 | Guion 5/6 · Inactividad | hasta responder | Alerta de inactividad a los ~10 s. Responde con START. |
 | 6/6 | Guion 6/6 · Inactividad | ≈ 26 s | **No respondas.** Alerta a los ~10 s; sube al **nivel 2** a los 6 s (naranja intenso, "Nivel 2 de 3 · vibración media") y al **nivel 3** a los 12 s (rojo que parpadea con rojo oscuro cada 0,5 s, "vibración máxima"), sin cerrarse. 4 s después el guion termina. |
-| fin | **Resumen de la guardia** | — | La guardia se pausa sola y se abre el resumen: ≈ 1 min 11 s, 3 episodios, respuesta media, nivel máximo **3 de 3**, fatiga **Alto**, DEMO. START vuelve a la esfera. |
+| fin | **Resumen de la guardia** | — | La guardia se pausa sola y se abre el resumen: ≈ 1 min 11 s, 3 episodios, respuesta media, nivel máximo **3 de 3**, fatiga **Alto**, DEMO. **Se queda ahí** hasta que START o **un toque en cualquier parte** vuelvan a la esfera. |
 
 En total ≈ **75 s** más lo que tardes en responder las dos primeras alertas (medido en la
 fase 11: 1 min 15 s en español y 1 min 14 s en inglés respondiendo cada una en ≈ 2,3 s;
@@ -168,9 +224,13 @@ solo.
   episodios en cinco minutos y una alerta en nivel 3, la fatiga es Alta. Se guarda en el
   historial."
 
-**Cancelar:** mantener UP → *Guion automático* (subtítulo "Detener · paso N/6") → START; o
-pausar la guardia con START (se ve el resumen de lo que haya hasta ahí); o DOWN (pasa al
-control manual).
+**Cancelar:** mantener UP (o tocar la hora) → *Guion automático* (subtítulo "Detener · paso
+N/6") → START; o pausar la guardia con START o tocando el botón (se ve el resumen de lo que
+haya hasta ahí); o DOWN / deslizar (pasa al control manual).
+
+Medido en la fase 15 con `run.ps1 -Release -DemoAuto`, respondiendo con toques: resumen de
+**1 min 14 s** en español y **1 min 16 s** en inglés (3 episodios, nivel máximo 3 de 3, fatiga
+Alto / High).
 
 ### Paso 5 — Fatiga y descanso guiado (≈ 1 min 30 s)
 
@@ -265,7 +325,11 @@ prueba para no hacer trampa. Estos porcentajes comparan versiones con datos simu
 son la precisión en una muñeca real, que se medirá con datos del reloj." (Detalle en
 [IA.md](IA.md).)
 
-**Qué decir (Acerca de):** nombre, versión 1.2.0 y la frase de la app.
+**Qué decir (Acerca de):** nombre, versión 1.2.1 y la frase de la app.
+
+*Solo con toques:* tocar una opción del menú la abre directamente; *Modelo IA*, *Acerca de*
+y el detalle de una guardia del historial se cierran con **un toque en cualquier parte**;
+los menús, deslizando a la derecha.
 
 ### Paso 9 — Volver al sensor real (30 s)
 
@@ -285,8 +349,10 @@ Para terminar, **START** (pausar) y **BACK** (salir).
 
 | Síntoma | Qué hacer |
 |---|---|
-| Mantener UP no abre el menú | Mantén el clic más tiempo (~1,5 s) **sobre el botón UP**, no sobre el rótulo. Asegúrate de estar en la esfera (no en una alerta). Si la ventana no tenía el foco, el primer clic solo la activa: repite. |
-| DOWN no cambia de escenario | Solo funciona con el **modo demo activo y la guardia en marcha**. En pausa no hace nada (a propósito). |
+| Mantener UP no abre el menú | **Toca la batería o la hora**, o pulsa **M** en el teclado. Si quieres usar el botón: mantén el clic ~1,5 s **sobre la pestaña del borde izquierdo** (no sobre el rótulo "UP") sin mover el ratón. Ver [Si los botones no responden](#si-los-botones-no-responden). |
+| Ningún botón dibujado responde | Haz clic en las **pestañas grises del borde de la caja**, no en los rótulos impresos. O usa toques y deslizamientos (§1, tabla de controles) o el teclado. |
+| DOWN no cambia de escenario | Solo funciona con el **modo demo activo y la guardia en marcha**. En pausa no hace nada (a propósito). Deslizar a la izquierda o a la derecha funciona también en pausa. |
+| Deslizar a la derecha cerró la app | Pasa **sin el modo demo** (es el gesto de volver, como en el reloj). Con el modo demo activo cambia de escenario. Vuelve a abrir con `run.ps1 -Release -NoBuild`. |
 | El cabeceo no dispara la alerta | Espera ~8 s desde que se eligió (la confirmación del modelo añade 2 s). Si había otra alerta hace menos de 10 s, el refractario la bloquea: espera o vuelve a elegir *Escenario > Simular cabeceo* (repite el cabeceo desde el principio). Si *Confirmar IA* está activado y la sensibilidad es Alta, revisa que no sea *Mirar la hora*: ahí el modelo descarta el cabeceo a propósito. |
 | La alerta no vibra ni suena, o dice "sin vibración" | *Ajustes*: *Vibración* en *Apagada* o *Sonido* apagado (y "Alerta solo visual" al iniciar la guardia). Vuelve a Normal / activado. |
 | El editor de ajustes del simulador dice "No settings file found" | Carga la app con `scripts\run.ps1` (copia la definición de los ajustes al simulador) y vuelve a abrir el editor. |
@@ -303,7 +369,43 @@ Para terminar, **START** (pausar) y **BACK** (salir).
 | Aparece el menú *Debug* o la guía de estilo | Se cargó la compilación de depuración. Vuelve a `run.ps1 -Release`. |
 | No se nota la vibración | Es normal en el simulador (ver el paso 5). La consola de la compilación de depuración escribe cada ráfaga. |
 
-## 4. Referencias
+## 4. Si los botones no responden
+
+**Qué pasaba** (diagnóstico de la fase 15, con la traza de entrada de la compilación de
+depuración, `InputTrace`, que escribe en la consola cada evento que llega a la app):
+
+- **La app no pierde los botones.** La esfera es la vista inicial con su delegado
+  (`MainDelegate`) y nunca se sustituye; cada pantalla que se abre encima trae el suyo. Con
+  la traza, cada pulsación de las pestañas del borde llega a la app: UP → `previousPage`,
+  DOWN → `nextPage`, START → `onSelect` + `onKey ENTER`, BACK → `onBack` + `onKey ESC`.
+- **Las zonas activas del simulador son solo las pestañas grises del borde de la caja**
+  (definidas en el `simulator.json` del fr165: UP ocupa 40 × 79 px en el borde izquierdo).
+  Un clic en los **rótulos impresos del bisel** no pulsa nada: sobre "UP" no hace nada, y
+  sobre "DOWN", "START", "BACK" o "LIGHT" el simulador lo convierte en un **toque en la
+  pantalla** (fuera del círculo). Era la causa más probable de que "no respondieran".
+- **Mantener UP** depende de que el simulador vea el botón del ratón **pulsado de verdad**
+  ~1,5 s sobre la pestaña: si el clic cae en el rótulo o el ratón se mueve, solo llega un UP
+  corto (o nada). La tecla **M** abre el menú sin mantener nada.
+- **LIGHT** no está definido en el fr165 del simulador.
+- Las **flechas, Enter y Retroceso** del teclado no hacen nada en el fr165: el simulador usa
+  el teclado numérico.
+
+**Qué hacer**, de más a menos sencillo:
+
+1. **Sin tocar nada:** `scripts\run.ps1 -Release -DemoAuto` (guion automático a los 3 s; al
+   final, un toque vuelve a la esfera).
+2. **Solo toques** (tabla de §1): tocar la hora → menú; tocar opciones; deslizar a la
+   izquierda o derecha → escenario; tocar "Estoy despierto"; deslizar a la derecha → volver.
+3. **Teclado:** M (menú), Esc (BACK), y con Bloq Num: 5 (START), 8 (UP), 2 (DOWN), 4 y 6
+   (deslizar a la izquierda y a la derecha).
+4. **Botones dibujados:** clic en las pestañas grises del borde de la caja, no en los
+   rótulos.
+
+Para ver qué recibe la app: `scripts\run.ps1` (sin `-Release`) y mirar la consola; cada
+evento sale como `ENTRADA esfera: toque (195, 115) a los … ms`. Si un clic no deja ninguna
+línea `ENTRADA`, el simulador no lo entregó a la app.
+
+## 5. Referencias
 
 - Algoritmo del detector y matriz de confusión: [DETECTOR.md](DETECTOR.md).
 - Entrenamiento del clasificador, métricas v1/v2 y limitaciones: [IA.md](IA.md).
