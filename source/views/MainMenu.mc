@@ -234,9 +234,9 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
         } else if (id == MainMenu.ITEM_HISTORY) {
             HistoryMenu.open(_guard, item);
         } else if (id == MainMenu.ITEM_MODEL) {
-            WatchUi.pushView(new ModelInfoView(), new WatchUi.BehaviorDelegate(), WatchUi.SLIDE_LEFT);
+            WatchUi.pushView(new ModelInfoView(), new InfoDelegate(), WatchUi.SLIDE_LEFT);
         } else if (id == MainMenu.ITEM_ABOUT) {
-            WatchUi.pushView(new AboutView(), new WatchUi.BehaviorDelegate(), WatchUi.SLIDE_LEFT);
+            WatchUi.pushView(new AboutView(), new InfoDelegate(), WatchUi.SLIDE_LEFT);
         } else {
             openDebug(id);
         }

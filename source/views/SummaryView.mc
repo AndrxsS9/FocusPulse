@@ -113,8 +113,8 @@ class SummaryView extends WatchUi.View {
     }
 }
 
-//! Entrada del resumen: START o BACK lo cierran (vuelven a la esfera o a la lista del
-//! historial). Los toques y el resto de botones no hacen nada.
+//! Entrada del resumen: START, BACK o un toque en cualquier parte lo cierran (vuelven a
+//! la esfera o a la lista del historial). El resto de botones no hacen nada.
 class SummaryDelegate extends WatchUi.BehaviorDelegate {
 
     //! Nombre de la vista en la traza de entrada (InputTrace, solo en depuración).
@@ -144,8 +144,11 @@ class SummaryDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
+    //! Un toque en cualquier parte también lo cierra: al terminar el guion automático
+    //! la demo queda en este resumen y vuelve a la esfera sin botones.
     function onTap(clickEvent as ClickEvent) as Boolean {
         InputTrace.click(TRACE, "toque", clickEvent);
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
         return true;
     }
 
