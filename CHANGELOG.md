@@ -2,11 +2,45 @@
 
 Cambios de FocusPulse AI por fase. La versión sigue el esquema *mayor.fase.parche*
 (`AppInfo.VERSION`): la fase N es la 0.N.0, la fase 12 cierra la 1.0.0, la fase 13B
-(animaciones del diseño web) es la 1.1.0 y la fase 14 (fuentes propias) es la 1.2.0.
+(animaciones del diseño web) es la 1.1.0, la fase 14 (fuentes propias) es la 1.2.0 y la
+fase 15 (demo solo con toques) es la 1.2.1.
 `AppInfo` existe
 desde la fase 8; las versiones anteriores son la numeración retroactiva de cada fase.
 Detalle de cada módulo en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) y de lo verificado
 en [docs/PENDIENTES.md](docs/PENDIENTES.md).
+
+## 1.2.1 — Fase 15: demo controlable sin botones físicos (2026-11-15)
+
+- **Diagnóstico** de "los botones dibujados no responden": la app no pierde el delegado (la
+  esfera es la vista inicial y nunca se sustituye) y recibe cada botón que el simulador
+  entrega. Las zonas activas del simulador son solo las pestañas del borde de la caja; un
+  clic en los rótulos impresos del bisel no pulsa nada o llega como un toque en la
+  pantalla, y *mantener UP* necesita el botón del ratón pulsado de verdad ~1,5 s sobre la
+  pestaña. Mapa de teclado del simulador medido: M (menú), Esc (BACK), y con Bloq Num 5
+  (START), 8 (UP), 2 (DOWN), 4 y 6 (deslizar); las flechas y Enter no hacen nada.
+- **Traza de entrada** solo en depuración (`InputTrace`): cada tecla pulsada o soltada,
+  comportamiento, toque, pulsación larga y deslizamiento de la esfera, la alerta, el resumen
+  y el descanso sale en la consola (`ENTRADA esfera: …`). En release no hace nada.
+- **Controles táctiles** en la esfera, además de los botones: **tocar la batería o la hora**
+  abre el menú (`RoundLayout.menuZoneRect`, 390×156 px dentro del círculo; nunca inicia la
+  guardia), **mantener pulsada la pantalla** también, y **deslizar a la izquierda o a la
+  derecha** pasa al escenario siguiente o al anterior con el modo demo (también en pausa).
+  Deslizar a la derecha llega como `onBack`, igual que el botón BACK; `BackSource` (core) los
+  distingue por el evento de tecla, así que con el modo demo el gesto cambia de escenario y
+  el botón sigue saliendo de la app.
+- **Cerrar con un toque** el resumen de la guardia, Modelo IA y Acerca de (`InfoDelegate`).
+  Los menús ya se elegían con toque (Menu2): verificado en todos.
+- **Arranque directo en la demo**: ajustes nuevos *Iniciar en modo demo* y *Guion automático
+  al abrir* (apagados por defecto; en el reloj, *Abrir en demo* y *Guion al abrir*).
+  `DemoLaunch` (core) decide: el primero abre con el modo demo activo; el segundo, además,
+  arranca el guion automático a los 3 s si nadie tomó el control antes. Al terminar el guion
+  se queda en el resumen; un toque vuelve a la esfera.
+- **`scripts\run.ps1 -Demo` y `-DemoAuto`**: escriben esos dos ajustes en el archivo de
+  ajustes del simulador (`GARMIN\APPS\SETTINGS\*.SET`, formato medido y documentado en
+  `_common.ps1`) antes de instalar la app, conservando el resto; sin ellos los dejan
+  apagados.
+- 14 pruebas nuevas (245): escenario anterior y regla de deslizar, zona del menú (también
+  frente a los rótulos del bisel), `BackSource`, `DemoLaunch` y los ajustes guardados.
 
 ## 1.2.0 — Fase 14: fuentes propias y detalles de la esfera (2026-11-15)
 
