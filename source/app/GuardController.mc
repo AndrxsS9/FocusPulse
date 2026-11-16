@@ -958,6 +958,21 @@ class GuardController {
         return true;
     }
 
+    //! Deslizar en la esfera (control táctil): con el modo demo activo, con la guardia
+    //! en marcha o en pausa, pasa al escenario siguiente (forward, deslizar a la
+    //! izquierda) o al anterior (deslizar a la derecha) y muestra su nombre 2 s en el
+    //! sitio de la fecha. Como DOWN, toma el control a mano y cancela el guion. Devuelve
+    //! false, sin hacer nada, sin el modo demo.
+    function stepDemoScenario(forward as Boolean) as Boolean {
+        if (!_demo.handlesSwipe()) {
+            return false;
+        }
+        var current = _demo.scenario();
+        setDemoScenario(forward ? DemoConfig.scenarioAfter(current) : DemoConfig.scenarioBefore(current));
+        showScenarioToast();
+        return true;
+    }
+
     //! Aviso breve para la esfera (solo lectura).
     function toast() as Toast {
         return _toast;
