@@ -57,3 +57,44 @@ function guardButtonTouchAreaDoesNotCoverStatusPillCenter(logger as Logger) as B
     Test.assert(!layout.hitsButton(layout.centerX, layout.pillY));
     return true;
 }
+
+//! Zona del menú (batería y hora): grande, de lado a lado, por encima de la fecha y sin
+//! tocar el botón grande ni el aviso de fatiga.
+(:test)
+function menuZoneCoversBatteryAndTime(logger as Logger) as Boolean {
+    var layout = new RoundLayout(390, 390);
+    var zone = layout.menuZoneRect;
+    Test.assert(layout.hitsMenuZone(layout.centerX, layout.topY));      // batería
+    Test.assert(layout.hitsMenuZone(layout.centerX, layout.timeY));     // hora
+    Test.assert(layout.hitsMenuZone(110, layout.timeY));                // cifras de la izquierda
+    Test.assert(layout.hitsMenuZone(280, layout.timeY));                // cifras de la derecha
+    Test.assert(layout.hitsMenuZone(layout.centerX, 141));              // pie de las cifras
+    Test.assertMessage(zone.width >= 300 && zone.height >= 3 * RoundLayout.MIN_TOUCH,
+        "objetivo táctil grande");
+    return true;
+}
+
+(:test)
+function menuZoneMissesDateButtonAndBanner(logger as Logger) as Boolean {
+    var layout = new RoundLayout(390, 390);
+    Test.assert(!layout.hitsMenuZone(layout.centerX, layout.dateY));    // fecha
+    Test.assert(!layout.hitsMenuZone(layout.centerX, layout.scoreY));   // porcentaje
+    Test.assert(!layout.hitsMenuZone(layout.centerX, layout.centerY));  // centro
+    var b = layout.buttonTouchRect;
+    Test.assert(!layout.hitsMenuZone(b.centerX(), b.centerY()));        // botón grande
+    var f = layout.fatigueBannerRect;
+    Test.assert(!layout.hitsMenuZone(f.centerX(), f.centerY()));        // aviso de fatiga
+    // Tocar la hora nunca inicia la guardia.
+    Test.assert(!layout.hitsButton(layout.centerX, layout.timeY));
+    Test.assert(layout.menuZoneRect.bottom() < b.y);
+    return true;
+}
+
+(:test)
+function menuZoneScalesWithScreen(logger as Logger) as Boolean {
+    var small = new RoundLayout(218, 218);
+    Test.assert(small.hitsMenuZone(small.centerX, small.timeY));
+    Test.assert(!small.hitsMenuZone(small.centerX, small.dateY));
+    Test.assert(small.menuZoneRect.bottom() < small.buttonTouchRect.y);
+    return true;
+}

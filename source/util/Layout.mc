@@ -37,6 +37,7 @@ class RoundLayout {
     const ALERT_BUTTON_MAX_WIDTH = 642;
     const FATIGUE_TOP = 520;            // aviso de fatiga: ocupa el puntaje y la píldora
     const FATIGUE_BOTTOM = 665;
+    const MENU_ZONE_BOTTOM = 400;       // zona táctil del menú: batería y hora (fr165: y < 156)
 
     var width as Number;
     var height as Number;
@@ -84,6 +85,13 @@ class RoundLayout {
     //! Aviso de fatiga de la esfera ("Micro-sueños repetidos…"): de debajo de la fecha
     //! al botón, tan ancho como permite el círculo seguro. fr165: 314×57 px.
     var fatigueBannerRect as Rect;
+
+    //! Zona táctil que abre el menú principal: la franja superior de la esfera, con la
+    //! batería y la hora, de lado a lado y hasta justo encima de la fecha. fr165: 390×156
+    //! px. Es el sustituto táctil de mantener UP (en el simulador los botones dibujados
+    //! pueden no responder). No toca el botón grande, así que tocar la hora nunca inicia
+    //! la guardia.
+    var menuZoneRect as Rect;
 
     //! Desplazamiento anti quemado aplicado (shiftTo, PixelShift); 0 al construirlo.
     var offsetX as Number = 0;
@@ -138,6 +146,9 @@ class RoundLayout {
         var bannerWidth = safeWidthBetween(bannerTop, bannerBottom);
         fatigueBannerRect = new Rect(centerX - bannerWidth / 2, bannerTop, bannerWidth,
             bannerBottom - bannerTop);
+
+        var zoneBottom = toScreenY(MENU_ZONE_BOTTOM);
+        menuZoneRect = new Rect(0, 0, screenWidth, zoneBottom);
     }
 
     //! Mueve todo el diseño (centro, zonas y rectángulos) para que quede desplazado
@@ -218,6 +229,13 @@ class RoundLayout {
     //! botón grande (que se solapa unos píxeles con su borde inferior y tiene prioridad).
     function hitsFatigueBanner(x as Number, y as Number) as Boolean {
         return fatigueBannerRect.contains(x, y) && !hitsButton(x, y);
+    }
+
+    //! true si el toque (x, y) cae en la zona del menú (batería y hora) y no en el
+    //! botón grande ni en el aviso de fatiga, que tienen prioridad. La zona no se mueve
+    //! con el desplazamiento anti quemado: le sobra margen.
+    function hitsMenuZone(x as Number, y as Number) as Boolean {
+        return menuZoneRect.contains(x, y) && !hitsButton(x, y) && !fatigueBannerRect.contains(x, y);
     }
 
     //! true si el toque (x, y) cae en el área táctil de "Estoy despierto".
