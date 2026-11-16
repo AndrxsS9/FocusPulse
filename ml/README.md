@@ -10,7 +10,7 @@ carpeta **no forma parte del paquete del reloj**: el compilador de Connect IQ so
 > No hay ni una muestra de una muñeca real. Las métricas de `reports/` sirven para comparar
 > v1 con v2 en igualdad de condiciones y para comprobar que el pipeline funciona; **no son
 > la precisión de la app en el mundo real.** El porqué y las limitaciones están en
-> [docs/IA.md](../docs/IA.md).
+> `docs/IA.md` (local).
 
 ## Cómo entrenar, paso a paso
 
@@ -82,4 +82,4 @@ salida suavizada como en el reloj. Detalle en [reports/report.md](reports/report
 `import_real.py --csv grabacion.csv --labels etiquetas.csv --user 101` convierte una
 grabación etiquetada al mismo formato (`ml\data\real\`), así el resto del pipeline sirve sin
 cambios. Leer el FIT de `SensorLogging` está documentado pero sin implementar. Ver
-[docs/IA.md](../docs/IA.md) §8.
+`docs/IA.md` (local) §8.

@@ -46,3 +46,8 @@ env/
 # (ml/models/) sí se versionan.
 ml/data/*
 !ml/data/README.md
+
+# ------------------------------------------------------------------
+# Documentación detallada: vive solo en local (no se publica en GitHub)
+# ------------------------------------------------------------------
+docs/

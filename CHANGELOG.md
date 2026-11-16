@@ -6,8 +6,8 @@ Cambios de FocusPulse AI por fase. La versión sigue el esquema *mayor.fase.parc
 fase 15 (demo solo con toques) es la 1.2.1.
 `AppInfo` existe
 desde la fase 8; las versiones anteriores son la numeración retroactiva de cada fase.
-Detalle de cada módulo en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) y de lo verificado
-en [docs/PENDIENTES.md](docs/PENDIENTES.md).
+Detalle de cada módulo en `docs/ARQUITECTURA.md` (local) y de lo verificado
+en `docs/PENDIENTES.md` (local).
 
 ## 1.2.1 — Fase 15: demo controlable sin botones físicos (2026-11-15)
 

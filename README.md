@@ -8,7 +8,7 @@ acelerómetro del reloj y despierta al usuario con **vibraciones progresivas**. 
 IA entrenado (regresión logística) confirma cada cabeceo antes de alertar. Incluye un
 **modo demo** con datos simulados y un guion automático para presentarla sin dormirse.
 
-**Versión 1.2.1** (demo controlable solo con toques y arranque directo en la demo; fuentes propias del diseño web desde la 1.2.0). Lista para subir a la Connect IQ Store ([docs/STORE.md](docs/STORE.md)).
+**Versión 1.2.1** (demo controlable solo con toques y arranque directo en la demo; fuentes propias del diseño web desde la 1.2.0). Lista para subir a la Connect IQ Store.
 
 > **No es un dispositivo médico.** No diagnostica ni trata trastornos del sueño, no
 > garantiza detectar todos los episodios y **no sustituye el descanso**. No la uses para
@@ -16,18 +16,16 @@ IA entrenado (regresión logística) confirma cada cabeceo antes de alertar. Inc
 
 | Esfera | Guardia activa | Alerta nivel 1 | Alerta nivel 3 | Resumen |
 |---|---|---|---|---|
-| ![Esfera](docs/img/es-esfera.png) | ![Orbe activo](docs/img/es-orbe-activo.png) | ![Alerta 1](docs/img/es-alerta-nivel1.png) | ![Alerta 3](docs/img/es-alerta-nivel3.png) | ![Resumen](docs/img/es-resumen.png) |
-
-Más capturas, en español e inglés: [docs/STORE.md §7](docs/STORE.md#7-galería).
+| ![Esfera](assets/img/es-esfera.png) | ![Orbe activo](assets/img/es-orbe-activo.png) | ![Alerta 1](assets/img/es-alerta-nivel1.png) | ![Alerta 3](assets/img/es-alerta-nivel3.png) | ![Resumen](assets/img/es-resumen.png) |
 
 ## Qué hace
 
 - **Guardia** (START o un toque en el botón): lee el acelerómetro a 25 Hz. La esfera muestra
   el **nivel de alerta** (anillo y porcentaje), la hora, la batería y un **orbe IA** que
   cambia de color y de ritmo según el estado.
-- **Detector por reglas** ([docs/DETECTOR.md](docs/DETECTOR.md)): cabeceo = sacudida
+- **Detector por reglas**: cabeceo = sacudida
   > 400 mg + quietud antes de 5 s + cambio de inclinación > 35°; inactividad = 60 s inmóvil.
-- **Clasificador v2** ([docs/IA.md](docs/IA.md)): Activo / Normal / Cabeceo / Inerte,
+- **Clasificador v2**: Activo / Normal / Cabeceo / Inerte,
   entrenado en Python con datos sintéticos y exportado a Monkey C. Mueve el puntaje y el orbe
   y **confirma los cabeceos** 2 s después (descarta mirar la hora).
 - **Alerta** a pantalla completa "¡DESPIERTA!": vibración por pulsos, luz y tono; sin
@@ -79,8 +77,7 @@ Desde la raíz del repo, en PowerShell (si la política de ejecución los bloque
 
 **Modo demo.** Mantener UP en la esfera abre el menú principal → *Modo demo*. Con la
 guardia activa, **DOWN** cambia de escenario (normal, tecleo, cabeceo, inactividad, mirar la
-hora) y *Guion automático* lo recorre todo solo en ≈ 75 s. Paso a paso:
-[docs/GUIA_DEMO.md](docs/GUIA_DEMO.md).
+hora) y *Guion automático* lo recorre todo solo en ≈ 75 s.
 
 **Depuración.** La compilación de depuración (`build.ps1` / `run.ps1` sin `-Release`) añade
 al menú principal *Depuración*: telemetría en vivo, detector en vivo, selector de fuente
@@ -121,19 +118,14 @@ resources-spa/      Español
 tests/              Pruebas Toybox.Test (231)
 ml/                 Entrenamiento en Python (no se empaqueta en el reloj)
 scripts/            PowerShell: setup, build, run, test, export, train, icon, make_fonts
-docs/               Arquitectura, detector, IA, diseño, demo, tienda, sustentación, pendientes
+assets/img/         Capturas del README
 ```
 
 ## Documentación
 
-- [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) — módulos, flujo de datos y fases.
-- [docs/DETECTOR.md](docs/DETECTOR.md) — detector, línea base, clasificador, confirmación y fatiga.
-- [docs/IA.md](docs/IA.md) — pipeline, fuga de datos, métricas v1/v2 y limitaciones.
-- [docs/DISENO.md](docs/DISENO.md) — sistema de diseño, accesibilidad y AMOLED.
-- [docs/GUIA_DEMO.md](docs/GUIA_DEMO.md) — demo paso a paso.
-- [docs/SUSTENTACION.md](docs/SUSTENTACION.md) — guion, checklist, preguntas y cifras.
-- [docs/STORE.md](docs/STORE.md) — ficha de la tienda, permisos y publicación.
-- [docs/PENDIENTES.md](docs/PENDIENTES.md) — lo confirmado y lo que requiere el reloj real.
+La documentación detallada (arquitectura, detector, IA, diseño, demo, tienda) es local y no
+se publica en el repositorio.
+
 - [CHANGELOG.md](CHANGELOG.md) — cambios por fase.
 
 ## Limitaciones
@@ -142,8 +134,7 @@ docs/               Arquitectura, detector, IA, diseño, demo, tienda, sustentac
   partir de los escenarios simulados: sus cifras (93,3 % de exactitud) comparan versiones,
   no son precisión en una muñeca real.
 - **Sin pruebas en un reloj real** todavía: vibración, ejes del acelerómetro, pantalla
-  apagada y batería se verificaron solo en el simulador o quedan pendientes
-  ([docs/PENDIENTES.md](docs/PENDIENTES.md)).
+  apagada y batería se verificaron solo en el simulador o quedan pendientes.
 - El detector ve el 61 % de los cabeceos sintéticos (los más lentos no superan 400 mg) y
   mirar la hora con el brazo casi inmóvil todavía engaña a veces (3 de 24).
 - Solo acelerómetro: el FR165 no tiene giroscopio.
