@@ -21,6 +21,9 @@ import Toybox.WatchUi;
 //! (con coordenadas). Por eso onSelect no hace nada.
 class MainDelegate extends WatchUi.BehaviorDelegate {
 
+    //! Nombre de la vista en la traza de entrada (InputTrace, solo en depuración).
+    const TRACE = "esfera";
+
     private var _guard as GuardController;
 
     //! Foco del botón grande: START y un toque en él lo marcan (borde cian en la esfera).
@@ -42,11 +45,13 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
     //! evento crudo. Devuelve false para que el sistema siga con onKey (START) u onTap
     //! (toque con coordenadas), que deciden por separado.
     function onSelect() as Boolean {
+        InputTrace.behavior(TRACE, "onSelect");
         return false;
     }
 
     //! Botón START/STOP (KEY_ENTER): inicia o pausa la guardia.
     function onKey(keyEvent as KeyEvent) as Boolean {
+        InputTrace.key(TRACE, "onKey", keyEvent);
         if (keyEvent.getKey() == WatchUi.KEY_ENTER) {
             _focus.press(System.getTimer());
             _guard.toggle();
@@ -60,6 +65,7 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
     //! siempre, también fuera de ambos, para que un toque en cualquier parte no tenga
     //! otro efecto.
     function onTap(clickEvent as ClickEvent) as Boolean {
+        InputTrace.click(TRACE, "toque", clickEvent);
         var point = clickEvent.getCoordinates();
         if (_layout.hitsButton(point[0], point[1])) {
             _focus.press(System.getTimer());
@@ -73,6 +79,7 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
     //! BACK: si la guardia está activa, la detiene y guarda la actividad antes de que
     //! la app empiece a cerrarse. Devuelve false para que BACK siga saliendo de la app.
     function onBack() as Boolean {
+        InputTrace.behavior(TRACE, "onBack");
         if (_guard.isActive()) {
             _guard.shutdown();
         }
@@ -82,6 +89,7 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
     //! DOWN (nextPage): enfoca el botón grande y, con el modo demo durante la guardia,
     //! pasa al siguiente escenario.
     function onNextPage() as Boolean {
+        InputTrace.behavior(TRACE, "nextPage");
         _focus.focus(System.getTimer());
         WatchUi.requestUpdate();
         return _guard.cycleDemoScenario();
@@ -90,6 +98,7 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
     //! UP (previousPage): enfoca el botón grande (ButtonFocus), el único control de la
     //! esfera.
     function onPreviousPage() as Boolean {
+        InputTrace.behavior(TRACE, "previousPage");
         _focus.focus(System.getTimer());
         WatchUi.requestUpdate();
         return true;
@@ -98,7 +107,35 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
     //! Pulsación larga del botón de menú (UP en el fr165): abre el menú principal
     //! (modo demo, acerca de; en depuración, también el menú de depuración).
     function onMenu() as Boolean {
+        InputTrace.behavior(TRACE, "onMenu");
         MainMenu.open(_guard);
         return true;
+    }
+
+    //! Tecla pulsada y soltada: solo se trazan (InputTrace). Devuelven false para que
+    //! el sistema siga generando el comportamiento (onSelect, onMenu…) y onKey.
+    function onKeyPressed(keyEvent as KeyEvent) as Boolean {
+        InputTrace.key(TRACE, "pulsada", keyEvent);
+        return false;
+    }
+
+    function onKeyReleased(keyEvent as KeyEvent) as Boolean {
+        InputTrace.key(TRACE, "soltada", keyEvent);
+        return false;
+    }
+
+    function onHold(clickEvent as ClickEvent) as Boolean {
+        InputTrace.click(TRACE, "pulsación larga", clickEvent);
+        return false;
+    }
+
+    function onRelease(clickEvent as ClickEvent) as Boolean {
+        InputTrace.click(TRACE, "fin de pulsación", clickEvent);
+        return false;
+    }
+
+    function onSwipe(swipeEvent as SwipeEvent) as Boolean {
+        InputTrace.swipe(TRACE, swipeEvent);
+        return false;
     }
 }

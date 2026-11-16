@@ -385,6 +385,9 @@ class AlertView extends WatchUi.View {
 //! devuelve false para decidir en onKey y onTap (docs/DISENO.md §6).
 class AlertDelegate extends WatchUi.BehaviorDelegate {
 
+    //! Nombre de la vista en la traza de entrada (InputTrace, solo en depuración).
+    const TRACE = "alerta";
+
     private var _onDismiss as Method() as Void;
     private var _layout as RoundLayout;
 
@@ -396,10 +399,12 @@ class AlertDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() as Boolean {
+        InputTrace.behavior(TRACE, "onSelect");
         return false;
     }
 
     function onKey(keyEvent as KeyEvent) as Boolean {
+        InputTrace.key(TRACE, "onKey", keyEvent);
         if (keyEvent.getKey() == WatchUi.KEY_ENTER) {
             _onDismiss.invoke();
             return true;
@@ -409,6 +414,7 @@ class AlertDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onTap(clickEvent as ClickEvent) as Boolean {
+        InputTrace.click(TRACE, "toque", clickEvent);
         var point = clickEvent.getCoordinates();
         if (_layout.hitsAlertButton(point[0], point[1])) {
             _onDismiss.invoke();
@@ -418,18 +424,28 @@ class AlertDelegate extends WatchUi.BehaviorDelegate {
 
     //! BACK no descarta la alerta.
     function onBack() as Boolean {
+        InputTrace.behavior(TRACE, "onBack");
         return true;
     }
 
     function onMenu() as Boolean {
+        InputTrace.behavior(TRACE, "onMenu");
         return true;
     }
 
     function onNextPage() as Boolean {
+        InputTrace.behavior(TRACE, "nextPage");
         return true;
     }
 
     function onPreviousPage() as Boolean {
+        InputTrace.behavior(TRACE, "previousPage");
+        return true;
+    }
+
+    //! Deslizamientos: se consumen sin hacer nada, como los botones.
+    function onSwipe(swipeEvent as SwipeEvent) as Boolean {
+        InputTrace.swipe(TRACE, swipeEvent);
         return true;
     }
 }

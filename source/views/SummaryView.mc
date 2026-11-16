@@ -117,15 +117,20 @@ class SummaryView extends WatchUi.View {
 //! historial). Los toques y el resto de botones no hacen nada.
 class SummaryDelegate extends WatchUi.BehaviorDelegate {
 
+    //! Nombre de la vista en la traza de entrada (InputTrace, solo en depuración).
+    const TRACE = "resumen";
+
     function initialize() {
         BehaviorDelegate.initialize();
     }
 
     function onSelect() as Boolean {
+        InputTrace.behavior(TRACE, "onSelect");
         return false;
     }
 
     function onKey(keyEvent as KeyEvent) as Boolean {
+        InputTrace.key(TRACE, "onKey", keyEvent);
         if (keyEvent.getKey() == WatchUi.KEY_ENTER) {
             WatchUi.popView(WatchUi.SLIDE_DOWN);
             return true;
@@ -134,15 +139,18 @@ class SummaryDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onBack() as Boolean {
+        InputTrace.behavior(TRACE, "onBack");
         WatchUi.popView(WatchUi.SLIDE_DOWN);
         return true;
     }
 
     function onTap(clickEvent as ClickEvent) as Boolean {
+        InputTrace.click(TRACE, "toque", clickEvent);
         return true;
     }
 
     function onMenu() as Boolean {
+        InputTrace.behavior(TRACE, "onMenu");
         return true;
     }
 }

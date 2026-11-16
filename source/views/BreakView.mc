@@ -111,6 +111,9 @@ class BreakView extends WatchUi.View {
 //! Como en la esfera, onSelect devuelve false para decidir en onKey y onTap.
 class BreakDelegate extends WatchUi.BehaviorDelegate {
 
+    //! Nombre de la vista en la traza de entrada (InputTrace, solo en depuración).
+    const TRACE = "descanso";
+
     private var _guard as GuardController;
     private var _layout as RoundLayout;
 
@@ -122,10 +125,12 @@ class BreakDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() as Boolean {
+        InputTrace.behavior(TRACE, "onSelect");
         return false;
     }
 
     function onKey(keyEvent as KeyEvent) as Boolean {
+        InputTrace.key(TRACE, "onKey", keyEvent);
         if (keyEvent.getKey() == WatchUi.KEY_ENTER && _guard.breakTimer().isFinished()) {
             _guard.endBreak();
         }
@@ -133,6 +138,7 @@ class BreakDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onTap(clickEvent as ClickEvent) as Boolean {
+        InputTrace.click(TRACE, "toque", clickEvent);
         var point = clickEvent.getCoordinates();
         if (_guard.breakTimer().isFinished() && _layout.hitsButton(point[0], point[1])) {
             _guard.endBreak();
@@ -142,6 +148,7 @@ class BreakDelegate extends WatchUi.BehaviorDelegate {
 
     //! BACK: cancela (o cierra, si ya terminó) y vuelve a la guardia.
     function onBack() as Boolean {
+        InputTrace.behavior(TRACE, "onBack");
         _guard.endBreak();
         return true;
     }
