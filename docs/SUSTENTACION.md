@@ -94,24 +94,36 @@ probables del jurado y las cifras que conviene tener a mano. La demo en vivo sig
 
 ### 6. Demo en vivo (3:00)
 
-Seguir [GUIA_DEMO.md](GUIA_DEMO.md) §2, **paso 4 (guion automático)**:
+Seguir [GUIA_DEMO.md](GUIA_DEMO.md) §2, **paso 4 (guion automático)**. Desde la 1.2.1 no
+hace falta ningún botón del simulador: abrir la app justo al empezar esta parte con
 
-1. Esfera en pausa (10 s): anillo, puntaje, orbe tenue.
-2. Mantener UP → *Guion automático* → START. Narrar los pasos 1–2 (normal, tecleo).
-3. Paso 3: alerta de cabeceo a los ~8 s; explicar las tres señales y la confirmación;
-   responder con START.
-4. Paso 5: inactividad; responder.
-5. Paso 6: **no responder**: nivel 2 a los 6 s, nivel 3 a los 12 s.
-6. Resumen automático: 3 episodios, nivel máximo 3, fatiga Alta. START.
-7. Si sobra tiempo: mantener UP → *Modelo IA* (exactitud y "Entrenado con datos
-   sintéticos").
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\run.ps1 -Release -DemoAuto
+```
+
+y el guion arranca solo a los 3 s (si se prefiere arrancarlo a mano: tocar la hora →
+*Guion automático*).
+
+1. Esfera en pausa (3 s) y "Guion 1/6 · Normal": anillo, puntaje, orbe. Narrar los pasos
+   1–2 (normal, tecleo).
+2. Paso 3: alerta de cabeceo a los ~8 s; explicar las tres señales y la confirmación;
+   responder **tocando "Estoy despierto"** (o START).
+3. Paso 5: inactividad; responder igual.
+4. Paso 6: **no responder**: nivel 2 a los 6 s, nivel 3 a los 12 s.
+5. Resumen automático: 3 episodios, nivel máximo 3, fatiga Alta. Se queda en pantalla;
+   **un toque** vuelve a la esfera.
+6. Si sobra tiempo: tocar la hora → *Modelo IA* (exactitud y "Entrenado con datos
+   sintéticos"); un toque la cierra.
+
+Si un botón dibujado no responde: tocar la pantalla (tabla de controles de
+[GUIA_DEMO.md](GUIA_DEMO.md) §1) o las teclas M (menú) y Esc (volver).
 
 Plan B si el simulador falla: abrir las capturas de `docs/img/` (y el video, si se grabó) y
 contar lo mismo sobre ellas.
 
 ### 7. Pruebas y métricas (1:00)
 
-- **231 pruebas** unitarias con `Toybox.Test` (`scripts\test.ps1`), todas en verde, en el
+- **245 pruebas** unitarias con `Toybox.Test` (`scripts\test.ps1`), todas en verde, en el
   simulador del SDK 9.3.0 con verificación de tipos estricta (`-l 3`) y sin advertencias.
 - Python y el reloj calculan **las mismas características y probabilidades** (diferencias <
   10⁻⁶) con vectores generados en `ml/`.
@@ -137,7 +149,7 @@ medir batería y vibración en el FR165, y publicar en la Connect IQ Store.
 
 ## 2. Checklist antes de presentar
 
-- [ ] **Borrar el historial de prueba**: mantener UP → *Historial* → *Borrar historial* →
+- [ ] **Borrar el historial de prueba**: tocar la hora (o mantener UP) → *Historial* → *Borrar historial* →
       confirmar ("Aún no hay guardias").
 - [ ] **Idioma** del simulador: *Settings > Language* y volver a cargar la app
       (`scripts\run.ps1 -Release -NoBuild`): los textos se cargan al abrir la app.
@@ -146,7 +158,10 @@ medir batería y vibración en el FR165, y publicar en la Connect IQ Store.
 - [ ] **Modo demo**: empezar apagado (se ve la fecha) y encenderlo delante del jurado, o
       dejarlo encendido si se va directo al guion.
 - [ ] **Simulador abierto** con la compilación de release: `scripts\run.ps1 -Release`. No
-      ejecutar `scripts\test.ps1` después (deja el simulador sin reloj).
+      ejecutar `scripts\test.ps1` después (deja el simulador sin reloj). Para la demo en
+      vivo, `scripts\run.ps1 -Release -DemoAuto` (§1, parte 6).
+- [ ] **Ensayar los toques** una vez: tocar la hora abre el menú, deslizar a la derecha
+      vuelve, tocar "Estoy despierto" cierra la alerta.
 - [ ] *Settings > Vibrate* marcado en el simulador.
 - [ ] Ventana del simulador grande y visible; cerrar el visor de memoria y otras ventanas.
 - [ ] **Plan B**: `docs/img/` abierto en otra pestaña con las capturas en orden (esfera,
@@ -209,9 +224,9 @@ medir batería y vibración en el FR165, y publicar en la Connect IQ Store.
 
 | Cifra | Valor |
 |---|---|
-| Versión | **1.2.0** (tag local `v1.2.0`; antes `v1.0.0`) |
-| Commits | **228** hasta el tag `v1.2.0` (199 hasta `v1.0.0`), en 14 fases (`git rev-list --count v1.2.0`) |
-| Pruebas unitarias | **231**, todas en verde |
+| Versión | **1.2.1** (tag local `v1.2.1`; antes `v1.2.0` y `v1.0.0`) |
+| Commits | **245** hasta el tag `v1.2.1` (228 hasta `v1.2.0`, 199 hasta `v1.0.0`), en 15 fases (`git rev-list --count v1.2.1`) |
+| Pruebas unitarias | **245**, todas en verde |
 | Exactitud del clasificador (Python, 12 usuarios no vistos) | v1 **89,7 %** → v2 **93,3 %** |
 | Falsos cabeceos del modelo, episodios difíciles | v1 **16 de 48** → v2 **12 de 48** |
 | Falsos cabeceos al mirar la hora tras teclear | sin confirmación **15 de 24** → con confirmación **3 de 24** |
