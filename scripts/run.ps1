@@ -8,6 +8,13 @@
     powershell -ExecutionPolicy Bypass -File scripts\run.ps1 -NoBuild
     powershell -ExecutionPolicy Bypass -File scripts\run.ps1 -TargetDevice fr165m
     powershell -ExecutionPolicy Bypass -File scripts\run.ps1 -Release
+    powershell -ExecutionPolicy Bypass -File scripts\run.ps1 -Release -Demo
+    powershell -ExecutionPolicy Bypass -File scripts\run.ps1 -Release -DemoAuto
+
+.DESCRIPTION
+    Antes de abrir la app escribe en el simulador los ajustes "Iniciar en modo demo" y
+    "Guion automático al abrir" según -Demo y -DemoAuto (sin ninguno de los dos, los deja
+    apagados), como si se cambiaran desde Garmin Connect. El resto de ajustes se conserva.
 #>
 [CmdletBinding()]
 param(
@@ -23,7 +30,15 @@ param(
 
     # Compila y ejecuta la versión release (bin\FocusPulse-release.prg): la misma app que
     # se publica, sin el código (:debug). Es la que se usa en la sustentación.
-    [switch]$Release
+    [switch]$Release,
+
+    # Abre la app ya en modo demo, con la guardia en pausa (ajuste "Iniciar en modo demo").
+    [switch]$Demo,
+
+    # Abre la app en modo demo y, a los 3 s, arranca solo el guion automático (ajuste
+    # "Guion automático al abrir"). Al terminar queda en el resumen; un toque vuelve a la
+    # esfera. Es el arranque de la sustentación.
+    [switch]$DemoAuto
 )
 
 . "$PSScriptRoot\_common.ps1"
@@ -57,5 +72,18 @@ if ((Test-Path -LiteralPath $settingsJson) -and (Test-Path -LiteralPath $simSett
     foreach ($name in @('FOCUSPULSE', 'FOCUSPULSE-RELEASE', 'FOCUSPULSE-TEST')) {
         Copy-Item -LiteralPath $settingsJson -Destination (Join-Path $simSettingsDir "$name-settings.json") -Force
     }
+}
+
+# Arranque directo en la demo: se escriben los valores de los dos ajustes en el simulador
+# (Set-SimulatorProperties, _common.ps1) antes de instalar la app, que los lee al abrir.
+if (Test-Path -LiteralPath $settingsJson) {
+    $launch = [ordered]@{
+        demoOnStart    = [bool]($Demo -or $DemoAuto)
+        demoAutoScript = [bool]$DemoAuto
+    }
+    Set-SimulatorProperties -SettingsJson $settingsJson -PrgPath $prg -Values $launch
+    $mode = 'normal'
+    if ($DemoAuto) { $mode = 'modo demo y guion automático a los 3 s' } elseif ($Demo) { $mode = 'modo demo' }
+    Write-Host "Arranque: $mode" -ForegroundColor Cyan
 }
 Invoke-Native (Get-SdkTool 'monkeydo') @($prg, $Device)
