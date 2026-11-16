@@ -48,6 +48,8 @@ class Settings {
     static const DEFAULT_REDUCED_ANIMATIONS = false;
     static const DEFAULT_AI_CONFIRMATION = true;
     static const DEFAULT_RECORD_ACTIVITY = true;
+    static const DEFAULT_DEMO_ON_START = false;
+    static const DEFAULT_DEMO_AUTO_SCRIPT = false;
 
     var sensitivity as SensitivityLevel.Id = DEFAULT_SENSITIVITY;
     var vibration as VibrationLevel.Id = DEFAULT_VIBRATION;
@@ -64,6 +66,13 @@ class Settings {
     //! Grabar la guardia como actividad (fase 3).
     var recordActivity as Boolean = DEFAULT_RECORD_ACTIVITY;
 
+    //! "Iniciar en modo demo": al abrir la app el modo demo queda activo (DemoLaunch).
+    var demoOnStart as Boolean = DEFAULT_DEMO_ON_START;
+
+    //! "Guion automático al abrir": al abrir la app, el modo demo y, a los 3 s, el guion
+    //! automático (DemoLaunch). Para la sustentación sin tocar nada.
+    var demoAutoScript as Boolean = DEFAULT_DEMO_AUTO_SCRIPT;
+
     function initialize() {
     }
 
@@ -76,6 +85,8 @@ class Settings {
         other.reducedAnimations = reducedAnimations;
         other.aiConfirmation = aiConfirmation;
         other.recordActivity = recordActivity;
+        other.demoOnStart = demoOnStart;
+        other.demoAutoScript = demoAutoScript;
         return other;
     }
 
