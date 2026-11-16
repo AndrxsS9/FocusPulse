@@ -16,6 +16,8 @@ function appSettingsSavesAndLoads(logger as Logger) as Boolean {
         settings.reducedAnimations = true;
         settings.aiConfirmation = false;
         settings.recordActivity = false;
+        settings.demoOnStart = true;
+        settings.demoAutoScript = true;
         AppSettings.save(settings);
 
         var loaded = AppSettings.load();
@@ -25,6 +27,8 @@ function appSettingsSavesAndLoads(logger as Logger) as Boolean {
         Test.assertMessage(loaded.reducedAnimations, "animaciones reducidas guardadas");
         Test.assertMessage(!loaded.aiConfirmation, "confirmación por IA guardada");
         Test.assertMessage(!loaded.recordActivity, "grabar actividad guardado");
+        Test.assertMessage(loaded.demoOnStart, "iniciar en modo demo guardado");
+        Test.assertMessage(loaded.demoAutoScript, "guion automático al abrir guardado");
 
         // Un valor fuera de rango (p. ej. de otra versión) vuelve al de por defecto.
         Application.Properties.setValue(AppSettings.VIBRATION, 9);

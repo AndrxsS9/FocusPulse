@@ -17,4 +17,10 @@
     <!-- true: al iniciar la guardia se graba una actividad para que el acelerómetro y la
          vibración sigan funcionando si la app pasa a segundo plano. -->
     <property id="recordActivity" type="boolean">true</property>
+    <!-- true: al abrir la app el modo demo queda activo (DemoLaunch). Para la
+         sustentación: scripts\run.ps1 -Demo lo activa en el simulador. -->
+    <property id="demoOnStart" type="boolean">false</property>
+    <!-- true: al abrir la app, modo demo y, a los 3 s, el guion automático (DemoLaunch).
+         scripts\run.ps1 -DemoAuto lo activa en el simulador. -->
+    <property id="demoAutoScript" type="boolean">false</property>
 </properties>

@@ -33,4 +33,10 @@
     <setting propertyKey="@Properties.recordActivity" title="@Strings.SettingRecordActivity">
         <settingConfig type="boolean"/>
     </setting>
+    <setting propertyKey="@Properties.demoOnStart" title="@Strings.SettingDemoOnStart">
+        <settingConfig type="boolean"/>
+    </setting>
+    <setting propertyKey="@Properties.demoAutoScript" title="@Strings.SettingDemoAutoScript">
+        <settingConfig type="boolean"/>
+    </setting>
 </settings>

@@ -169,6 +169,8 @@
     <string id="SettingVibrationStrong">Fuerte</string>
     <string id="SettingReducedAnimations">Animaciones reducidas</string>
     <string id="SettingAiConfirmation">Confirmación por IA</string>
+    <string id="SettingDemoOnStart">Iniciar en modo demo</string>
+    <string id="SettingDemoAutoScript">Guion automático al abrir</string>
     <!-- Versiones cortas para el menú del reloj (Menu2 corta las etiquetas de más de unos
          13 caracteres junto al interruptor). Animaciones: interruptor activado = reducidas. -->
     <string id="SettingRecordActivityShort">Grabar actividad</string>
@@ -176,6 +178,8 @@
     <string id="SettingAnimationsShort">Animaciones</string>
     <string id="SettingAnimationsReduced">Reducidas</string>
     <string id="SettingAnimationsFull">Completas</string>
+    <string id="SettingDemoOnStartShort">Abrir en demo</string>
+    <string id="SettingDemoAutoScriptShort">Guion al abrir</string>
 
     <!-- Aviso de seguridad: vibración apagada y sin sonido (Ajustes, esfera al iniciar la
          guardia y pantalla de aviso). WarningVisualOnlyBody va en varias líneas. -->

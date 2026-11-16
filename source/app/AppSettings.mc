@@ -18,6 +18,8 @@ module AppSettings {
     const REDUCED_ANIMATIONS = "reducedAnimations";
     const AI_CONFIRMATION = "aiConfirmation";
     const RECORD_ACTIVITY = "recordActivity";
+    const DEMO_ON_START = "demoOnStart";
+    const DEMO_AUTO_SCRIPT = "demoAutoScript";
 
     //! Ajustes guardados, validados.
     function load() as Settings {
@@ -31,6 +33,10 @@ module AppSettings {
             Settings.DEFAULT_AI_CONFIRMATION);
         settings.recordActivity = Settings.booleanFrom(read(RECORD_ACTIVITY),
             Settings.DEFAULT_RECORD_ACTIVITY);
+        settings.demoOnStart = Settings.booleanFrom(read(DEMO_ON_START),
+            Settings.DEFAULT_DEMO_ON_START);
+        settings.demoAutoScript = Settings.booleanFrom(read(DEMO_AUTO_SCRIPT),
+            Settings.DEFAULT_DEMO_AUTO_SCRIPT);
         return settings;
     }
 
@@ -44,6 +50,8 @@ module AppSettings {
             Application.Properties.setValue(REDUCED_ANIMATIONS, settings.reducedAnimations);
             Application.Properties.setValue(AI_CONFIRMATION, settings.aiConfirmation);
             Application.Properties.setValue(RECORD_ACTIVITY, settings.recordActivity);
+            Application.Properties.setValue(DEMO_ON_START, settings.demoOnStart);
+            Application.Properties.setValue(DEMO_AUTO_SCRIPT, settings.demoAutoScript);
         } catch (e instanceof Lang.Exception) {
             // Propiedad inexistente o de otro tipo: se sigue con los ajustes en memoria.
         }

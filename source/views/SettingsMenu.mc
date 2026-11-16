@@ -8,9 +8,10 @@ import Toybox.WatchUi;
 //! - Sensibilidad (Baja / Media / Alta) y Vibración (Apagada / Suave / Normal / Fuerte):
 //!   submenú con las opciones y el foco en la actual (como "Escenario").
 //! - Sonido (solo si el reloj tiene Attention.playTone), Animaciones (Reducidas /
-//!   Completas), Confirmar IA y Grabar actividad: interruptores. Las etiquetas del reloj
-//!   son más cortas que las de Garmin Connect: Menu2 corta las que pasan de unos 13
-//!   caracteres junto al interruptor.
+//!   Completas), Confirmar IA, Grabar actividad, Abrir en demo y Guion al abrir
+//!   (DemoLaunch; se aplican la próxima vez que se abra la app): interruptores. Las
+//!   etiquetas del reloj son más cortas que las de Garmin Connect: Menu2 corta las que
+//!   pasan de unos 13 caracteres junto al interruptor.
 //!
 //! Cada cambio se guarda en Application.Properties (AppSettings.save) y se aplica en el
 //! acto (GuardController.applySettings), igual que un cambio desde Garmin Connect.
@@ -26,6 +27,8 @@ module SettingsMenu {
     const ITEM_REDUCED = :reducedAnimations;
     const ITEM_AI = :aiConfirmation;
     const ITEM_RECORD = :recordActivity;
+    const ITEM_DEMO_ON_START = :demoOnStart;
+    const ITEM_DEMO_AUTO_SCRIPT = :demoAutoScript;
 
     //! Textos de las opciones, en el orden de SensitivityLevel y VibrationLevel.
     const SENSITIVITY_NAMES = [Rez.Strings.SettingValueLow, Rez.Strings.SettingValueMedium,
@@ -57,6 +60,9 @@ module SettingsMenu {
             ITEM_REDUCED, settings.reducedAnimations, {}));
         items.add(toggle(Rez.Strings.SettingAiConfirmationShort, ITEM_AI, settings.aiConfirmation));
         items.add(toggle(Rez.Strings.SettingRecordActivityShort, ITEM_RECORD, settings.recordActivity));
+        items.add(toggle(Rez.Strings.SettingDemoOnStartShort, ITEM_DEMO_ON_START, settings.demoOnStart));
+        items.add(toggle(Rez.Strings.SettingDemoAutoScriptShort, ITEM_DEMO_AUTO_SCRIPT,
+            settings.demoAutoScript));
 
         var focusIndex = 0;
         for (var i = 0; i < items.size(); i++) {
@@ -179,6 +185,10 @@ class SettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
             settings.aiConfirmation = enabled;
         } else if (id == SettingsMenu.ITEM_RECORD) {
             settings.recordActivity = enabled;
+        } else if (id == SettingsMenu.ITEM_DEMO_ON_START) {
+            settings.demoOnStart = enabled;
+        } else if (id == SettingsMenu.ITEM_DEMO_AUTO_SCRIPT) {
+            settings.demoAutoScript = enabled;
         } else {
             return;
         }
