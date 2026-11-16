@@ -114,8 +114,9 @@ Los ajustes los sincroniza Garmin Connect como en cualquier app de Connect IQ.
 
 ## 5. Capturas
 
-Tomadas del simulador del SDK 9.3.0 (fr165, compilación de release) con `PrintWindow`, sin
-usar el ratón ni el teclado. 390×390 px, con lo que queda fuera de la pantalla redonda
+Tomadas del simulador del SDK 9.3.0 (fr165, compilación de release de la **1.2.0**, con las
+fuentes propias: Space Grotesk, Inter y JetBrains Mono) con `PrintWindow`, sin usar el
+ratón ni el teclado. 390×390 px, con lo que queda fuera de la pantalla redonda
 transparente. En `docs/img/`, prefijo `es-` (español) y `en-` (inglés). Ver la galería en
 la sección 7.
 
@@ -154,8 +155,8 @@ el `.iq` nuevo a la **misma** app del portal. El `id` del manifest
 
 | | Español | English |
 |---|---|---|
-| Esfera en pausa | ![](img/es-esfera.png) | ![](img/en-esfera.png) |
-| Orbe activo (modo demo) | ![](img/es-orbe-activo.png) | ![](img/en-orbe-activo.png) |
+| Esfera en pausa (sensor real) | ![](img/es-esfera.png) | ![](img/en-esfera.png) |
+| Orbe activo (modo demo, tecleo) | ![](img/es-orbe-activo.png) | ![](img/en-orbe-activo.png) |
 | Alerta nivel 1 | ![](img/es-alerta-nivel1.png) | ![](img/en-alerta-nivel1.png) |
 | Alerta nivel 2 | ![](img/es-alerta-nivel2.png) | ![](img/en-alerta-nivel2.png) |
 | Alerta nivel 3 | ![](img/es-alerta-nivel3.png) | ![](img/en-alerta-nivel3.png) |
@@ -165,6 +166,7 @@ el `.iq` nuevo a la **misma** app del portal. El `id` del manifest
 | Historial | ![](img/es-historial.png) | ![](img/en-historial.png) |
 | Sin datos del sensor | ![](img/es-sin-datos.png) | ![](img/en-sin-datos.png) |
 
-Las alertas de nivel 1 a 3 son "Probar alerta" (motivo: cabeceo). La de nivel 3 en inglés
-se tomó después de acortar "max vibration". El historial contiene guardias de prueba del
-modo demo.
+Las alertas de nivel 1 a 3 son "Probar alerta" (motivo: cabeceo), en el punto más claro de
+su pulso. La esfera en pausa y "Sin datos del sensor" son con el sensor real (modo demo
+apagado, sin el punto cian junto a la batería); el orbe activo, el resumen y el historial,
+con guardias de prueba del modo demo. Capturas de la 1.2.0 (2026-11-15).
